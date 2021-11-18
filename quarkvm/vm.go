@@ -1,7 +1,7 @@
 // (c) 2019-2020, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package timestampvm
+package quarkvm
 
 import (
 	"errors"
@@ -24,13 +24,14 @@ import (
 
 const (
 	dataLen = 32
-	Name    = "timestampvm"
+	Name    = "quarkvm"
+
+	mempoolSize = 512
 )
 
 var (
 	errNoPendingBlocks = errors.New("there is no block to propose")
-	errBadGenesisBytes = errors.New("genesis data should be bytes (max length 32)")
-	Version            = version.NewDefaultVersion(1, 0, 0)
+	Version            = version.NewDefaultVersion(0, 0, 1)
 
 	_ block.ChainVM = &VM{}
 )
@@ -52,7 +53,7 @@ type VM struct {
 	toEngine chan<- common.Message
 
 	// Proposed pieces of data that haven't been put into a block and proposed yet
-	mempool       [][dataLen]byte
+	mempool       *txHeap
 	currentBlocks map[ids.ID]Block
 }
 
@@ -83,6 +84,7 @@ func (vm *VM) Initialize(
 	vm.ctx = ctx
 	vm.toEngine = toEngine
 	vm.currentBlocks = make(map[ids.ID]Block)
+	vm.mempool = newTxHeap(mempoolSize)
 
 	vm.state = NewState(vm.dbManager.Current().Database, vm)
 
@@ -298,16 +300,11 @@ func (vm *VM) NewBlock(parentID ids.ID, height uint64, data [dataLen]byte, times
 
 // Shutdown this vm
 func (vm *VM) Shutdown() error {
-	if ok, err := vm.state.IsInitialized(); !ok {
-		return err
+	if vm.ctx == nil {
+		return nil
 	}
 
-	// flush DB
-	if err := vm.state.Commit(); err != nil {
-		return err
-	}
-
-	return vm.state.Close() // close versionDB
+	return vm.state.Close()
 }
 
 // SetPreference sets the block with ID [ID] as the preferred block
@@ -317,7 +314,10 @@ func (vm *VM) SetPreference(id ids.ID) error {
 }
 
 // Bootstrapped marks this VM as bootstrapped
-func (vm *VM) Bootstrapped() error { return nil }
+func (vm *VM) Bootstrapped() error {
+	vm.ctx.Bootstrapped()
+	return nil
+}
 
 // Bootstrapping marks this VM as bootstrapping
 func (vm *VM) Bootstrapping() error { return nil }

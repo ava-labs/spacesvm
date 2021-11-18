@@ -1,7 +1,7 @@
 // (c) 2019-2020, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package timestampvm
+package quarkvm
 
 import (
 	"errors"
@@ -48,6 +48,7 @@ type timeBlock struct {
 // To be valid, it must be that:
 // b.parent.Timestamp < b.Timestamp <= [local time] + 1 hour
 func (b *timeBlock) Verify() error {
+	// TODO: need to use versionDB (on accept/reject state)
 	if b.Status() == choices.Accepted {
 		return nil
 	}
@@ -101,7 +102,11 @@ func (b *timeBlock) Accept() error {
 	}
 
 	b.vm.state.SetLastAccepted(blkID) // Change state of VM
-	return b.vm.state.Commit()
+	if err := b.vm.state.Commit(); err != nil {
+		return err
+	}
+	delete(b.vm.currentBlocks, b.ID())
+	return nil
 }
 
 // Reject sets this block's status to Rejected and saves the status in state
@@ -111,7 +116,11 @@ func (b *timeBlock) Reject() error {
 	if err := b.vm.state.PutBlock(b); err != nil {
 		return err
 	}
-	return b.vm.state.Commit()
+	if err := b.vm.state.Commit(); err != nil {
+		return err
+	}
+	delete(b.vm.currentBlocks, b.ID())
+	return nil
 }
 
 // ID returns the ID of this block

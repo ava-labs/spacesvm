@@ -1,7 +1,7 @@
 // (c) 2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package timestampvm
+package quarkvm
 
 import (
 	"github.com/ava-labs/avalanchego/database"
