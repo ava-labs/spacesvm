@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package quarkvm
@@ -53,7 +53,7 @@ type VM struct {
 	toEngine chan<- common.Message
 
 	// Proposed pieces of data that haven't been put into a block and proposed yet
-	mempool       *txHeap
+	memPool       memPool
 	currentBlocks map[ids.ID]Block
 }
 
@@ -84,7 +84,7 @@ func (vm *VM) Initialize(
 	vm.ctx = ctx
 	vm.toEngine = toEngine
 	vm.currentBlocks = make(map[ids.ID]Block)
-	vm.mempool = newTxHeap(mempoolSize)
+	vm.memPool = newTxHeap(mempoolSize)
 
 	vm.state = NewState(vm.dbManager.Current().Database, vm)
 
@@ -97,6 +97,8 @@ func (vm *VM) Initialize(
 	// Build off the most recently accepted block
 	return vm.SetPreference(vm.state.GetLastAccepted())
 }
+
+var errBadGenesisBytes = errors.New("bad genesis bytes")
 
 // SetDBInitialized marks the database as initialized
 func (vm *VM) initGenesis(genesisData []byte) error {
@@ -189,17 +191,17 @@ func (vm *VM) HealthCheck() (interface{}, error) { return nil, nil }
 
 // BuildBlock returns a block that this vm wants to add to consensus
 func (vm *VM) BuildBlock() (snowman.Block, error) {
-	if len(vm.mempool) == 0 { // There is no block to be built
+	if vm.memPool.len() == 0 { // There is no block to be built
 		return nil, errNoPendingBlocks
 	}
 
 	// Get the value to put in the new block
-	value := vm.mempool[0]
-	vm.mempool = vm.mempool[1:]
+	maxTx, _ := vm.memPool.popMax()
+	value := maxTx.Bytes()
 
 	// Notify consensus engine that there are more pending data for blocks
 	// (if that is the case) when done building this block
-	if len(vm.mempool) > 0 {
+	if vm.memPool.len() > 0 {
 		defer vm.NotifyBlockReady()
 	}
 
@@ -253,7 +255,7 @@ func (vm *VM) LastAccepted() (ids.ID, error) { return vm.state.GetLastAccepted()
 // that a new block is ready to be added to consensus
 // (namely, a block with data [data])
 func (vm *VM) proposeBlock(data [dataLen]byte) {
-	vm.mempool = append(vm.mempool, data)
+	vm.memPool.push(newTransaction(ids.Empty))
 	vm.NotifyBlockReady()
 }
 
@@ -341,7 +343,7 @@ func (vm *VM) AppGossip(nodeID ids.ShortID, msg []byte) error {
 }
 
 // This VM doesn't (currently) have any app-specific messages
-func (vm *VM) AppRequest(nodeID ids.ShortID, requestID uint32, request []byte) error {
+func (vm *VM) AppRequest(nodeID ids.ShortID, requestID uint32, deadline time.Time, request []byte) error {
 	return nil
 }
 

@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package main
@@ -6,7 +6,7 @@ package main
 import (
 	"flag"
 
-	"github.com/ava-labs/timestampvm/timestampvm"
+	"github.com/ava-labs/quarkvm/quarkvm"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -16,7 +16,7 @@ const (
 )
 
 func buildFlagSet() *flag.FlagSet {
-	fs := flag.NewFlagSet(timestampvm.Name, flag.ContinueOnError)
+	fs := flag.NewFlagSet(quarkvm.Name, flag.ContinueOnError)
 
 	fs.Bool(versionKey, false, "If true, prints Version and quit")
 
