@@ -6,7 +6,7 @@ package main
 import (
 	"flag"
 
-	"github.com/ava-labs/quarkvm/quarkvm"
+	"github.com/ava-labs/quarkvm/vm"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -16,7 +16,7 @@ const (
 )
 
 func buildFlagSet() *flag.FlagSet {
-	fs := flag.NewFlagSet(quarkvm.Name, flag.ContinueOnError)
+	fs := flag.NewFlagSet(vm.Name, flag.ContinueOnError)
 
 	fs.Bool(versionKey, false, "If true, prints Version and quit")
 

@@ -12,7 +12,14 @@ KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin)
 
 At its core, the Avalanche protocol still maintains the immutable ordered sequence of states in a fully permissionless settings. And KVVM defines the rules and data structures to store key-value pairs.
 
-To interact with Avalanche network RPC chain APIs, download and run a [AvalancheGo](https://github.com/ava-labs/avalanchego#installation) node locally, as follows:
+Build quarkvm:
+
+```bash
+cd ${HOME}/go/src/github.com/ava-labs/quarkvm
+./scripts/build.sh
+```
+
+*Step 1.* To interact with Avalanche network RPC chain APIs, download and run a [AvalancheGo](https://github.com/ava-labs/avalanchego#installation) node locally, as follows:
 
 ```bash
 # run 1 avalanchego node in local network
@@ -36,6 +43,110 @@ curl -X POST --data '{
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/health
 ```
 
-TODO: example commands
+*Step 2.* Create a user:
 
+```bash
+curl --location --request POST '127.0.0.1:9650/ext/keystore' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"keystore.createUser",
+    "params" :{
+        "username":"testusername123",
+        "password":"insecurestring789"
+    }
+}'
+```
 
+*Step 3.* Import the pre-funded key for the P-chain:
+
+```bash
+curl --location --request POST '127.0.0.1:9650/ext/P' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"platform.importKey",
+    "params" :{
+        "username":"testusername123",
+        "password":"insecurestring789",
+        "privateKey":"PrivateKey-ewoqjP7PxY4yr3iLTpLisriqt94hdyDFNgchSxGGztUrTXtNN"
+    }
+}'
+# {"jsonrpc":"2.0","result":{"address":"P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"},"id":1}
+```
+
+*Step 4.* Get the list of P-chain addresses:
+
+```bash
+curl -X POST --data '{
+    "jsonrpc": "2.0",
+    "method": "platform.listAddresses",
+    "params": {
+        "username":"testusername123",
+        "password":"insecurestring789"
+    },
+    "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P
+# {"jsonrpc":"2.0","result":{"addresses":["P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"]},"id":1}
+```
+
+*Step 5.* Create a subnet:
+
+```bash
+curl --location --request POST '127.0.0.1:9650/ext/P' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"platform.createSubnet",
+    "params" :{
+        "username":"testusername123",
+        "password":"insecurestring789",
+        "threshold":1,
+        "controlKeys":["P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"]
+    }
+}'
+# {"jsonrpc":"2.0","result":{"txID":"29uVeLPJB1eQJkzRemU8g8wZDw5uJRqpab5U2mX9euieVwiEbL","changeAddr":"P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"},"id":1}
+# 29uVeLPJB1eQJkzRemU8g8wZDw5uJRqpab5U2mX9euieVwiEbL is the subnet blockchain ID
+```
+
+*Step 6.* Create a blockchain:
+
+```bash
+# TODO: where to get vmID
+curl --location --request POST '127.0.0.1:9650/ext/P' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"platform.createBlockchain",
+    "params" :{
+        "username":"testusername123",
+        "password":"insecurestring789",
+        "vmID":"tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH",
+        "subnetID":"29uVeLPJB1eQJkzRemU8g8wZDw5uJRqpab5U2mX9euieVwiEbL",
+        "name":"quarkvm",
+        "genesisData":"",
+        "controlKeys":["P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"]
+    }
+}'
+#
+```
+
+Connect to quarkvm:
+
+```bash
+curl --location --request POST '127.0.0.1:9650/ext/vm/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"quarkvm.put",
+    "params" :{
+        "key":"foo",
+        "value":"bar"
+    }
+}'
+```

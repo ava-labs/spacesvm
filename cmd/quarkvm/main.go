@@ -4,35 +4,74 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/ava-labs/avalanchego/vms/rpcchainvm"
-	"github.com/ava-labs/quarkvm/quarkvm"
+	"github.com/ava-labs/quarkvm/version"
+	"github.com/ava-labs/quarkvm/vm"
 	"github.com/hashicorp/go-plugin"
 	log "github.com/inconshreveable/log15"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	version, err := PrintVersion()
+	printVersion, err := PrintVersion()
 	if err != nil {
 		fmt.Printf("couldn't get config: %s", err)
 		os.Exit(1)
 	}
 	// Print VM ID and exit
-	if version {
-		fmt.Printf("%s@%s\n", quarkvm.Name, quarkvm.Version)
+	if printVersion {
+		fmt.Printf("%s@%s\n", vm.Name, version.Version)
 		os.Exit(0)
 	}
-
 	log.Root().SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stderr, log.TerminalFormat())))
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: rpcchainvm.Handshake,
-		Plugins: map[string]plugin.Plugin{
-			"vm": rpcchainvm.New(&quarkvm.VM{}),
-		},
 
-		// A non-nil value here enables gRPC serving for this plugin...
-		GRPCServer: plugin.DefaultGRPCServer,
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
+	// When we get a SIGINT or SIGTERM, stop the network.
+	signalsCh := make(chan os.Signal, 1)
+	signal.Notify(signalsCh, syscall.SIGINT)
+	signal.Notify(signalsCh, syscall.SIGTERM)
+	go func() {
+		select {
+		case <-ctx.Done():
+			return
+		case sig := <-signalsCh:
+			fmt.Println("received OS signal:", sig)
+			cancel()
+		}
+	}()
+
+	g, gctx := errgroup.WithContext(ctx)
+	_ = gctx
+
+	// TODO create agent
+	// TODO create vm
+
+	g.Go(func() error {
+		plugin.Serve(&plugin.ServeConfig{
+			// HandshakeConfig: rpcchainvm.Handshake,
+			HandshakeConfig: plugin.HandshakeConfig{
+				ProtocolVersion:  9,
+				MagicCookieKey:   "VM_PLUGIN",
+				MagicCookieValue: "dynamic",
+			},
+			Plugins: map[string]plugin.Plugin{
+				"vm": rpcchainvm.New(&vm.VM{}),
+			},
+
+			// A non-nil value here enables gRPC serving for this plugin...
+			GRPCServer: plugin.DefaultGRPCServer,
+		})
+		return nil
 	})
+	if err := g.Wait(); err != nil {
+		panic(err)
+	}
 }

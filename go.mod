@@ -3,24 +3,27 @@ module github.com/ava-labs/quarkvm
 go 1.17
 
 require (
+	ekyu.moe/cryptonight v0.3.0
 	github.com/ava-labs/avalanchego v1.6.5
-	github.com/ava-labs/timestampvm v1.1.1
 	github.com/gorilla/rpc v1.2.0
 	github.com/hashicorp/go-plugin v1.4.3
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.9.0
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
 
 require (
 	github.com/AppsFlyer/go-sundheit v0.2.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
+	github.com/aead/skein v0.0.0-20160722084837-9365ae6e95d2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcutil v1.0.2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v3 v3.0.0-20200627015759-01fd2de07837 // indirect
+	github.com/dchest/blake256 v1.0.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
@@ -58,7 +61,6 @@ require (
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
