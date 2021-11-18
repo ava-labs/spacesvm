@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package quarkvm
 
 import (
@@ -10,16 +13,21 @@ import (
 // the mempool.
 type txEntry struct {
 	id         ids.ID
-	tx         *Transaction
+	tx         transaction
 	difficulty uint64
 	index      int
 }
 
+var _ heap.Interface = &internalTxHeap{}
+
 // internalTxHeap is used to track pending transactions by [difficulty]
 type internalTxHeap struct {
+	// min-heap pops the lowest difficulty transaction
+	// max-heap pops the highest difficulty transaction
 	isMinHeap bool
-	items     []*txEntry
-	lookup    map[ids.ID]*txEntry
+
+	items  []*txEntry
+	lookup map[ids.ID]*txEntry
 }
 
 func newInternalTxHeap(items int, isMinHeap bool) *internalTxHeap {
@@ -34,8 +42,10 @@ func (th internalTxHeap) Len() int { return len(th.items) }
 
 func (th internalTxHeap) Less(i, j int) bool {
 	if th.isMinHeap {
+		// min-heap pops the lowest difficulty transaction
 		return th.items[i].difficulty < th.items[j].difficulty
 	}
+	// max-heap pops the highest difficulty transaction
 	return th.items[i].difficulty > th.items[j].difficulty
 }
 
@@ -63,7 +73,7 @@ func (th *internalTxHeap) Pop() interface{} {
 	return item
 }
 
-func (th *internalTxHeap) Get(id ids.ID) (*txEntry, bool) {
+func (th *internalTxHeap) get(id ids.ID) (*txEntry, bool) {
 	entry, ok := th.lookup[id]
 	if !ok {
 		return nil, false
@@ -72,10 +82,13 @@ func (th *internalTxHeap) Get(id ids.ID) (*txEntry, bool) {
 }
 
 func (th *internalTxHeap) Has(id ids.ID) bool {
-	_, has := th.Get(id)
+	_, has := th.get(id)
 	return has
 }
 
+var _ mempool = &txHeap{}
+
+// implementing double-ended priority queue
 type txHeap struct {
 	maxSize int
 	maxHeap *internalTxHeap
@@ -90,18 +103,18 @@ func newTxHeap(maxSize int) *txHeap {
 	}
 }
 
-func (th *txHeap) Push(tx *Transaction) {
+func (th *txHeap) push(tx transaction) {
 	txID := tx.ID()
 	// Don't add duplicates
-	if th.Has(txID) {
+	if th.has(txID) {
 		return
 	}
 	// Remove the lowest paying tx
-	if th.Len() >= th.maxSize {
-		_ = th.PopMin()
+	if th.len() >= th.maxSize {
+		_ = th.popMin()
 	}
 	difficulty := tx.Difficulty()
-	oldLen := th.Len()
+	oldLen := th.len()
 	heap.Push(th.maxHeap, &txEntry{
 		id:         txID,
 		difficulty: difficulty,
@@ -117,36 +130,36 @@ func (th *txHeap) Push(tx *Transaction) {
 }
 
 // Assumes there is non-zero items in [txHeap]
-func (th *txHeap) PeekMax() (*Transaction, uint64) {
+func (th *txHeap) peekMax() (transaction, uint64) {
 	txEntry := th.maxHeap.items[0]
 	return txEntry.tx, txEntry.difficulty
 }
 
 // Assumes there is non-zero items in [txHeap]
-func (th *txHeap) PeekMin() (*Transaction, uint64) {
+func (th *txHeap) peekMin() (transaction, uint64) {
 	txEntry := th.minHeap.items[0]
 	return txEntry.tx, txEntry.difficulty
 }
 
 // Assumes there is non-zero items in [txHeap]
-func (th *txHeap) PopMax() (*Transaction, uint64) {
+func (th *txHeap) popMax() (transaction, uint64) {
 	item := th.maxHeap.items[0]
-	return th.Remove(item.id), item.difficulty
+	return th.remove(item.id), item.difficulty
 }
 
 // Assumes there is non-zero items in [txHeap]
-func (th *txHeap) PopMin() *Transaction {
-	return th.Remove(th.minHeap.items[0].id)
+func (th *txHeap) popMin() transaction {
+	return th.remove(th.minHeap.items[0].id)
 }
 
-func (th *txHeap) Remove(id ids.ID) *Transaction {
-	maxEntry, ok := th.maxHeap.Get(id)
+func (th *txHeap) remove(id ids.ID) transaction {
+	maxEntry, ok := th.maxHeap.get(id)
 	if !ok {
 		return nil
 	}
 	heap.Remove(th.maxHeap, maxEntry.index)
 
-	minEntry, ok := th.minHeap.Get(id)
+	minEntry, ok := th.minHeap.get(id)
 	if !ok {
 		// This should never happen, as that would mean the heaps are out of
 		// sync.
@@ -155,7 +168,7 @@ func (th *txHeap) Remove(id ids.ID) *Transaction {
 	return heap.Remove(th.minHeap, minEntry.index).(*txEntry).tx
 }
 
-func (th *txHeap) Prune(validHashes ids.Set) {
+func (th *txHeap) prune(validHashes ids.Set) {
 	toRemove := []ids.ID{}
 	for _, txE := range th.maxHeap.items {
 		if !validHashes.Contains(txE.tx.GetBlockID()) {
@@ -163,22 +176,22 @@ func (th *txHeap) Prune(validHashes ids.Set) {
 		}
 	}
 	for _, txID := range toRemove {
-		th.Remove(txID)
+		th.remove(txID)
 	}
 }
 
-func (th *txHeap) Len() int {
+func (th *txHeap) len() int {
 	return th.maxHeap.Len()
 }
 
-func (th *txHeap) Get(id ids.ID) (*Transaction, bool) {
-	txEntry, ok := th.maxHeap.Get(id)
+func (th *txHeap) get(id ids.ID) (transaction, bool) {
+	txEntry, ok := th.maxHeap.get(id)
 	if !ok {
 		return nil, false
 	}
 	return txEntry.tx, true
 }
 
-func (th *txHeap) Has(id ids.ID) bool {
+func (th *txHeap) has(id ids.ID) bool {
 	return th.maxHeap.Has(id)
 }
