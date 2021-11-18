@@ -53,7 +53,7 @@ type VM struct {
 	toEngine chan<- common.Message
 
 	// Proposed pieces of data that haven't been put into a block and proposed yet
-	memPool       memPool
+	mempool       mempool
 	currentBlocks map[ids.ID]Block
 }
 
@@ -84,7 +84,7 @@ func (vm *VM) Initialize(
 	vm.ctx = ctx
 	vm.toEngine = toEngine
 	vm.currentBlocks = make(map[ids.ID]Block)
-	vm.memPool = newTxHeap(mempoolSize)
+	vm.mempool = newTxHeap(mempoolSize)
 
 	vm.state = NewState(vm.dbManager.Current().Database, vm)
 
@@ -191,17 +191,17 @@ func (vm *VM) HealthCheck() (interface{}, error) { return nil, nil }
 
 // BuildBlock returns a block that this vm wants to add to consensus
 func (vm *VM) BuildBlock() (snowman.Block, error) {
-	if vm.memPool.len() == 0 { // There is no block to be built
+	if vm.mempool.len() == 0 { // There is no block to be built
 		return nil, errNoPendingBlocks
 	}
 
 	// Get the value to put in the new block
-	maxTx, _ := vm.memPool.popMax()
+	maxTx, _ := vm.mempool.popMax()
 	value := maxTx.Bytes()
 
 	// Notify consensus engine that there are more pending data for blocks
 	// (if that is the case) when done building this block
-	if vm.memPool.len() > 0 {
+	if vm.mempool.len() > 0 {
 		defer vm.NotifyBlockReady()
 	}
 
@@ -255,7 +255,7 @@ func (vm *VM) LastAccepted() (ids.ID, error) { return vm.state.GetLastAccepted()
 // that a new block is ready to be added to consensus
 // (namely, a block with data [data])
 func (vm *VM) proposeBlock(data [dataLen]byte) {
-	vm.memPool.push(newTransaction(ids.Empty))
+	vm.mempool.push(newTransaction(ids.Empty))
 	vm.NotifyBlockReady()
 }
 

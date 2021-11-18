@@ -86,7 +86,7 @@ func (th *internalTxHeap) Has(id ids.ID) bool {
 	return has
 }
 
-var _ memPool = &txHeap{}
+var _ mempool = &txHeap{}
 
 // implementing double-ended priority queue
 type txHeap struct {

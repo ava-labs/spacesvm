@@ -5,8 +5,8 @@ package quarkvm
 
 import "github.com/ava-labs/avalanchego/ids"
 
-// memPool defines in-memory transaction pool.
-type memPool interface {
+// mempool defines in-memory transaction pool.
+type mempool interface {
 	push(tx transaction)
 	peekMax() (transaction, uint64)
 	peekMin() (transaction, uint64)
