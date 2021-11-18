@@ -196,6 +196,9 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 	}
 
 	// Get the value to put in the new block
+	// TODO: iterate over txs in pool until tx can't pay more fees
+	// (more than just single tx addition)
+	// e.g., for len(b.Txs) < targetTransactions && c.mempool.Len() > 0 {
 	maxTx, _ := vm.mempool.popMax()
 	value := maxTx.Bytes()
 
@@ -249,6 +252,10 @@ func (vm *VM) getBlock(blkID ids.ID) (Block, error) {
 
 // LastAccepted returns the block most recently accepted
 func (vm *VM) LastAccepted() (ids.ID, error) { return vm.state.GetLastAccepted(), nil }
+
+// TODO
+// instead use a block-based timer
+// https://github.com/ava-labs/coreth/blob/master/plugin/evm/block_builder.go
 
 // proposeBlock appends [data] to [p.mempool].
 // Then it notifies the consensus engine
