@@ -26,8 +26,8 @@ func init() {
 
 func init() {
 	rootCmd.AddCommand(
-		claim.NewCommand(),
 		create.NewCommand(),
+		claim.NewCommand(),
 		put.NewCommand(),
 	)
 }

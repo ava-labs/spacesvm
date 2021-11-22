@@ -39,6 +39,9 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	color.Green("loaded address %s", pk.PublicKey().Address())
 	p := getClaimOp(args)
 	fmt.Println("NOT IMPLEMENTED YET:", p)
+	// get difficulty/blockhash to target
+	// mine
+	// submit -> wait -> re-mine
 	return nil
 }
 
