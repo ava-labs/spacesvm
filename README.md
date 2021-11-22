@@ -18,7 +18,7 @@ Build quarkvm:
 cd ${HOME}/go/src/github.com/ava-labs/quarkvm
 ./scripts/build.sh
 ```
-
+## TODO: MIGRATE TO USING AVA-SIM
 *Step 1.* To interact with Avalanche network RPC chain APIs, download and run a [AvalancheGo](https://github.com/ava-labs/avalanchego#installation) node locally, as follows:
 
 ```bash
@@ -135,18 +135,15 @@ curl --location --request POST '127.0.0.1:9650/ext/P' \
 #
 ```
 
-Connect to quarkvm:
+*Step 7.* Interact with quarkVM using quark-cli:
 
 ```bash
-curl --location --request POST '127.0.0.1:9650/ext/vm/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "jsonrpc":"2.0",
-    "id"     :1,
-    "method" :"quarkvm.put",
-    "params" :{
-        "key":"foo",
-        "value":"bar"
-    }
-}'
+# TODO: add config file/env for key location and/or RPC
+quark-cli create
+quark-cli claim jim.avax
+quark-cli set jim.avax/twitter @jimbo
+quark-cli lifeline jim.avax
+quark-cli get jim.avax/twitter
+quark-cli info jim.avax (remaining life, num keys, claimed/unclaimed/expired)
+quark-cli keys jim.avax (get all keys values)
 ```

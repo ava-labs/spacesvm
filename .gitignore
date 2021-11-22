@@ -47,3 +47,5 @@ db*
 bin/
 build/
 vendor
+
+.quark-cli-pk
