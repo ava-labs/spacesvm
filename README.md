@@ -135,18 +135,6 @@ curl --location --request POST '127.0.0.1:9650/ext/P' \
 #
 ```
 
-Connect to quarkvm:
+*Step 7.* Interact with quarkVM using quark-cli:
 
-```bash
-curl --location --request POST '127.0.0.1:9650/ext/vm/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "jsonrpc":"2.0",
-    "id"     :1,
-    "method" :"quarkvm.put",
-    "params" :{
-        "key":"foo",
-        "value":"bar"
-    }
-}'
-```
+TODO
