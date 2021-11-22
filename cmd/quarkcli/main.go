@@ -1,23 +1,23 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// "quark-cli" implements quarkvm client operation interface.
 package main
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/claim"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
+	"github.com/ava-labs/quarkvm/cmd/quarkcli/get"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/put"
-
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
 	Use:        "quark-cli",
 	Short:      "QuarkVM client CLI",
-	SuggestFor: []string{"quark-cli"},
+	SuggestFor: []string{"quark-cli", "quarkcli", "quarkctl"},
 }
 
 func init() {
@@ -27,8 +27,8 @@ func init() {
 func init() {
 	rootCmd.AddCommand(
 		create.NewCommand(),
-		claim.NewCommand(),
 		put.NewCommand(),
+		get.NewCommand(),
 	)
 }
 

@@ -14,20 +14,22 @@ var (
 	ErrInvalidKeyDelimiter = errors.New("key has unexpected delimiters; only flat key or sub-key is supported")
 )
 
-// getPrefix returns the prefixed key and range query end key for list calls.
+// GetPrefix returns the prefixed key and range query end key for list calls.
 // put "foo" becomes "foo/" for its own namespace, and range ends with "foo0"
 // put "fop" becomes "fop/" for its own namespace, and range ends with "fop0"
 // put "foo1" becomes "foo1/" for its own namespace, and range ends with "foo10"
 // For now, the storage itself does not implement key hierarchy, just flat prefix namespace.
-func getPrefix(key []byte) (pfx []byte, end []byte, err error) {
+func GetPrefix(key []byte) (pfx []byte, end []byte, err error) {
 	if bytes.Count(key, []byte{delimiter}) > 1 {
 		return nil, nil, ErrInvalidKeyDelimiter
 	}
 
+	k := key
 	idx := bytes.IndexRune(key, rune(delimiter))
 	switch {
 	case idx == -1: // "foo"
 		pfx = append(key, delimiter)
+		k = pfx
 	case idx == len(key)-1: // "foo/"
 		pfx = key
 	default: // "a/b", then "a/" becomes prefix
@@ -35,8 +37,8 @@ func getPrefix(key []byte) (pfx []byte, end []byte, err error) {
 	}
 
 	// next lexicographical key (range end) for prefix queries
-	end = make([]byte, len(pfx))
-	copy(end, pfx)
+	end = make([]byte, len(k))
+	copy(end, k)
 	for i := len(end) - 1; i >= 0; i-- {
 		if end[i] < 0xff {
 			end[i] = end[i] + 1

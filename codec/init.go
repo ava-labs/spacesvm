@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	// CodecVersion is the current default codec version
+	// codecVersion is the current default codec version
 	codecVersion = 0
 )
 
@@ -21,9 +21,8 @@ var (
 )
 
 func init() {
-	c = linearcodec.NewDefault()
 	codecManager = codec.NewDefaultManager()
-
+	c = linearcodec.NewDefault()
 	if err := codecManager.RegisterCodec(codecVersion, c); err != nil {
 		panic(err)
 	}

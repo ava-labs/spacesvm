@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_getPrefix(t *testing.T) {
+func TestGetPrefix(t *testing.T) {
 	tt := []struct {
 		key []byte
 		pfx []byte
@@ -27,7 +27,13 @@ func Test_getPrefix(t *testing.T) {
 		{
 			key: []byte("a/b"),
 			pfx: []byte("a/"),
-			end: []byte("a0"),
+			end: []byte("a/c"),
+			err: nil,
+		},
+		{
+			key: []byte("foo/1"),
+			pfx: []byte("foo/"),
+			end: []byte("foo/2"),
 			err: nil,
 		},
 		{
@@ -38,7 +44,7 @@ func Test_getPrefix(t *testing.T) {
 		},
 	}
 	for i, tv := range tt {
-		pfx, end, err := getPrefix(tv.key)
+		pfx, end, err := GetPrefix(tv.key)
 		if !bytes.Equal(pfx, tv.pfx) {
 			t.Fatalf("#%d: pfx expected %q, got %q", i, string(tv.pfx), string(pfx))
 		}

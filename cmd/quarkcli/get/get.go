@@ -1,11 +1,10 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// Package put implements "put" commands.
-package put
+// Package get implements "get" commands.
+package get
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -33,19 +32,15 @@ var (
 // NewCommand implements "quark-cli" command.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "put [options] <key> <value>",
-		Short: "Puts the given key-value pair into the store",
+		Use:   "get [options] <key> <rangeEnd>",
+		Short: "Reads the given key or range from the store",
 		Long: `
-Puts the given key into the store.
+Reads the given key or range from the store.
 
-# prefix will be automatically parsed with delimiter "/"
-# "jim" is the prefix (namespace)
-# "foo" is the key
-# "hello world" is the value
-$ quark-cli put jim/foo "hello world"
+$ quark-cli get jim/foo
 
 `,
-		RunE: putFunc,
+		RunE: getFunc,
 	}
 	cmd.PersistentFlags().StringVar(
 		&privateKeyFile,
@@ -75,13 +70,13 @@ $ quark-cli put jim/foo "hello world"
 }
 
 // TODO: move all this to a separate client code
-func putFunc(cmd *cobra.Command, args []string) error {
+func getFunc(cmd *cobra.Command, args []string) error {
 	priv, err := create.LoadPK(privateKeyFile)
 	if err != nil {
 		return err
 	}
 
-	k, v := getPutOp(args)
+	k, rangeEnd := getGetOp(args)
 
 	if !strings.HasPrefix(endpoint, "/") {
 		endpoint = "/" + endpoint
@@ -100,9 +95,9 @@ func putFunc(cmd *cobra.Command, args []string) error {
 	// panic: ed25519: bad public key length: 64
 	utx := transaction.Unsigned{
 		PublicKey: priv.PublicKey().Bytes(),
-		Op:        "Put",
+		Op:        "Range",
 		Key:       k,
-		Value:     v,
+		RangeEnd:  rangeEnd,
 	}
 
 	// sign the unsigned transaction
@@ -118,56 +113,39 @@ func putFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	// issue the transaction over tx
+	color.Yellow("sending range [%q, %q]", k, rangeEnd)
 	resp := new(vm.IssueTxReply)
 	if err := requester.SendRequest(
 		"issueTx",
 		&vm.IssueTxArgs{Transaction: tx},
 		resp,
 	); err != nil {
-		color.Red("failed to issue transaction %v", err)
+		color.Red("range failed %v", err)
 		return err
 	}
-
-	txID := resp.TxID
-	color.Green("issued transaction %s (success %v)", txID, resp.Success)
 	if !resp.Success {
-		return fmt.Errorf("tx %v failed", txID)
+		return fmt.Errorf("range %q failed (%v)", k, resp.Error)
 	}
+	color.Green("range [%q, %q] success %v", k, rangeEnd, resp.Success)
 
-	color.Yellow("polling transaction %q", txID)
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	defer cancel()
-done:
-	for ctx.Err() == nil {
-		select {
-		case <-time.After(5 * time.Second):
-		case <-ctx.Done():
-			break done
-		}
-
-		resp := new(vm.CheckTxReply)
-		if err := requester.SendRequest(
-			"checkTx",
-			&vm.CheckTxArgs{TxID: txID},
-			resp,
-		); err != nil {
-			color.Red("polling transaction failed %v", err)
-		}
-		if resp.Error != nil {
-			color.Red("polling transaction error %v", resp.Error)
-		}
-		if resp.Confirmed {
-			color.Yellow("confirmed transaction %q", txID)
-			break
-		}
+	// TODO: configurable output format
+	for _, kv := range resp.RangeResponse.KeyValues {
+		fmt.Println(string(kv.Key), string(kv.Value))
 	}
 	return nil
 }
 
-func getPutOp(args []string) (key string, value string) {
-	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected 2 arguments, got %d\n", len(args))
+func getGetOp(args []string) (key string, rangeEnd string) {
+	if len(args) > 2 {
+		fmt.Fprintf(os.Stderr, "expected at most 2 arguments, got %d\n", len(args))
 		os.Exit(128)
+	}
+	if len(args) < 1 {
+		fmt.Fprintf(os.Stderr, "expected at least 2 arguments, got %d\n", len(args))
+		os.Exit(128)
+	}
+	if len(args) == 1 {
+		return args[0], ""
 	}
 	return args[0], args[1]
 }

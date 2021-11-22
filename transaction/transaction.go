@@ -6,23 +6,21 @@ package transaction
 
 import (
 	"errors"
+	"fmt"
 
 	"ekyu.moe/cryptonight"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/formatting"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/quarkvm/codec"
+	"github.com/ava-labs/quarkvm/crypto/ed25519"
 	"github.com/ava-labs/quarkvm/storage"
 )
 
+var ErrInvalidSig = errors.New("invalid signature")
+
 func init() {
 	codec.RegisterType(&Transaction{})
-}
-
-type Transaction struct {
-	Unsigned  Unsigned `serialize:"true" json:"unsigned"`
-	Signature []byte   `serialize:"true" json:"signature"`
-
-	difficulty uint64 // populate in mempool
 }
 
 func New(utx Unsigned, sig []byte) *Transaction {
@@ -32,12 +30,15 @@ func New(utx Unsigned, sig []byte) *Transaction {
 	}
 }
 
-func UnsignedBytes(utx Unsigned) []byte {
-	v, err := codec.Marshal(utx)
-	if err != nil {
-		panic(err)
-	}
-	return v
+type Transaction struct {
+	Unsigned  Unsigned `serialize:"true" json:"unsigned"`
+	Signature []byte   `serialize:"true" json:"signature"`
+
+	// TODO: using this?
+	Encoding formatting.Encoding `serialize:"true" json:"encoding"`
+
+	difficulty uint64 `serialize:"false" json:"-"`
+	txID       ids.ID `serialize:"false" json:"-"`
 }
 
 func (t *Transaction) Bytes() []byte {
@@ -48,65 +49,73 @@ func (t *Transaction) Bytes() []byte {
 	return v
 }
 
-func (t *Transaction) Size() uint64 {
-	return uint64(len(t.Bytes()))
-}
-
 func (t *Transaction) ID() ids.ID {
-	h, err := ids.ToID(hashing.ComputeHash256(t.Bytes()))
-	if err != nil {
-		panic(err)
+	if t.txID == ids.Empty {
+		h, err := ids.ToID(hashing.ComputeHash256(t.Bytes()))
+		if err != nil {
+			panic(err)
+		}
+		t.txID = h
 	}
-	return h
+	return t.txID
 }
 
 func (t *Transaction) Difficulty() uint64 {
 	if t.difficulty == 0 {
-		h := cryptonight.Sum(UnsignedBytes(t.Unsigned), 2)
+		h := cryptonight.Sum(t.Unsigned.Bytes(), 2)
 		t.difficulty = cryptonight.Difficulty(h)
 	}
 	return t.difficulty
 }
 
-func (t *Transaction) Verify(s storage.Storage, blockTime int64, recentBlockIDs ids.Set, recentTxIDs ids.Set, minDifficulty uint64) error {
-	if err := t.Unsigned.VerifyBase(); err != nil {
-		return err
-	}
-	if !recentBlockIDs.Contains(t.Unsigned.GetBlockID()) {
-		// Hash must be recent to be any good
-		// Should not happen beause of mempool cleanup
-		return errors.New("invalid block id")
-	}
-	if recentTxIDs.Contains(t.ID()) {
-		// Tx hash must not be recently executed (otherwise could be replayed)
-		//
-		// NOTE: We only need to keep cached tx hashes around as long as the
-		// block hash referenced in the tx is valid
-		return errors.New("duplicate tx")
-	}
-	if t.Difficulty() < minDifficulty {
-		return errors.New("invalid difficulty")
-	}
-	if !t.Unsigned.GetSender().Verify(UnsignedBytes(t.Unsigned), t.Signature) {
-		return errors.New("invalid signature")
-	}
-	return t.Unsigned.Verify(s, blockTime)
-}
-
-func (t *Transaction) Accept(s storage.Storage, blockTime int64) error {
-	if err := t.Unsigned.Accept(s, blockTime); err != nil {
-		return err
-	}
-
-	// persists in prefixed db
-	id := t.ID()
-	return s.Tx().Put(append([]byte{}, id[:]...), nil)
-}
-
 func (t *Transaction) PrefixID() ids.ID {
-	h, err := ids.ToID(hashing.ComputeHash256(t.Unsigned.GetPrefix()))
+	pfx, err := t.Unsigned.GetPrefix()
+	if err != nil {
+		panic(err)
+	}
+	h, err := ids.ToID(hashing.ComputeHash256(pfx))
 	if err != nil {
 		panic(err)
 	}
 	return h
+}
+
+func (t *Transaction) Verify() error {
+	switch t.Unsigned.Op {
+	case "Put":
+	case "Range":
+	default:
+		return fmt.Errorf("unknown op %q", t.Unsigned.Op)
+	}
+	if !ed25519.Verify(t.Unsigned.PublicKey, t.Unsigned.Bytes(), t.Signature) {
+		return ErrInvalidSig
+	}
+	return nil
+}
+
+func (t *Transaction) Accept(s storage.Storage, blockTime int64) error {
+	// persist to database once PoW/agreed by consensus
+	switch t.Unsigned.Op {
+	case "Put":
+		// persist key-value pair
+		if err := s.Put(
+			[]byte(t.Unsigned.Key),
+			[]byte(t.Unsigned.Value),
+			storage.WithOverwrite(true),
+			storage.WithBlockTime(blockTime),
+			storage.WithPublicKey(&ed25519.PublicKey{PublicKey: []byte(t.Unsigned.PublicKey)}),
+		); err != nil {
+			return err
+		}
+		// if key-value write succeeds,
+		// persists the transaction ID
+		txID := t.ID()
+		if err := s.Tx().Put(txID[:], nil); err != nil {
+			return err
+		}
+
+	case "Range":
+		// no-op for accept
+	}
+	return nil
 }

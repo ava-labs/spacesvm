@@ -14,7 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/quarkvm/codec"
-	"github.com/ava-labs/quarkvm/crypto/ed25519"
+	"github.com/ava-labs/quarkvm/crypto"
 	"github.com/ava-labs/quarkvm/owner"
 )
 
@@ -27,7 +27,7 @@ var (
 
 var (
 	ErrNoPubKey           = errors.New("caller must provide the public key to make modification or overwrite")
-	ErrInvalidSig         = errors.New("invalid signature")
+	ErrPubKeyNotAllowed   = errors.New("public key is not allowed for this operation")
 	ErrKeyExists          = errors.New("key already exists")
 	ErrKeyNotExist        = errors.New("key not exists")
 	ErrInvalidKeyLength   = errors.New("invalid key length")
@@ -48,11 +48,10 @@ type Storage interface {
 	Close() error
 
 	// Finds the underlying info based on the key.
-	// The method should handle the prefix extraction.
-	// Returns an error if the prefix is non-existent.
-	FindOwner(k []byte) (prefix []byte, ov *owner.Owner, err error)
+	// The method assumes the prefix is already pre-processed.
+	FindOwner(k []byte) (ov *owner.Owner, err error)
 	Put(k []byte, v []byte, opts ...OpOption) error
-	Get(k []byte, opts ...OpOption) ([]byte, bool, error)
+	Range(k []byte, opts ...OpOption) (resp *RangeResponse, err error)
 }
 
 type storage struct {
@@ -67,6 +66,7 @@ type storage struct {
 func New(ctx *snow.Context, db database.Database) Storage {
 	baseDB := versiondb.New(db)
 	return &storage{
+		ctx:     ctx,
 		baseDB:  baseDB,
 		blockDB: prefixdb.New(blockStateBucket, baseDB),
 		ownerDB: prefixdb.New(ownerBucket, baseDB),
@@ -99,32 +99,29 @@ func (s *storage) Close() error {
 	return s.baseDB.Close()
 }
 
-func (s *storage) FindOwner(k []byte) (pfx []byte, ov *owner.Owner, err error) {
-	pfx, _, err = getPrefix(k)
+func (s *storage) FindOwner(k []byte) (ov *owner.Owner, err error) {
+	// TODO: can we do this in one db call (e.g., Get)?
+	exist, err := s.ownerDB.Has(k)
 	if err != nil {
-		return pfx, nil, err
-	}
-
-	// TODO: do this in one db call (e.g., Get)
-	exist, err := s.ownerDB.Has(pfx)
-	if err != nil {
-		return pfx, nil, err
+		return nil, err
 	}
 	if !exist {
-		return pfx, nil, ErrKeyNotExist
+		return nil, ErrKeyNotExist
 	}
 
-	src, err := s.ownerDB.Get(pfx)
+	src, err := s.ownerDB.Get(k)
 	if err != nil {
-		return pfx, nil, err
+		return nil, err
 	}
 
 	ov = new(owner.Owner)
 	if _, err := codec.Unmarshal(src, ov); err != nil {
-		return pfx, nil, err
+		return nil, err
 	}
-	return pfx, ov, nil
+	return ov, nil
 }
+
+// TODO: version control?
 
 func (s *storage) Put(k []byte, v []byte, opts ...OpOption) error {
 	if len(k) > maxKeyLength || len(k) == 0 {
@@ -134,68 +131,67 @@ func (s *storage) Put(k []byte, v []byte, opts ...OpOption) error {
 		return ErrInvalidValueLength
 	}
 
-	ret := &Op{}
+	ret := &Op{key: k}
 	ret.applyOpts(opts)
 	if ret.pub == nil {
 		return ErrNoPubKey
 	}
 
-	// value must be signe with signature
-	if !ret.pub.Verify(v, ret.sig) {
-		return ErrInvalidSig
-	}
-
 	if exist, _ := s.keyDB.Has(k); exist && !ret.overwrite {
 		return ErrKeyExists
+	}
+	pfx, _, err := GetPrefix(k)
+	if err != nil {
+		return err
 	}
 
 	// check the ownership of the key
 	// any non-existent/expired key can be claimed by anyone
 	// that submits a sufficient PoW
-	exists := true
-	pfx, prevOwner, err := s.FindOwner(k)
+	prevOwner, err := s.FindOwner(pfx)
 	if err != nil {
 		if err != ErrKeyNotExist {
 			return err
 		}
-		exists = false
-	}
-	if exists && prevOwner == nil { // should never happen
-		panic("key exists but owner not found?")
+		prevOwner = nil // make sure no previous owner is set
 	}
 
 	needNewOwner := true
-	if exists {
-		// prefix already claimed
+	if prevOwner != nil { // prefix previously claimed
 		expired := prevOwner.Expiry < time.Now().Unix()
-		sameOwner := bytes.Equal(prevOwner.PublicKey.Bytes(), ret.pub.Bytes())
+		sameOwner := bytes.Equal(prevOwner.PublicKey, ret.pub.Bytes())
 		switch {
 		case !expired && !sameOwner:
-			return fmt.Errorf("%q is not expired and already owned by %q", prevOwner.Namespace, prevOwner.PublicKey.Address())
+			return fmt.Errorf("namespace %q has not been expired and already owned by someone else", prevOwner.Namespace)
 		case !expired && sameOwner:
 			needNewOwner = false
 			s.ctx.Log.Info("%q has an active owner", prevOwner.Namespace)
 		case expired:
-			s.ctx.Log.Info("%q has an expired owner; allowing put for new owner", prevOwner.Namespace)
+			s.ctx.Log.Info("%q has an expired owner, allowing new owner claim", prevOwner.Namespace)
 		}
 	}
-
-	// prefix expired or not claimed yet
 	newOwner := prevOwner
-	if needNewOwner {
+	if needNewOwner { // prefix expired or not claimed yet
 		newOwner = &owner.Owner{
-			PublicKey: ret.pub,
+			PublicKey: ret.pub.Bytes(),
 			Namespace: string(pfx),
 		}
 	}
 
-	// TODO: define save owner method
-	// TODO: update other fields
-	// TODO: make this configurable
+	// refresh update timestamps on put
 	lastUpdated := time.Now()
 	newOwner.LastUpdated = lastUpdated.Unix()
-	newOwner.Expiry = lastUpdated.Add(time.Hour).Unix()
+
+	// decays faster the more keys you have
+	expiry := time.Hour
+	if prevOwner != nil {
+		expiry = time.Duration((prevOwner.Expiry - prevOwner.LastUpdated) * prevOwner.Keys)
+	}
 	newOwner.Keys++
+	expiry /= time.Duration(newOwner.Keys)
+
+	newOwner.Expiry = lastUpdated.Add(expiry).Unix()
+
 	newOwnerBytes, err := codec.Marshal(newOwner)
 	if err != nil {
 		return nil
@@ -206,44 +202,74 @@ func (s *storage) Put(k []byte, v []byte, opts ...OpOption) error {
 
 	// if validated or new key,
 	// the owner is allowed to write the key
-	// TODO: encrypt value
 	return s.keyDB.Put(k, v)
 }
 
-func (s *storage) Get(k []byte, opts ...OpOption) ([]byte, bool, error) {
-	ret := &Op{}
+type RangeResponse struct {
+	KeyValues []KeyValue `json:"keyValues"`
+}
+
+type KeyValue struct {
+	Key   []byte `json:"key"`
+	Value []byte `json:"value"`
+}
+
+func (s *storage) Range(k []byte, opts ...OpOption) (resp *RangeResponse, err error) {
+	if len(k) > maxKeyLength || len(k) == 0 {
+		return nil, ErrInvalidKeyLength
+	}
+
+	ret := &Op{key: k, rangeLimit: 10}
 	ret.applyOpts(opts)
 	if ret.pub == nil {
-		return nil, false, ErrNoPubKey
+		return nil, ErrNoPubKey
 	}
 
-	pfx, _, err := getPrefix(k)
+	pfx, endKey, err := GetPrefix(k)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
-	_ = pfx
 
 	// just check ownership with prefix
-	// for now just return the value
+	prevOwner, err := s.FindOwner(pfx)
+	if err != nil {
+		return nil, err
+	}
+	sameOwner := bytes.Equal(prevOwner.PublicKey, ret.pub.Bytes())
+	if !sameOwner {
+		// TODO: should we allow for public reads? or limit the range?
+		return nil, ErrPubKeyNotAllowed
+	}
 
-	has, err := s.keyDB.Has(k)
-	if err != nil {
-		return nil, false, err
+	if len(ret.endKey) > 0 {
+		endKey = ret.endKey
 	}
-	if !has {
-		return nil, false, nil
+
+	resp = new(RangeResponse)
+	cursor := s.keyDB.NewIteratorWithStart(k)
+	for cursor.Next() {
+		cur := cursor.Key()
+		if bytes.Compare(endKey, cur) <= 0 { // endKey <= cur
+			break
+		}
+		resp.KeyValues = append(resp.KeyValues, KeyValue{Key: cur, Value: cursor.Value()})
+		if ret.rangeLimit > 0 && len(resp.KeyValues) == ret.rangeLimit {
+			break
+		}
 	}
-	v, err := s.keyDB.Get(k)
-	if err != nil {
-		return nil, false, err
-	}
-	return v, true, nil
+	return resp, nil
 }
 
 type Op struct {
 	overwrite bool
-	pub       ed25519.PublicKey
-	sig       []byte
+	blockTime int64
+	pub       crypto.PublicKey
+
+	key    []byte
+	endKey []byte
+
+	// TODO: make this configurable
+	rangeLimit int
 }
 
 type OpOption func(*Op)
@@ -258,9 +284,22 @@ func WithOverwrite(b bool) OpOption {
 	return func(op *Op) { op.overwrite = b }
 }
 
-func WithSignature(pub ed25519.PublicKey, sig []byte) OpOption {
+func WithBlockTime(t int64) OpOption {
+	return func(op *Op) { op.blockTime = t }
+}
+
+func WithPublicKey(pub crypto.PublicKey) OpOption {
 	return func(op *Op) {
 		op.pub = pub
-		op.sig = sig
 	}
+}
+
+func WithPrefix() OpOption {
+	return func(op *Op) {
+		_, op.endKey, _ = GetPrefix(op.key)
+	}
+}
+
+func WithRangeEnd(end string) OpOption {
+	return func(op *Op) { op.endKey = []byte(end) }
 }
