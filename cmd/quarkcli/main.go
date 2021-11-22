@@ -8,7 +8,9 @@ import (
 	"os"
 
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/claim"
+	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/put"
+
 	"github.com/spf13/cobra"
 )
 
@@ -25,12 +27,12 @@ func init() {
 func init() {
 	rootCmd.AddCommand(
 		claim.NewCommand(),
+		create.NewCommand(),
 		put.NewCommand(),
 	)
 }
 
 func main() {
-	// TODO: init local, encrypted keystore
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "quark-cli failed %v\n", err)
 		os.Exit(1)

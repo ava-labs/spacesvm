@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
+
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -23,14 +26,20 @@ Claims the given prefix.
 $ quark-cli claim jim
 
 `,
-		Run: claimFunc,
+		RunE: claimFunc,
 	}
 	return cmd
 }
 
-func claimFunc(cmd *cobra.Command, args []string) {
+func claimFunc(cmd *cobra.Command, args []string) error {
+	pk, err := create.LoadPK()
+	if err != nil {
+		return err
+	}
+	color.Green("loaded address %s", pk.PublicKey().Address())
 	p := getClaimOp(args)
 	fmt.Println("NOT IMPLEMENTED YET:", p)
+	return nil
 }
 
 func getClaimOp(args []string) (prefix string) {

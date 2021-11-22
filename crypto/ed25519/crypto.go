@@ -7,6 +7,7 @@ package ed25519
 
 import (
 	"crypto/ed25519"
+	"errors"
 
 	"github.com/ava-labs/avalanchego/utils/formatting"
 )
@@ -32,6 +33,14 @@ type PrivateKey interface {
 func NewPrivateKey() (PrivateKey, error) {
 	_, k, err := ed25519.GenerateKey(nil)
 	return &PrivateKeyED25519{sk: k}, err
+}
+
+// LoadPrivateKey loads a private key
+func LoadPrivateKey(k []byte) (PrivateKey, error) {
+	if len(k) != ed25519.PrivateKeySize {
+		return nil, errors.New("invalid private key size")
+	}
+	return &PrivateKeyED25519{sk: k}, nil
 }
 
 type PublicKeyED25519 struct {
