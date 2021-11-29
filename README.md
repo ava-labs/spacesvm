@@ -12,13 +12,14 @@ KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin)
 
 At its core, the Avalanche protocol still maintains the immutable ordered sequence of states in a fully permissionless settings. And KVVM defines the rules and data structures to store key-value pairs.
 
-Build quarkvm:
+Build the `quarkvm` plugin for the AvalancheGo:
 
 ```bash
 cd ${HOME}/go/src/github.com/ava-labs/quarkvm
 ./scripts/build.sh
 ```
 ## TODO: MIGRATE TO USING AVA-SIM
+
 *Step 1.* To interact with Avalanche network RPC chain APIs, download and run a [AvalancheGo](https://github.com/ava-labs/avalanchego#installation) node locally, as follows:
 
 ```bash
@@ -27,8 +28,10 @@ cd ${HOME}/go/src/github.com/ava-labs/quarkvm
 kill -9 $(lsof -t -i:9650)
 kill -9 $(lsof -t -i:9651)
 cd ${HOME}/go/src/github.com/ava-labs/avalanchego
+rm -rf ./logs
 ./build/avalanchego \
 --log-level=info \
+--log-dir=./logs \
 --network-id=local \
 --public-ip=127.0.0.1 \
 --http-port=9650 \
@@ -112,10 +115,23 @@ curl --location --request POST '127.0.0.1:9650/ext/P' \
 # 29uVeLPJB1eQJkzRemU8g8wZDw5uJRqpab5U2mX9euieVwiEbL is the subnet blockchain ID
 ```
 
-*Step 6.* Create a blockchain:
+*Step 6.* Try RPC endpoint and encode genesis:
 
 ```bash
-# TODO: where to get vmID
+curl -X POST --data '{
+   "jsonrpc": "2.0",
+    "method" : "quarkvm.encode",
+    "params" : {
+        "data": "mynewblock"
+    },
+    "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/vm/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH
+# {"jsonrpc":"2.0","result":{"bytes":"hFJC2u1J4KynGjyuPk6","encoding":"cb58"},"id":1}
+```
+
+*Step 7.* Create a blockchain:
+
+```bash
 curl --location --request POST '127.0.0.1:9650/ext/P' \
 --header 'Content-Type: application/json' \
 --data-raw '{
@@ -127,23 +143,109 @@ curl --location --request POST '127.0.0.1:9650/ext/P' \
         "password":"insecurestring789",
         "vmID":"tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH",
         "subnetID":"29uVeLPJB1eQJkzRemU8g8wZDw5uJRqpab5U2mX9euieVwiEbL",
-        "name":"quarkvm",
-        "genesisData":"",
-        "controlKeys":["P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"]
+        "name":"my new quarkvm",
+        "genesisData":"hFJC2u1J4KynGjyuPk6"
     }
 }'
-#
+# {"jsonrpc":"2.0","result":{"txID":"FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ","changeAddr":"P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"},"id":1}
 ```
 
-*Step 7.* Interact with quarkVM using quark-cli:
+```bash
+curl -X POST --data '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"platform.getBlockchainStatus",
+    "params" :{
+        "blockchainID":"FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ"
+    }
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P
+# {"jsonrpc":"2.0","result":{"status":"Syncing"},"id":1}
+
+curl -X POST --data '{
+    "jsonrpc": "2.0",
+    "method": "quarkvm.ping",
+    "params":{},
+    "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ
+# {"jsonrpc":"2.0","result":{"success":true},"id":1}
+
+curl -X POST --data '{
+    "jsonrpc": "2.0",
+    "method": "quarkvm.issueTx",
+    "params":{},
+    "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ
+# {"jsonrpc":"2.0","error":{"code":-32000,"message":"invalid empty transaction","data":null},"id":1}
+```
+
+*Step 8.* Create a new key pair using `quark-cli`:
 
 ```bash
 # TODO: add config file/env for key location and/or RPC
-quark-cli create
-quark-cli claim jim.avax
-quark-cli set jim.avax/twitter @jimbo
-quark-cli lifeline jim.avax
-quark-cli get jim.avax/twitter
-quark-cli info jim.avax (remaining life, num keys, claimed/unclaimed/expired)
-quark-cli keys jim.avax (get all keys values)
+cd ${HOME}/go/src/github.com/ava-labs/quarkvm
+./build/quark-cli create
+```
+
+*Step 9.* Interact with `quarkvm` using `quark-cli`:
+
+```bash
+cd ${HOME}/go/src/github.com/ava-labs/quarkvm
+./build/quark-cli \
+--private-key-file .quark-cli-pk \
+--url http://127.0.0.1:9650 \
+--endpoint /ext/bc/FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ \
+put hello.avax/twitter @hello
+<<COMMENT
+creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt"
+issued transaction NSXnBw8TUbjnYGYhkmxWCXAXWGdJa2Ajbqirdwbtt9uKRAaxr (success true)
+polling transaction "NSXnBw8TUbjnYGYhkmxWCXAXWGdJa2Ajbqirdwbtt9uKRAaxr"
+confirmed transaction "NSXnBw8TUbjnYGYhkmxWCXAXWGdJa2Ajbqirdwbtt9uKRAaxr"
+COMMENT
+
+cd ${HOME}/go/src/github.com/ava-labs/quarkvm
+./build/quark-cli \
+--private-key-file .quark-cli-pk \
+--url http://127.0.0.1:9650 \
+--endpoint /ext/bc/FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ \
+put hello.avax/address 123
+<<COMMENT
+creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt"
+issued transaction ZgDMEM7EM6KFDMWSRTxRsuLNS3u4HqynaaQ8BMwqx4KgcXW7G (success true)
+polling transaction "ZgDMEM7EM6KFDMWSRTxRsuLNS3u4HqynaaQ8BMwqx4KgcXW7G"
+confirmed transaction "ZgDMEM7EM6KFDMWSRTxRsuLNS3u4HqynaaQ8BMwqx4KgcXW7G"
+COMMENT
+
+cd ${HOME}/go/src/github.com/ava-labs/quarkvm
+./build/quark-cli \
+--private-key-file .quark-cli-pk \
+--url http://127.0.0.1:9650 \
+--endpoint /ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt \
+get hello.avax/address
+<<COMMENT
+creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt"
+sending range ["hello.avax/address", ""]
+range ["hello.avax/address", ""] success true
+hello.avax/address 123
+COMMENT
+
+# TODO: support --with-prefix
+cd ${HOME}/go/src/github.com/ava-labs/quarkvm
+./build/quark-cli \
+--private-key-file .quark-cli-pk \
+--url http://127.0.0.1:9650 \
+--endpoint /ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt \
+get hello.avax/ hello.avax/x
+<<COMMENT
+creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt"
+sending range ["hello.avax/", "hello.avax/x"]
+range ["hello.avax/", "hello.avax/x"] success true
+hello.avax/address 123
+hello.avax/twitter @hello
+COMMENT
+```
+
+```bash
+# TODO: implement
+quark-cli lifeline hello.avax
+quark-cli info hello.avax (remaining life, num keys, claimed/unclaimed/expired)
 ```

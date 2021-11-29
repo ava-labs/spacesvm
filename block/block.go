@@ -25,22 +25,21 @@ var (
 )
 
 type Block struct {
-	Prnt   ids.ID `serialize:"true" json:"parentID"`
-	Tmstmp int64  `serialize:"true" json:"timestamp"`
-	Hght   uint64 `serialize:"true" json:"height"`
+	Prnt   ids.ID                     `serialize:"true" json:"parentID"`
+	Tmstmp int64                      `serialize:"true" json:"timestamp"`
+	Hght   uint64                     `serialize:"true" json:"height"`
+	Txs    []*transaction.Transaction `serialize:"true" json:"txs"`
 
-	MinDifficulty uint64                     `serialize:"true" json:"minDifficulty"`
-	BlockCost     uint64                     `serialize:"true" json:"blockCost"`
-	Txs           []*transaction.Transaction `serialize:"true" json:"txs"`
+	raw []byte
+	id  ids.ID
+	st  choices.Status
 
-	raw      []byte
-	id       ids.ID
-	st       choices.Status
-	s        storage.Storage
-	lookup   func(ids.ID) (*Block, error)
-	onVerify func(*Block) error
-	onAccept func(*Block) error
-	onReject func(*Block) error
+	s storage.Storage
+
+	lookup          func(ids.ID) (*Block, error)
+	persist         func(*Block) error
+	setLastAccepted func(ids.ID)
+	verified        func(*Block)
 }
 
 func (b *Block) Update(
@@ -48,9 +47,9 @@ func (b *Block) Update(
 	status choices.Status,
 	s storage.Storage,
 	lookup func(ids.ID) (*Block, error),
-	onVerify func(*Block) error,
-	onAccept func(*Block) error,
-	onReject func(*Block) error,
+	persist func(*Block) error,
+	setLastAccepted func(ids.ID),
+	verified func(*Block),
 ) {
 	id, err := ids.ToID(hashing.ComputeHash256(source))
 	if err != nil {
@@ -61,9 +60,9 @@ func (b *Block) Update(
 	b.st = status
 	b.s = s
 	b.lookup = lookup
-	b.onVerify = onVerify
-	b.onAccept = onAccept
-	b.onReject = onReject
+	b.persist = persist
+	b.setLastAccepted = setLastAccepted
+	b.verified = verified
 }
 
 // implements "snowman.Block.choices.Decidable"
@@ -88,7 +87,8 @@ func (b *Block) Verify() error {
 		return ErrTimestampTooLate
 	}
 
-	return b.onVerify(b)
+	b.verified(b)
+	return nil
 }
 
 // implements "snowman.Block.choices.Decidable"
@@ -99,13 +99,14 @@ func (b *Block) Accept() error {
 		}
 	}
 	b.st = choices.Accepted
-	return b.onAccept(b)
+	b.setLastAccepted(b.id)
+	return b.persist(b)
 }
 
 // implements "snowman.Block.choices.Decidable"
 func (b *Block) Reject() error {
 	b.st = choices.Rejected
-	return b.onReject(b)
+	return b.persist(b)
 }
 
 // implements "snowman.Block.choices.Decidable"

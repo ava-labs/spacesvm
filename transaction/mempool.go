@@ -17,7 +17,6 @@ type Mempool interface {
 	PopMax() (*Transaction, uint64)
 	PopMin() *Transaction
 	Remove(id ids.ID) *Transaction
-	Prune(validHashes ids.Set)
 	Len() int
 	Get(id ids.ID) (*Transaction, bool)
 	Has(id ids.ID) bool
@@ -103,18 +102,6 @@ func (txm *txMempool) Remove(id ids.ID) *Transaction {
 		return nil
 	}
 	return heap.Remove(txm.minHeap, minEntry.index).(*txEntry).tx
-}
-
-func (txm *txMempool) Prune(validHashes ids.Set) {
-	toRemove := []ids.ID{}
-	for _, txE := range txm.maxHeap.items {
-		if !validHashes.Contains(txE.tx.Unsigned.GetBlockID()) {
-			toRemove = append(toRemove, txE.id)
-		}
-	}
-	for _, txID := range toRemove {
-		txm.Remove(txID)
-	}
 }
 
 func (txm *txMempool) Len() int {

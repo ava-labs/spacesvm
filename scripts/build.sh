@@ -33,3 +33,6 @@ fi
 # Build quarkvm, which is run as a subprocess
 echo "Building quarkvm in $binary_directory/$name"
 go build -o "$binary_directory/$name" ./cmd/quarkvm
+
+mkdir -p ./build
+go build -o ./build/quark-cli ./cmd/quarkcli

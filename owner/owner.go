@@ -6,7 +6,6 @@ package owner
 
 import (
 	"github.com/ava-labs/quarkvm/codec"
-	"github.com/ava-labs/quarkvm/crypto/ed25519"
 )
 
 func init() {
@@ -14,8 +13,9 @@ func init() {
 }
 
 type Owner struct {
-	PublicKey ed25519.PublicKey `serialize:"true" json:"publicKey"`
+	PublicKey []byte `serialize:"true" json:"publicKey"`
 
+	// Namespace represents the currently owned prefix.
 	Namespace   string `serialize:"true" json:"namespace"`
 	LastUpdated int64  `serialize:"true" json:"lastUpdated"`
 	Expiry      int64  `serialize:"true" json:"expiry"`

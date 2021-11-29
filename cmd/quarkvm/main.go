@@ -15,7 +15,6 @@ import (
 	"github.com/ava-labs/quarkvm/vm"
 	"github.com/hashicorp/go-plugin"
 	log "github.com/inconshreveable/log15"
-	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -29,15 +28,13 @@ func main() {
 		fmt.Printf("%s@%s\n", vm.Name, version.Version)
 		os.Exit(0)
 	}
-	log.Root().SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stderr, log.TerminalFormat())))
 
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
 	// When we get a SIGINT or SIGTERM, stop the network.
 	signalsCh := make(chan os.Signal, 1)
-	signal.Notify(signalsCh, syscall.SIGINT)
-	signal.Notify(signalsCh, syscall.SIGTERM)
+	signal.Notify(signalsCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -48,30 +45,14 @@ func main() {
 		}
 	}()
 
-	g, gctx := errgroup.WithContext(ctx)
-	_ = gctx
+	log.Root().SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stderr, log.JsonFormat())))
+	plugin.Serve(&plugin.ServeConfig{
+		HandshakeConfig: rpcchainvm.Handshake,
+		Plugins: map[string]plugin.Plugin{
+			"vm": rpcchainvm.New(&vm.VM{}),
+		},
 
-	// TODO create agent
-	// TODO create vm
-
-	g.Go(func() error {
-		plugin.Serve(&plugin.ServeConfig{
-			// HandshakeConfig: rpcchainvm.Handshake,
-			HandshakeConfig: plugin.HandshakeConfig{
-				ProtocolVersion:  9,
-				MagicCookieKey:   "VM_PLUGIN",
-				MagicCookieValue: "dynamic",
-			},
-			Plugins: map[string]plugin.Plugin{
-				"vm": rpcchainvm.New(&vm.VM{}),
-			},
-
-			// A non-nil value here enables gRPC serving for this plugin...
-			GRPCServer: plugin.DefaultGRPCServer,
-		})
-		return nil
+		// A non-nil value here enables gRPC serving for this plugin...
+		GRPCServer: plugin.DefaultGRPCServer,
 	})
-	if err := g.Wait(); err != nil {
-		panic(err)
-	}
 }
