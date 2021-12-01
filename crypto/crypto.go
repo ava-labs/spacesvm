@@ -1,24 +1,14 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
-// See the file LICENSE for licensing terms.
-
-// Package crypto defines interfaces for cryptographic mechanisms.
 package crypto
 
-// TODO: support other types of keys
+import "crypto/ed25519"
 
-type PublicKey interface {
-	Verify(message, signature []byte) bool
-	VerifyHash(hash, signature []byte) bool
-
-	Address() string
-	Bytes() []byte
+type PublicKey struct {
+	PublicKey ed25519.PublicKey `serialize:"true" json:"publicKey"`
+	Addr      string            `serialize:"true" json:"addr"`
 }
 
-type PrivateKey interface {
-	PublicKey() PublicKey
+type PrivateKey struct {
+	PrivateKey ed25519.PrivateKey `serialize:"true" json:"privateKey"`
 
-	Sign(message []byte) ([]byte, error)
-	SignHash(hash []byte) ([]byte, error)
-
-	Bytes() []byte
+	pk *PublicKey
 }

@@ -3,39 +3,27 @@
 
 // Package ed25519 implements cryptography utilities
 // with Edwards-curve Digital Signature Algorithm (EdDSA).
-package ed25519
+package crypto
 
 import (
 	"crypto/ed25519"
 	"errors"
 
 	"github.com/ava-labs/avalanchego/utils/formatting"
-	"github.com/ava-labs/quarkvm/crypto"
-	log "github.com/inconshreveable/log15"
-)
-
-var (
-	_ crypto.PrivateKey = &PrivateKey{}
-	_ crypto.PublicKey  = &PublicKey{}
 )
 
 // NewPrivateKey implements the Factory interface
-func NewPrivateKey() (crypto.PrivateKey, error) {
+func NewPrivateKey() (*PrivateKey, error) {
 	_, k, err := ed25519.GenerateKey(nil)
-	return &PrivateKey{sk: k}, err
+	return &PrivateKey{PrivateKey: k}, err
 }
 
 // LoadPrivateKey loads a private key
-func LoadPrivateKey(k []byte) (crypto.PrivateKey, error) {
+func LoadPrivateKey(k []byte) (*PrivateKey, error) {
 	if len(k) != ed25519.PrivateKeySize {
 		return nil, errors.New("invalid private key size")
 	}
-	return &PrivateKey{sk: k}, nil
-}
-
-type PublicKey struct {
-	PublicKey ed25519.PublicKey `serialize:"true" json:"publicKey"`
-	Addr      string            `serialize:"true" json:"addr"`
+	return &PrivateKey{PrivateKey: k}, nil
 }
 
 // Verify implements the PublicKey interface
@@ -63,16 +51,11 @@ func (k *PublicKey) Address() string {
 // Bytes implements the PublicKey interface
 func (k *PublicKey) Bytes() []byte { return k.PublicKey }
 
-type PrivateKey struct {
-	sk ed25519.PrivateKey
-	pk *PublicKey
-}
-
 // PublicKey implements the PrivateKey interface
-func (k *PrivateKey) PublicKey() crypto.PublicKey {
+func (k *PrivateKey) PublicKey() *PublicKey {
 	if k.pk == nil {
 		k.pk = &PublicKey{
-			PublicKey: k.sk.Public().(ed25519.PublicKey),
+			PublicKey: k.PrivateKey.Public().(ed25519.PublicKey),
 		}
 	}
 	return k.pk
@@ -80,7 +63,7 @@ func (k *PrivateKey) PublicKey() crypto.PublicKey {
 
 // Sign implements the PrivateKey interface
 func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
-	return ed25519.Sign(k.sk, msg), nil
+	return ed25519.Sign(k.PrivateKey, msg), nil
 }
 
 // SignHash implements the PrivateKey interface
@@ -89,9 +72,8 @@ func (k PrivateKey) SignHash(hash []byte) ([]byte, error) {
 }
 
 // Bytes implements the PrivateKey interface
-func (k PrivateKey) Bytes() []byte { return k.sk }
+func (k PrivateKey) Bytes() []byte { return k.PrivateKey }
 
 func Verify(pub []byte, msg []byte, sig []byte) bool {
-	log.Debug("ed25519.Verify", "pub", len(pub))
 	return ed25519.Verify(ed25519.PublicKey(pub), msg, sig)
 }
