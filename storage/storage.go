@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/quarkvm/chain"
@@ -139,3 +140,7 @@ func (s *Storage) SetLastAccepted(*chain.Block) error              { return nil 
 func (s *Storage) Commit() error                                   { return nil }
 func (s *Storage) SetDatabase(chain.DB)                            {}
 func (s *Storage) GetBlock(ids.ID) (*chain.Block, error)           { return nil, nil }
+func (s *Storage) PutBlock(*chain.Block) error                     { return nil }
+func (s *Storage) VersionDB() *versiondb.Database {
+	return versiondb.New(s.db)
+}
