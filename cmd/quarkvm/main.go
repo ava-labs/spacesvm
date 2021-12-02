@@ -11,10 +11,11 @@ import (
 	"syscall"
 
 	"github.com/ava-labs/avalanchego/vms/rpcchainvm"
-	"github.com/ava-labs/quarkvm/version"
-	"github.com/ava-labs/quarkvm/vm"
 	"github.com/hashicorp/go-plugin"
 	log "github.com/inconshreveable/log15"
+
+	"github.com/ava-labs/quarkvm/version"
+	"github.com/ava-labs/quarkvm/vm"
 )
 
 func main() {

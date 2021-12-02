@@ -48,7 +48,6 @@ func (b *Block) Initialize(
 	source []byte,
 	status choices.Status,
 	vm VM,
-	parent *Block,
 ) {
 	id, err := ids.ToID(hashing.ComputeHash256(source))
 	if err != nil {
@@ -107,9 +106,8 @@ func (b *Block) Verify() error {
 		return err
 	}
 
-	// TODO: could move this into VM
 	parentBlock.addChild(b)
-
+	// TODO: set prefered
 	return b.vm.Verified(b)
 }
 

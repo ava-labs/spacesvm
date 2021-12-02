@@ -9,6 +9,8 @@ import (
 	"github.com/ava-labs/quarkvm/types"
 )
 
+var _ chain.DB = &Storage{}
+
 // 0x0/ (singleton prefix info)
 //   -> [reserved prefix]
 // 0x1/ (prefix keys)
@@ -27,6 +29,18 @@ const (
 var (
 	lastAccepted = []byte("last_accepted")
 )
+
+type Storage struct {
+	db database.Database
+}
+
+func New(db database.Database) *Storage {
+	return &Storage{db}
+}
+
+func (s *Storage) Close() error {
+	return s.db.Close()
+}
 
 func PrefixInfoKey(prefix []byte) []byte {
 	return append([]byte{infoPrefix, types.PrefixDelimiter}, prefix...)
@@ -110,3 +124,18 @@ func GetBlock(db database.Database, bid ids.ID) (*chain.Block, error) {
 	}
 	return &b, nil
 }
+
+// chain.DB
+func (s *Storage) HasPrefix([]byte) (bool, error)                  { return false, nil }
+func (s *Storage) HasPrefixKey([]byte, []byte) (bool, error)       { return false, nil }
+func (s *Storage) GetPrefixInfo([]byte) (*types.PrefixInfo, error) { return nil, nil }
+func (s *Storage) GetPrefixKey([]byte, []byte) ([]byte, error)     { return nil, nil }
+func (s *Storage) PutPrefixInfo([]byte, *types.PrefixInfo) error   { return nil }
+func (s *Storage) PutPrefixKey([]byte, []byte, []byte) error       { return nil }
+func (s *Storage) DeletePrefixKey([]byte, []byte) error            { return nil }
+func (s *Storage) DeleteAllPrefixKeys([]byte) error                { return nil }
+func (s *Storage) StoreTransaction(*chain.Transaction) error       { return nil }
+func (s *Storage) SetLastAccepted(*chain.Block) error              { return nil }
+func (s *Storage) Commit() error                                   { return nil }
+func (s *Storage) SetDatabase(chain.DB)                            {}
+func (s *Storage) GetBlock(ids.ID) (*chain.Block, error)           { return nil, nil }

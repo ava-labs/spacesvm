@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/get"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/put"
-	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
