@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/formatting"
 
 	"github.com/ava-labs/quarkvm/codec"
+	"github.com/ava-labs/quarkvm/types"
 )
 
 func init() {
@@ -30,7 +30,6 @@ func (c *ClaimTx) Verify(db DB, blockTime int64) error {
 			return errors.New("public key does not match decoded prefix")
 		}
 	}
-
 	has, err := db.HasPrefix(c.Prefix)
 	if err != nil {
 		return err
@@ -38,12 +37,8 @@ func (c *ClaimTx) Verify(db DB, blockTime int64) error {
 	if !has {
 		return c.accept(db, blockTime)
 	}
-	v, err := db.Get(k)
+	i, err := db.GetPrefixInfo(c.Prefix)
 	if err != nil {
-		return err
-	}
-	var i PrefixInfo
-	if _, err := codecManager.Unmarshal(v, &i); err != nil {
 		return err
 	}
 	if i.Expiry >= blockTime {
@@ -53,15 +48,10 @@ func (c *ClaimTx) Verify(db DB, blockTime int64) error {
 }
 
 func (c *ClaimTx) accept(db DB, blockTime int64) error {
-	i := &PrefixInfo{Owner: c.Sender, LastUpdated: blockTime, Expiry: blockTime + expiryTime, Keys: 1}
-	k := PrefixInfoKey(c.Prefix)
-	b, err := codecManager.Marshal(codecVersion, i)
-	if err != nil {
-		return err
-	}
-	if err := db.Put(k, b); err != nil {
+	i := &types.PrefixInfo{Owner: c.Sender, LastUpdated: blockTime, Expiry: blockTime + expiryTime, Keys: 1}
+	if err := db.PutPrefixInfo(c.Prefix, i); err != nil {
 		return err
 	}
 	// Remove anything that is stored in value prefix
-	return database.ClearPrefix(db, db, PrefixValueKey(c.Prefix, nil))
+	return db.DeleteAllPrefixKeys(c.Prefix)
 }

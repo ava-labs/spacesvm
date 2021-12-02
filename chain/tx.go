@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"ekyu.moe/cryptonight"
-	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 

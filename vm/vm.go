@@ -198,7 +198,7 @@ func (vm *VM) AppResponse(nodeID ids.ShortID, requestID uint32, response []byte)
 
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"
 func (vm *VM) AppGossip(nodeID ids.ShortID, msg []byte) error {
-	// (currently) no app-specific messages
+	// TODO: gossip txs
 	return nil
 }
 

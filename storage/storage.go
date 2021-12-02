@@ -1,14 +1,12 @@
 package storage
 
 import (
-	"bytes"
-	"errors"
-
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/codec"
+	"github.com/ava-labs/quarkvm/types"
 )
 
 // 0x0/ (singleton prefix info)
@@ -24,45 +22,31 @@ const (
 	keyPrefix   = 0x1
 	txPrefix    = 0x2
 	blockPrefix = 0x3
-	delimiter   = 0x2f // "/"
-
-	maxPrefixSize = 256
 )
-
-func init() {
-	codec.RegisterType(&PrefixInfo{})
-}
 
 var (
 	lastAccepted = []byte("last_accepted")
 )
 
 func PrefixInfoKey(prefix []byte) []byte {
-	return append([]byte{infoPrefix, delimiter}, prefix...)
+	return append([]byte{infoPrefix, types.PrefixDelimiter}, prefix...)
 }
 
 func PrefixValueKey(prefix []byte, key []byte) []byte {
-	b := append([]byte{keyPrefix, delimiter}, prefix...)
-	b = append(b, delimiter)
+	b := append([]byte{keyPrefix, types.PrefixDelimiter}, prefix...)
+	b = append(b, types.PrefixDelimiter)
 	return append(b, key...)
 }
 
 func PrefixTxKey(txID ids.ID) []byte {
-	return append([]byte{txPrefix, delimiter}, txID[:]...)
+	return append([]byte{txPrefix, types.PrefixDelimiter}, txID[:]...)
 }
 
 func PrefixBlockKey(blockID ids.ID) []byte {
-	return append([]byte{blockPrefix, delimiter}, blockID[:]...)
+	return append([]byte{blockPrefix, types.PrefixDelimiter}, blockID[:]...)
 }
 
-type PrefixInfo struct {
-	Owner       ed25519.PublicKey `serialize:"true"`
-	LastUpdated int64             `serialize:"true"`
-	Expiry      int64             `serialize:"true"`
-	Keys        int64             `serialize:"true"` // decays faster the more keys you have
-}
-
-func GetPrefixInfo(db database.Database, prefix []byte) (*PrefixInfo, bool, error) {
+func GetPrefixInfo(db database.Database, prefix []byte) (*types.PrefixInfo, bool, error) {
 	k := PrefixInfoKey(prefix)
 	has, err := db.Has(k)
 	if err != nil {
@@ -75,7 +59,7 @@ func GetPrefixInfo(db database.Database, prefix []byte) (*PrefixInfo, bool, erro
 	if err != nil {
 		return nil, false, err
 	}
-	var i PrefixInfo
+	var i types.PrefixInfo
 	if _, err := codec.Unmarshal(v, &i); err != nil {
 		return nil, false, err
 	}
@@ -98,7 +82,7 @@ func GetValue(db database.Database, prefix []byte, key []byte) ([]byte, bool, er
 	return v, true, nil
 }
 
-func SetLastAccepted(db database.Database, block *block.Block) error {
+func SetLastAccepted(db database.Database, block *chain.Block) error {
 	bid := block.ID()
 	if err := db.Put(lastAccepted, bid[:]); err != nil {
 		return err
@@ -114,13 +98,13 @@ func GetLastAccepted(db database.Database) (ids.ID, error) {
 	return ids.ToID(v)
 }
 
-func GetBlock(db database.Database, bid ids.ID) (*block.Block, error) {
+func GetBlock(db database.Database, bid ids.ID) (*chain.Block, error) {
 	v, err := db.Get(PrefixBlockKey(bid))
 	if err != nil {
 		return nil, err
 	}
 	// TODO: how to handle status
-	var b block.Block
+	var b chain.Block
 	if _, err := codec.Unmarshal(v, &b); err != nil {
 		return nil, err
 	}

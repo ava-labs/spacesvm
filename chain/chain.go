@@ -4,8 +4,11 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
+
+	"github.com/ava-labs/quarkvm/types"
 )
 
+// TODO: load from genesis
 const (
 	lookbackWindow     = 10
 	blockTarget        = 1
@@ -30,9 +33,13 @@ type VM interface {
 
 type DB interface {
 	HasPrefix([]byte) (bool, error)
-
-	// TODO: need to avoid circular dependency
-	GetPrefixInfo([]byte) (PrefixInfo, error)
+	HasPrefixKey([]byte, []byte) (bool, error)
+	GetPrefixInfo([]byte) (*types.PrefixInfo, error)
+	GetPrefixKey([]byte, []byte) ([]byte, error)
+	PutPrefixInfo([]byte, *types.PrefixInfo) error
+	PutPrefixKey([]byte, []byte, []byte) error
+	DeletePrefixKey([]byte, []byte) error
+	DeleteAllPrefixKeys([]byte) error
 
 	StoreTransaction(*Transaction) error
 	SetLastAccepted(*Block) error
