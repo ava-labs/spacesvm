@@ -82,9 +82,12 @@ func (vm *VM) Initialize(
 	// Try to load last accepted
 	b, err := chain.GetLastAccepted(vm.db)
 	if err != nil {
+		log.Error("could not get last accepted", "err", err)
 		return err
 	}
 	if b != (ids.ID{}) {
+		vm.preferred = b
+		vm.lastAccepted = b
 		log.Info("initialized quarkvm from last accepted", "block", b)
 		return nil
 	}
@@ -147,7 +150,7 @@ func (vm *VM) CreateHandlers() (map[string]*common.HTTPHandler, error) {
 // implements "snowmanblock.ChainVM.common.VM"
 // for "ext/vm/[vmID]"
 func (vm *VM) CreateStaticHandlers() (map[string]*common.HTTPHandler, error) {
-	return map[string]*common.HTTPHandler{}, nil
+	return nil, nil
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"

@@ -71,6 +71,8 @@ func (b *Block) Verify() error {
 		return nil
 	}
 
+	// TODO: NEED TO HANDLE VERIFICATION OF GENESIS BLOCK
+
 	if b.parentBlock == nil {
 		parentBlock, err := b.vm.Get(b.Prnt)
 		if err != nil {

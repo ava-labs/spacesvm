@@ -90,6 +90,13 @@ func SetLastAccepted(db database.Database, block *Block) error {
 }
 
 func GetLastAccepted(db database.Database) (ids.ID, error) {
+	has, err := db.Has(lastAccepted)
+	if err != nil {
+		return ids.ID{}, err
+	}
+	if !has {
+		return ids.ID{}, nil
+	}
 	v, err := db.Get(lastAccepted)
 	if err != nil {
 		return ids.ID{}, err
