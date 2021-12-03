@@ -110,13 +110,38 @@ func GetBlock(db database.Database, bid ids.ID) (*Block, error) {
 }
 
 // DB
-func HasPrefix(database.Database, []byte) (bool, error)                { return false, nil }
-func HasPrefixKey(database.Database, []byte, []byte) (bool, error)     { return false, nil }
-func GetPrefixKey(database.Database, []byte, []byte) ([]byte, error)   { return nil, nil }
-func PutPrefixInfo(database.Database, []byte, *types.PrefixInfo) error { return nil }
-func PutPrefixKey(database.Database, []byte, []byte, []byte) error     { return nil }
-func DeletePrefixKey(database.Database, []byte, []byte) error          { return nil }
-func DeleteAllPrefixKeys(database.Database, []byte) error              { return nil }
-func SetTransaction(database.Database, *Transaction) error             { return nil }
-func GetTransaction() (*Transaction, error)                            { return nil, nil }
-func PutBlock(*Block) error                                            { return nil }
+func HasPrefix(db database.Database, prefix []byte) (bool, error) {
+	k := PrefixInfoKey(prefix)
+	return db.Has(k)
+}
+func HasPrefixKey(db database.Database, prefix []byte, key []byte) (bool, error) {
+	k := PrefixValueKey(prefix, key)
+	return db.Has(k)
+}
+func PutPrefixInfo(db database.Database, prefix []byte, i *types.PrefixInfo) error {
+	k := PrefixInfoKey(prefix)
+	b, err := codec.Marshal(i)
+	if err != nil {
+		return err
+	}
+	return db.Put(k, b)
+}
+func PutPrefixKey(db database.Database, prefix []byte, key []byte, value []byte) error {
+	k := PrefixValueKey(prefix, key)
+	return db.Put(k, value)
+}
+func DeletePrefixKey(db database.Database, prefix []byte, key []byte) error {
+	k := PrefixValueKey(prefix, key)
+	return db.Delete(k)
+}
+func DeleteAllPrefixKeys(db database.Database, prefix []byte) error {
+	return database.ClearPrefix(db, db, PrefixValueKey(prefix, nil))
+}
+func SetTransaction(db database.Database, tx *Transaction) error {
+	k := PrefixTxKey(tx.ID())
+	b, err := codec.Marshal(tx)
+	if err != nil {
+		return err
+	}
+	return db.Put(k, b)
+}
