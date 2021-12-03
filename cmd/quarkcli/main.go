@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/ava-labs/quarkvm/cmd/quarkcli/claim"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/get"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/put"
@@ -28,6 +29,7 @@ func init() {
 func init() {
 	rootCmd.AddCommand(
 		create.NewCommand(),
+		claim.NewCommand(),
 		put.NewCommand(),
 		get.NewCommand(),
 	)

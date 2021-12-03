@@ -40,7 +40,7 @@ type IssueTxArgs struct {
 }
 
 type IssueTxReply struct {
-	TxID    string `serialize:"true" json:"txID"`
+	TxID    ids.ID `serialize:"true" json:"txID"`
 	Error   error  `serialize:"true" json:"error"`
 	Success bool   `serialize:"true" json:"success"`
 }
@@ -50,15 +50,48 @@ func (svc *Service) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxRe
 }
 
 type CheckTxArgs struct {
-	TxID string `serialize:"true" json:"txID"`
+	TxID ids.ID `serialize:"true" json:"txID"`
 }
 
 type CheckTxReply struct {
-	TxID      ids.ID `serialize:"true" json:"txID"`
-	Error     error  `serialize:"true" json:"error"`
-	Confirmed bool   `serialize:"true" json:"confirmed"`
+	Error     error `serialize:"true" json:"error"`
+	Confirmed bool  `serialize:"true" json:"confirmed"`
 }
 
 func (svc *Service) CheckTx(_ *http.Request, args *CheckTxArgs, reply *CheckTxReply) error {
+	return nil
+}
+
+type CurrBlockArgs struct {
+}
+
+type CurrBlockReply struct {
+	BlockID ids.ID `serialize:"true" json:"blockID"`
+}
+
+func (svc *Service) CurrBlock(_ *http.Request, args *CurrBlockArgs, reply *CurrBlockReply) error {
+	return nil
+}
+
+type ValidBlockIDArgs struct {
+	BlockID ids.ID `serialize:"true" json:"blockID"`
+}
+
+type ValidBlockIDReply struct {
+	Valid bool `serialize:"true" json:"valid"`
+}
+
+func (svc *Service) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, reply *ValidBlockIDReply) error {
+	return nil
+}
+
+type DifficultyEstimateArgs struct {
+}
+
+type DifficultyEstimateReply struct {
+	Difficulty uint64 `serialize:"true" json:"valid"`
+}
+
+func (svc *Service) DifficultyEstimate(_ *http.Request, args *DifficultyEstimateArgs, reply *DifficultyEstimateReply) error {
 	return nil
 }
