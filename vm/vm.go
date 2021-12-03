@@ -7,6 +7,7 @@ package vm
 import (
 	"errors"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/database"
@@ -46,6 +47,8 @@ type VM struct {
 	db      database.Database
 	mempool *mempool.Mempool
 
+	l sync.Mutex
+
 	// Block ID --> Block
 	// Each element is a block that passed verification but
 	// hasn't yet been accepted/rejected
@@ -69,10 +72,6 @@ func (vm *VM) Initialize(
 	_ common.AppSender,
 ) error {
 	log.Info("initializing quarkvm", "version", version.Version)
-
-	// TODO: check initialize from singleton store
-
-	// TODO: parse genesis bytes
 
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
@@ -210,6 +209,93 @@ func (vm *VM) getBlock(blkID ids.ID) (*chain.Block, error) {
 	return chain.GetBlock(vm.db, blkID)
 }
 
+func (vm *VM) readWindow(currTime int64, f func(b *chain.Block) bool) error {
+	currID := vm.preferred
+	curr, err := vm.getBlock(currID)
+	if err != nil {
+		return err
+	}
+	for curr != nil && (currTime-curr.Tmstmp <= chain.LookbackWindow || curr.ID() == vm.preferred) {
+		if !f(curr) {
+			return nil
+		}
+		if curr.Prnt == curr.ID() /* genesis */ {
+			return nil
+		}
+		b, err := vm.getBlock(curr.Prnt)
+		if err != nil {
+			return err
+		}
+		curr = b
+	}
+	return nil
+}
+
+func (vm *VM) ValidBlockID(blockID ids.ID) bool {
+	var foundBlockID bool
+	vm.readWindow(time.Now().Unix(), func(b *chain.Block) bool {
+		if b.ID() == blockID {
+			foundBlockID = true
+			return false
+		}
+		return true
+	})
+	return foundBlockID
+}
+
+func (vm *VM) DifficultyEstimate() uint64 {
+	totalDifficulty := uint64(0)
+	totalBlocks := uint64(0)
+	vm.readWindow(time.Now().Unix(), func(b *chain.Block) bool {
+		totalDifficulty += b.Difficulty
+		totalBlocks++
+		return true
+	})
+	return totalDifficulty/totalBlocks + 1
+}
+
+func (vm *VM) Recents(currTime int64, lastBlock *chain.Block) (ids.Set, ids.Set, uint64, uint64) {
+	recentBlockIDs := ids.Set{}
+	recentTxIDs := ids.Set{}
+	vm.readWindow(time.Now().Unix(), func(b *chain.Block) bool {
+		recentBlockIDs.Add(b.ID())
+		for _, tx := range b.Txs {
+			recentTxIDs.Add(tx.ID())
+		}
+		return true
+	})
+
+	// compute new block cost
+	secondsSinceLast := currTime - lastBlock.Tmstmp
+	newBlockCost := lastBlock.Cost
+	if secondsSinceLast < chain.BlockTarget {
+		newBlockCost += uint64(chain.BlockTarget - secondsSinceLast)
+	} else {
+		possibleDiff := uint64(secondsSinceLast - chain.BlockTarget)
+		if possibleDiff < newBlockCost-chain.MinBlockCost {
+			newBlockCost -= possibleDiff
+		} else {
+			newBlockCost = chain.MinBlockCost
+		}
+	}
+
+	// compute new min difficulty
+	newMinDifficulty := lastBlock.Difficulty
+	recentTxs := recentTxIDs.Len()
+	if recentTxs > chain.TargetTransactions {
+		newMinDifficulty++
+	} else if recentTxs < chain.TargetTransactions {
+		elapsedWindows := uint64(secondsSinceLast/chain.LookbackWindow) + 1 // account for current window being less
+		if elapsedWindows < newMinDifficulty-chain.MinDifficulty {
+			newMinDifficulty -= elapsedWindows
+		} else {
+			newMinDifficulty = chain.MinDifficulty
+		}
+	}
+
+	return recentBlockIDs, recentTxIDs, newBlockCost, newMinDifficulty
+}
+
 // implements "snowmanblock.ChainVM.commom.VM.Parser"
 // replaces "core.SnowmanVM.ParseBlock"
 func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
@@ -227,7 +313,19 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 
 // implements "snowmanblock.ChainVM"
 func (vm *VM) BuildBlock() (snowman.Block, error) {
+	vm.l.Lock()
+	defer vm.l.Unlock()
+	// TODO: need to build block
 	return nil, nil
+}
+
+func (vm *VM) Submit(tx *chain.Transaction) {
+	vm.l.Lock()
+	defer vm.l.Unlock()
+	vm.mempool.Push(tx)
+
+	// TODO: do on a timer
+	vm.notifyBlockReady()
 }
 
 // "SetPreference" implements "snowmanblock.ChainVM"
@@ -258,10 +356,7 @@ func (vm *VM) State() database.Database {
 
 // TODO: change naming
 func (vm *VM) Get(blockID ids.ID) (*chain.Block, error) {
-	return nil, nil
-}
-func (vm *VM) Recents(currentTime int64, parent *chain.Block) (recentBlockIDs ids.Set, recentTxIDs ids.Set, cost uint64, difficulty uint64) {
-	return nil, nil, 0, 0
+	return vm.getBlock(blockID)
 }
 func (vm *VM) Verified(b *chain.Block) error {
 	if b.Prnt == vm.preferred {
