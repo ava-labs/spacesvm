@@ -12,6 +12,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/manager"
+	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/choices"
@@ -96,15 +97,15 @@ func (vm *VM) Initialize(
 	genesisBlk := new(chain.Block)
 	genesisBlk.Initialize(
 		genesisBytes,
-		choices.Processing,
+		choices.Accepted,
 		vm,
 	)
-	if err := genesisBlk.Verify(); err != nil {
+	if err := chain.SetLastAccepted(vm.db, genesisBlk); err != nil {
+		log.Error("could not set genesis as last accepted", "err", err)
 		return err
 	}
-	if err := genesisBlk.Accept(); err != nil {
-		return err
-	}
+	vm.preferred = genesisBlk.ID()
+	vm.lastAccepted = genesisBlk.ID()
 	log.Info("initialized quarkvm from genesis", "block", genesisBlk.ID())
 	return nil
 }
@@ -209,6 +210,7 @@ func (vm *VM) getBlock(blkID ids.ID) (*chain.Block, error) {
 		return blk, nil
 	}
 
+	// TODO: may need to initialize here
 	return chain.GetBlock(vm.db, blkID)
 }
 
@@ -318,8 +320,47 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 func (vm *VM) BuildBlock() (snowman.Block, error) {
 	vm.l.Lock()
 	defer vm.l.Unlock()
-	// TODO: need to build block
-	return nil, nil
+
+	nextTime := time.Now().Unix()
+	parent, err := vm.getBlock(vm.preferred)
+	if err != nil {
+		return nil, err
+	}
+	recentBlockIDs, recentTxIDs, blockCost, minDifficulty := vm.Recents(nextTime, parent)
+	b := chain.NewBlock(vm, parent, nextTime, minDifficulty, blockCost)
+
+	// select new transactions
+	// TODO: move into chain package
+	parentDB, err := parent.OnAccept()
+	if err != nil {
+		return nil, err
+	}
+	tdb := versiondb.New(parentDB)
+	b.Txs = []*chain.Transaction{}
+	vm.mempool.Prune(recentBlockIDs) // clean out invalid txs
+	for len(b.Txs) < chain.TargetTransactions && vm.mempool.Len() > 0 {
+		next, diff := vm.mempool.PopMax()
+		if diff < b.Difficulty {
+			vm.mempool.Push(next)
+			break
+		}
+		// Verify that changes pass
+		ttdb := versiondb.New(tdb)
+		if err := next.Verify(ttdb, b.Tmstmp, recentBlockIDs, recentTxIDs, b.Difficulty); err != nil {
+			ttdb.Abort()
+			continue
+		}
+		if err := ttdb.Commit(); err != nil {
+			panic(err)
+		}
+		// Wait to add prefix until after verification
+		b.Txs = append(b.Txs, next)
+	}
+	if err := b.Verify(); err != nil {
+		log.Debug("new block failed verification", "err", err)
+		return nil, err
+	}
+	return b, nil
 }
 
 func (vm *VM) Submit(tx *chain.Transaction) {
@@ -368,10 +409,12 @@ func (vm *VM) Verified(b *chain.Block) error {
 		vm.preferred = b.ID()
 	}
 	vm.verifiedBlocks[b.ID()] = b
+	// TODO: remove txs from mempool
 	return nil
 }
 func (vm *VM) Rejected(b *chain.Block) error {
 	delete(vm.verifiedBlocks, b.ID())
+	// TODO: add txs to mempool
 	return nil
 }
 func (vm *VM) Accepted(b *chain.Block) error {

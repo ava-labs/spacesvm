@@ -47,6 +47,19 @@ type Block struct {
 	onAcceptDB *versiondb.Database
 }
 
+func NewBlock(vm VM, parent *Block, tmstp int64, difficulty uint64, cost uint64) *Block {
+	return &Block{
+		Prnt:       parent.ID(),
+		Hght:       parent.Height() + 1,
+		Difficulty: difficulty,
+		Cost:       cost,
+
+		vm:          vm,
+		st:          choices.Processing,
+		parentBlock: parent,
+	}
+}
+
 func (b *Block) Initialize(
 	source []byte,
 	status choices.Status,
@@ -63,7 +76,16 @@ func (b *Block) Initialize(
 }
 
 // implements "snowman.Block.choices.Decidable"
-func (b *Block) ID() ids.ID { return b.id }
+func (b *Block) ID() ids.ID {
+	if b.id == (ids.ID{}) {
+		id, err := ids.ToID(hashing.ComputeHash256(b.Bytes()))
+		if err != nil {
+			panic(err)
+		}
+		b.id = id
+	}
+	return b.id
+}
 
 // implements "snowman.Block"
 func (b *Block) Verify() error {
@@ -97,7 +119,7 @@ func (b *Block) Verify() error {
 	if b.Difficulty != difficulty {
 		return ErrInvalidDifficulty
 	}
-	parentState, err := b.parentBlock.onAccept()
+	parentState, err := b.parentBlock.OnAccept()
 	if err != nil {
 		return err
 	}
@@ -161,7 +183,8 @@ func (b *Block) Timestamp() time.Time {
 	return time.Unix(b.Tmstmp, 0)
 }
 
-func (b *Block) onAccept() (database.Database, error) {
+// TODO: make private when move production into chain package
+func (b *Block) OnAccept() (database.Database, error) {
 	if b.st == choices.Accepted || b.ID() == (ids.ID{}) /* genesis */ {
 		return b.vm.State(), nil
 	}
