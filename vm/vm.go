@@ -409,7 +409,8 @@ func (vm *VM) Verified(b *chain.Block) error {
 		vm.preferred = b.ID()
 	}
 	vm.verifiedBlocks[b.ID()] = b
-	// TODO: remove txs from mempool
+	// TODO: remove txs from mempool (need to be careful not to create a deadlock
+	// with BuildBlock)
 	return nil
 }
 func (vm *VM) Rejected(b *chain.Block) error {
