@@ -219,7 +219,7 @@ func (vm *VM) readWindow(currTime int64, f func(b *chain.Block) bool) error {
 		if !f(curr) {
 			return nil
 		}
-		if curr.Prnt == curr.ID() /* genesis */ {
+		if curr.Prnt == (ids.ID{}) /* genesis */ {
 			return nil
 		}
 		b, err := vm.getBlock(curr.Prnt)

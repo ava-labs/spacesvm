@@ -160,7 +160,7 @@ func (b *Block) Timestamp() time.Time {
 }
 
 func (b *Block) onAccept() (database.Database, error) {
-	if b.st == choices.Accepted || b.ID() == b.Prnt /* genesis */ {
+	if b.st == choices.Accepted || b.ID() == (ids.ID{}) /* genesis */ {
 		return b.vm.State(), nil
 	}
 	if b.onAcceptDB != nil {
