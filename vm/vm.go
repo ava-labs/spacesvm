@@ -322,6 +322,8 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 func (vm *VM) Submit(tx *chain.Transaction) {
 	vm.l.Lock()
 	defer vm.l.Unlock()
+	// cache difficulty
+	_ = tx.Difficulty()
 	vm.mempool.Push(tx)
 
 	// TODO: do on a timer

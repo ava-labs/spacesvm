@@ -36,7 +36,7 @@ func (svc *Service) Ping(_ *http.Request, args *PingArgs, reply *PingReply) (err
 }
 
 type IssueTxArgs struct {
-	*chain.Transaction `serialize:"true" json:"tx"`
+	Tx *chain.Transaction `serialize:"true" json:"tx"`
 }
 
 type IssueTxReply struct {
@@ -46,6 +46,9 @@ type IssueTxReply struct {
 }
 
 func (svc *Service) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
+	svc.vm.Submit(args.Tx)
+	reply.TxID = args.Tx.ID()
+	reply.Success = true
 	return nil
 }
 
@@ -59,6 +62,12 @@ type CheckTxReply struct {
 }
 
 func (svc *Service) CheckTx(_ *http.Request, args *CheckTxArgs, reply *CheckTxReply) error {
+	has, err := chain.HasTransaction(svc.vm.db, args.TxID)
+	if err != nil {
+		reply.Error = err
+		return nil
+	}
+	reply.Confirmed = has
 	return nil
 }
 
@@ -70,6 +79,7 @@ type CurrBlockReply struct {
 }
 
 func (svc *Service) CurrBlock(_ *http.Request, args *CurrBlockArgs, reply *CurrBlockReply) error {
+	reply.BlockID = svc.vm.preferred
 	return nil
 }
 
@@ -82,6 +92,7 @@ type ValidBlockIDReply struct {
 }
 
 func (svc *Service) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, reply *ValidBlockIDReply) error {
+	reply.Valid = svc.vm.ValidBlockID(args.BlockID)
 	return nil
 }
 
@@ -93,5 +104,6 @@ type DifficultyEstimateReply struct {
 }
 
 func (svc *Service) DifficultyEstimate(_ *http.Request, args *DifficultyEstimateArgs, reply *DifficultyEstimateReply) error {
+	reply.Difficulty = svc.vm.DifficultyEstimate()
 	return nil
 }

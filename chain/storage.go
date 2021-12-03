@@ -145,3 +145,7 @@ func SetTransaction(db database.Database, tx *Transaction) error {
 	}
 	return db.Put(k, b)
 }
+func HasTransaction(db database.Database, txID ids.ID) (bool, error) {
+	k := PrefixTxKey(txID)
+	return db.Has(k)
+}
