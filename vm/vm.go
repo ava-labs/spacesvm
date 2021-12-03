@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/manager"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
@@ -23,7 +24,6 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/codec"
 	"github.com/ava-labs/quarkvm/mempool"
-	"github.com/ava-labs/quarkvm/storage"
 	"github.com/ava-labs/quarkvm/version"
 )
 
@@ -43,7 +43,7 @@ var (
 
 type VM struct {
 	ctx     *snow.Context
-	s       *storage.Storage
+	db      database.Database
 	mempool *mempool.Mempool
 
 	// Block ID --> Block
@@ -75,20 +75,18 @@ func (vm *VM) Initialize(
 	// TODO: parse genesis bytes
 
 	vm.ctx = ctx
-	vm.s = storage.New(
-		dbManager.Current().Database,
-	)
+	vm.db = dbManager.Current().Database
 	vm.mempool = mempool.New(1024)
 	vm.verifiedBlocks = make(map[ids.ID]*chain.Block)
 	vm.toEngine = toEngine
 
 	// Try to load last accepted
-	b, err := vm.s.GetLastAccepted()
+	b, err := chain.GetLastAccepted(vm.db)
 	if err != nil {
 		return err
 	}
-	if b != nil {
-		log.Info("initialized quarkvm from last accepted block", "block", b.ID())
+	if b != (ids.ID{}) {
+		log.Info("initialized quarkvm from last accepted", "block", b)
 		return nil
 	}
 
@@ -124,7 +122,7 @@ func (vm *VM) Shutdown() error {
 	if vm.ctx == nil {
 		return nil
 	}
-	return vm.s.Close()
+	return vm.db.Close()
 }
 
 // implements "snowmanblock.ChainVM.common.VM"
@@ -209,7 +207,7 @@ func (vm *VM) getBlock(blkID ids.ID) (*chain.Block, error) {
 		return blk, nil
 	}
 
-	return vm.s.GetBlock(blkID)
+	return chain.GetBlock(vm.db, blkID)
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.Parser"
@@ -254,9 +252,11 @@ func (vm *VM) notifyBlockReady() {
 }
 
 // chain.VM
-func (vm *VM) State() chain.DB {
-	return nil
+func (vm *VM) State() database.Database {
+	return vm.db
 }
+
+// TODO: change naming
 func (vm *VM) Get(blockID ids.ID) (*chain.Block, error) {
 	return nil, nil
 }

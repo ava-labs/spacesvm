@@ -102,7 +102,6 @@ func GetBlock(db database.Database, bid ids.ID) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: how to handle status
 	var b Block
 	if _, err := codec.Unmarshal(v, &b); err != nil {
 		return nil, err

@@ -37,9 +37,10 @@ type Block struct {
 	Cost       uint64         `serialize:"true" json:"cost"`
 	Txs        []*Transaction `serialize:"true" json:"txs"`
 
-	raw []byte
-	id  ids.ID
-	st  choices.Status
+	raw         []byte
+	id          ids.ID
+	st          choices.Status
+	parentBlock *Block
 
 	vm         VM
 	children   []*Block
@@ -70,27 +71,31 @@ func (b *Block) Verify() error {
 		return nil
 	}
 
-	parentBlock, err := b.vm.Get(b.Prnt)
-	if err != nil {
-		return err
+	if b.parentBlock == nil {
+		parentBlock, err := b.vm.Get(b.Prnt)
+		if err != nil {
+			return err
+		}
+		b.parentBlock = parentBlock
 	}
 	if len(b.Txs) == 0 {
 		return ErrNoTxs
 	}
-	if b.Timestamp().Unix() < parentBlock.Timestamp().Unix() {
+	if b.Timestamp().Unix() < b.parentBlock.Timestamp().Unix() {
 		return ErrTimestampTooEarly
 	}
+	// TODO: make future time bound a const
 	if b.Timestamp().Unix() >= time.Now().Add(10*time.Second).Unix() {
 		return ErrTimestampTooLate
 	}
-	recentBlockIDs, recentTxIDs, cost, difficulty := b.vm.Recents(b.Tmstmp, parentBlock)
+	recentBlockIDs, recentTxIDs, cost, difficulty := b.vm.Recents(b.Tmstmp, b.parentBlock)
 	if b.Cost != cost {
 		return ErrInvalidCost
 	}
 	if b.Difficulty != difficulty {
 		return ErrInvalidDifficulty
 	}
-	parentState, err := parentBlock.onAccept()
+	parentState, err := b.parentBlock.onAccept()
 	if err != nil {
 		return err
 	}
@@ -113,8 +118,7 @@ func (b *Block) Verify() error {
 		return err
 	}
 
-	parentBlock.addChild(b)
-	// TODO: set prefered
+	b.parentBlock.addChild(b)
 	return b.vm.Verified(b)
 }
 
@@ -137,9 +141,7 @@ func (b *Block) Reject() error {
 }
 
 // implements "snowman.Block.choices.Decidable"
-func (b *Block) Status() choices.Status {
-	return b.st
-}
+func (b *Block) Status() choices.Status { return b.st }
 
 // implements "snowman.Block"
 func (b *Block) Parent() ids.ID { return b.Prnt }
@@ -158,17 +160,13 @@ func (b *Block) Timestamp() time.Time {
 }
 
 func (b *Block) onAccept() (database.Database, error) {
-	if b.st == choices.Accepted {
+	if b.st == choices.Accepted || b.ID() == b.Prnt /* genesis */ {
 		return b.vm.State(), nil
 	}
-	if b.onAcceptDB == nil {
-		parentBlock, err := b.vm.Get(b.Prnt)
-		if err != nil {
-			return nil, err
-		}
-		return parentBlock.onAccept()
+	if b.onAcceptDB != nil {
+		return b.onAcceptDB, nil
 	}
-	return b.onAcceptDB, nil
+	return nil, errors.New("parent block not verified or accepted")
 }
 
 func (b *Block) addChild(c *Block) {

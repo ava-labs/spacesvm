@@ -22,6 +22,7 @@ const (
 
 type VM interface {
 	State() database.Database
+	// TODO: change naming
 	Get(ids.ID) (*Block, error)
 	Recents(currentTime int64, parent *Block) (recentBlockIDs ids.Set, recentTxIDs ids.Set, cost uint64, difficulty uint64)
 
