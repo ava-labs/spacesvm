@@ -23,7 +23,6 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/codec"
 	"github.com/ava-labs/quarkvm/mempool"
-	"github.com/ava-labs/quarkvm/pow"
 	"github.com/ava-labs/quarkvm/storage"
 	"github.com/ava-labs/quarkvm/version"
 )
@@ -43,10 +42,9 @@ var (
 // TODO: add mutex?
 
 type VM struct {
-	ctx          *snow.Context
-	sybilControl pow.Checker
-	s            *storage.Storage
-	mempool      *mempool.Mempool
+	ctx     *snow.Context
+	s       *storage.Storage
+	mempool *mempool.Mempool
 
 	// Block ID --> Block
 	// Each element is a block that passed verification but
@@ -84,9 +82,17 @@ func (vm *VM) Initialize(
 	vm.verifiedBlocks = make(map[ids.ID]*chain.Block)
 	vm.toEngine = toEngine
 
-	// TODO: try to load last accepted
+	// Try to load last accepted
+	b, err := vm.s.GetLastAccepted()
+	if err != nil {
+		return err
+	}
+	if b != nil {
+		log.Info("initialized quarkvm from last accepted block", "block", b.ID())
+		return nil
+	}
 
-	// parent ID, height, timestamp all zero by default
+	// Load from genesis
 	genesisBlk := new(chain.Block)
 	genesisBlk.Initialize(
 		genesisBytes,
@@ -99,10 +105,7 @@ func (vm *VM) Initialize(
 	if err := genesisBlk.Accept(); err != nil {
 		return err
 	}
-
-	// TODO: set initialize for singleton store
-
-	log.Info("successfully initialized quarkvm")
+	log.Info("initialized quarkvm from genesis", "block", genesisBlk.ID())
 	return nil
 }
 
@@ -260,6 +263,20 @@ func (vm *VM) Get(blockID ids.ID) (*chain.Block, error) {
 func (vm *VM) Recents(currentTime int64, parent *chain.Block) (recentBlockIDs ids.Set, recentTxIDs ids.Set, cost uint64, difficulty uint64) {
 	return nil, nil, 0, 0
 }
-func (vm *VM) Verified(*chain.Block) error { return nil }
-func (vm *VM) Rejected(*chain.Block) error { return nil }
-func (vm *VM) Accepted(*chain.Block) error { return nil }
+func (vm *VM) Verified(b *chain.Block) error {
+	if b.Prnt == vm.preferred {
+		vm.preferred = b.ID()
+	}
+	vm.verifiedBlocks[b.ID()] = b
+	return nil
+}
+func (vm *VM) Rejected(b *chain.Block) error {
+	delete(vm.verifiedBlocks, b.ID())
+	return nil
+}
+func (vm *VM) Accepted(b *chain.Block) error {
+	// TODO: do reorg if preferred not in canonical chain
+	vm.lastAccepted = b.ID()
+	delete(vm.verifiedBlocks, b.ID())
+	return nil
+}

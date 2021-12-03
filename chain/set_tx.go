@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/quarkvm/codec"
 )
 
@@ -21,23 +22,19 @@ type SetTx struct {
 	Value   []byte `serialize:"true"`
 }
 
-func (s *SetTx) Verify(db DB, blockTime int64) error {
+func (s *SetTx) Verify(db database.Database, blockTime int64) error {
 	if len(s.Key) > maxKeyLength || len(s.Key) == 0 {
 		return errors.New("invalid key length")
 	}
 	if len(s.Value) > maxKeyLength {
 		return errors.New("invalid value length")
 	}
-	has, err := db.HasPrefix(s.Prefix)
+	i, has, err := GetPrefixInfo(db, s.Prefix)
 	if err != nil {
 		return err
 	}
 	if !has {
 		return errors.New("cannot set if prefix doesn't exist")
-	}
-	i, err := db.GetPrefixInfo(s.Prefix)
-	if err != nil {
-		return err
 	}
 	if !bytes.Equal(i.Owner.Bytes(), s.Sender.Bytes()) {
 		return errors.New("prefix not owned by modifier")
@@ -49,7 +46,7 @@ func (s *SetTx) Verify(db DB, blockTime int64) error {
 	if len(s.Value) > 0 {
 		return s.accept(db, blockTime)
 	}
-	has, err = db.HasPrefixKey(s.Prefix, s.Key)
+	has, err = HasPrefixKey(db, s.Prefix, s.Key)
 	if err != nil {
 		return err
 	}
@@ -59,25 +56,25 @@ func (s *SetTx) Verify(db DB, blockTime int64) error {
 	return s.accept(db, blockTime)
 }
 
-func (s *SetTx) accept(db DB, blockTime int64) error {
-	i, err := db.GetPrefixInfo(s.Prefix)
+func (s *SetTx) accept(db database.Database, blockTime int64) error {
+	i, _, err := GetPrefixInfo(db, s.Prefix)
 	if err != nil {
 		return err
 	}
 	timeRemaining := (i.Expiry - i.LastUpdated) * i.Keys
 	if len(s.Value) == 0 {
 		i.Keys--
-		if err := db.DeletePrefixKey(s.Prefix, s.Key); err != nil {
+		if err := DeletePrefixKey(db, s.Prefix, s.Key); err != nil {
 			return err
 		}
 	} else {
 		i.Keys++
-		if err := db.PutPrefixKey(s.Prefix, s.Key, s.Value); err != nil {
+		if err := PutPrefixKey(db, s.Prefix, s.Key, s.Value); err != nil {
 			return err
 		}
 	}
 	newTimeRemaining := timeRemaining / i.Keys
 	i.LastUpdated = blockTime
 	i.Expiry = blockTime + newTimeRemaining
-	return db.PutPrefixInfo(s.Prefix, i)
+	return PutPrefixInfo(db, s.Prefix, i)
 }

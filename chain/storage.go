@@ -1,16 +1,12 @@
-package storage
+package chain
 
 import (
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/codec"
 	"github.com/ava-labs/quarkvm/types"
 )
-
-var _ chain.DB = &Storage{}
 
 // 0x0/ (singleton prefix info)
 //   -> [reserved prefix]
@@ -30,18 +26,6 @@ const (
 var (
 	lastAccepted = []byte("last_accepted")
 )
-
-type Storage struct {
-	db database.Database
-}
-
-func New(db database.Database) *Storage {
-	return &Storage{db}
-}
-
-func (s *Storage) Close() error {
-	return s.db.Close()
-}
 
 func PrefixInfoKey(prefix []byte) []byte {
 	return append([]byte{infoPrefix, types.PrefixDelimiter}, prefix...)
@@ -97,7 +81,7 @@ func GetValue(db database.Database, prefix []byte, key []byte) ([]byte, bool, er
 	return v, true, nil
 }
 
-func SetLastAccepted(db database.Database, block *chain.Block) error {
+func SetLastAccepted(db database.Database, block *Block) error {
 	bid := block.ID()
 	if err := db.Put(lastAccepted, bid[:]); err != nil {
 		return err
@@ -113,34 +97,27 @@ func GetLastAccepted(db database.Database) (ids.ID, error) {
 	return ids.ToID(v)
 }
 
-func GetBlock(db database.Database, bid ids.ID) (*chain.Block, error) {
+func GetBlock(db database.Database, bid ids.ID) (*Block, error) {
 	v, err := db.Get(PrefixBlockKey(bid))
 	if err != nil {
 		return nil, err
 	}
 	// TODO: how to handle status
-	var b chain.Block
+	var b Block
 	if _, err := codec.Unmarshal(v, &b); err != nil {
 		return nil, err
 	}
 	return &b, nil
 }
 
-// chain.DB
-func (s *Storage) HasPrefix([]byte) (bool, error)                  { return false, nil }
-func (s *Storage) HasPrefixKey([]byte, []byte) (bool, error)       { return false, nil }
-func (s *Storage) GetPrefixInfo([]byte) (*types.PrefixInfo, error) { return nil, nil }
-func (s *Storage) GetPrefixKey([]byte, []byte) ([]byte, error)     { return nil, nil }
-func (s *Storage) PutPrefixInfo([]byte, *types.PrefixInfo) error   { return nil }
-func (s *Storage) PutPrefixKey([]byte, []byte, []byte) error       { return nil }
-func (s *Storage) DeletePrefixKey([]byte, []byte) error            { return nil }
-func (s *Storage) DeleteAllPrefixKeys([]byte) error                { return nil }
-func (s *Storage) StoreTransaction(*chain.Transaction) error       { return nil }
-func (s *Storage) SetLastAccepted(*chain.Block) error              { return nil }
-func (s *Storage) Commit() error                                   { return nil }
-func (s *Storage) SetDatabase(chain.DB)                            {}
-func (s *Storage) GetBlock(ids.ID) (*chain.Block, error)           { return nil, nil }
-func (s *Storage) PutBlock(*chain.Block) error                     { return nil }
-func (s *Storage) VersionDB() *versiondb.Database {
-	return versiondb.New(s.db)
-}
+// DB
+func HasPrefix(database.Database, []byte) (bool, error)                { return false, nil }
+func HasPrefixKey(database.Database, []byte, []byte) (bool, error)     { return false, nil }
+func GetPrefixKey(database.Database, []byte, []byte) ([]byte, error)   { return nil, nil }
+func PutPrefixInfo(database.Database, []byte, *types.PrefixInfo) error { return nil }
+func PutPrefixKey(database.Database, []byte, []byte, []byte) error     { return nil }
+func DeletePrefixKey(database.Database, []byte, []byte) error          { return nil }
+func DeleteAllPrefixKeys(database.Database, []byte) error              { return nil }
+func SetTransaction(database.Database, *Transaction) error             { return nil }
+func GetTransaction() (*Transaction, error)                            { return nil, nil }
+func PutBlock(*Block) error                                            { return nil }

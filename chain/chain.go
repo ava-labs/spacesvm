@@ -3,9 +3,8 @@ package chain
 import (
 	"time"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-
-	"github.com/ava-labs/quarkvm/types"
 )
 
 // TODO: load from genesis
@@ -22,28 +21,11 @@ const (
 )
 
 type VM interface {
-	State() DB
+	State() database.Database
 	Get(ids.ID) (*Block, error)
 	Recents(currentTime int64, parent *Block) (recentBlockIDs ids.Set, recentTxIDs ids.Set, cost uint64, difficulty uint64)
 
 	Verified(*Block) error
 	Rejected(*Block) error
 	Accepted(*Block) error
-}
-
-type DB interface {
-	HasPrefix([]byte) (bool, error)
-	HasPrefixKey([]byte, []byte) (bool, error)
-	GetPrefixInfo([]byte) (*types.PrefixInfo, error)
-	GetPrefixKey([]byte, []byte) ([]byte, error)
-	PutPrefixInfo([]byte, *types.PrefixInfo) error
-	PutPrefixKey([]byte, []byte, []byte) error
-	DeletePrefixKey([]byte, []byte) error
-	DeleteAllPrefixKeys([]byte) error
-
-	StoreTransaction(*Transaction) error
-	SetLastAccepted(*Block) error
-
-	Commit() error
-	SetDatabase(DB)
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"ekyu.moe/cryptonight"
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 
@@ -21,7 +22,7 @@ type UnsignedTransaction interface {
 	GetSender() *crypto.PublicKey
 	GetBlockID() ids.ID
 	VerifyBase() error
-	Verify(DB, int64) error
+	Verify(database.Database, int64) error
 }
 
 type Transaction struct {
@@ -74,7 +75,7 @@ func (t *Transaction) Difficulty() uint64 {
 	return t.difficulty
 }
 
-func (t *Transaction) Verify(db DB, blockTime int64, recentBlockIDs ids.Set, recentTxIDs ids.Set, minDifficulty uint64) error {
+func (t *Transaction) Verify(db database.Database, blockTime int64, recentBlockIDs ids.Set, recentTxIDs ids.Set, minDifficulty uint64) error {
 	if err := t.UnsignedTransaction.VerifyBase(); err != nil {
 		return err
 	}
@@ -99,5 +100,5 @@ func (t *Transaction) Verify(db DB, blockTime int64, recentBlockIDs ids.Set, rec
 	if err := t.UnsignedTransaction.Verify(db, blockTime); err != nil {
 		return err
 	}
-	return db.StoreTransaction(t)
+	return SetTransaction(db, t)
 }

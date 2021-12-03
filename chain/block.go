@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
@@ -41,7 +43,7 @@ type Block struct {
 
 	vm         VM
 	children   []*Block
-	onAcceptDB DB
+	onAcceptDB *versiondb.Database
 }
 
 func (b *Block) Initialize(
@@ -88,6 +90,11 @@ func (b *Block) Verify() error {
 	if b.Difficulty != difficulty {
 		return ErrInvalidDifficulty
 	}
+	parentState, err := parentBlock.onAccept()
+	if err != nil {
+		return err
+	}
+	b.onAcceptDB = versiondb.New(parentState)
 	var surplusDifficulty uint64
 	for _, tx := range b.Txs {
 		if err := tx.Verify(b.onAcceptDB, b.Tmstmp, recentBlockIDs, recentTxIDs, difficulty); err != nil {
@@ -102,7 +109,7 @@ func (b *Block) Verify() error {
 	}
 
 	// Set last accepted block and store
-	if err := b.onAcceptDB.SetLastAccepted(b); err != nil {
+	if err := SetLastAccepted(b.onAcceptDB, b); err != nil {
 		return err
 	}
 
@@ -150,7 +157,7 @@ func (b *Block) Timestamp() time.Time {
 	return time.Unix(b.Tmstmp, 0)
 }
 
-func (b *Block) onAccept() (DB, error) {
+func (b *Block) onAccept() (database.Database, error) {
 	if b.st == choices.Accepted {
 		return b.vm.State(), nil
 	}
