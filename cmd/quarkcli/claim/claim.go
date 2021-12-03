@@ -173,7 +173,7 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	resp := new(vm.IssueTxReply)
 	if err := requester.SendRequest(
 		"issueTx",
-		&vm.IssueTxArgs{Transaction: tx},
+		&vm.IssueTxArgs{Tx: tx},
 		resp,
 	); err != nil {
 		color.Red("failed to issue transaction %v", err)
