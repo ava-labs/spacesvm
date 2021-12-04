@@ -24,7 +24,6 @@ import (
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/codec"
 	"github.com/ava-labs/quarkvm/mempool"
 	"github.com/ava-labs/quarkvm/version"
 )
@@ -94,19 +93,23 @@ func (vm *VM) Initialize(
 	}
 
 	// Load from genesis
-	genesisBlk := new(chain.Block)
-	genesisBlk.Initialize(
+	genesisBlk, err := chain.InitializeBlock(
 		genesisBytes,
 		choices.Accepted,
 		vm,
 	)
+	if err != nil {
+		log.Error("unable to init genesis block", "err", err)
+		return err
+	}
 	if err := chain.SetLastAccepted(vm.db, genesisBlk); err != nil {
 		log.Error("could not set genesis as last accepted", "err", err)
 		return err
 	}
-	vm.preferred = genesisBlk.ID()
-	vm.lastAccepted = genesisBlk.ID()
-	log.Info("initialized quarkvm from genesis", "block", genesisBlk.ID())
+	gBlkID := genesisBlk.ID()
+	vm.preferred = gBlkID
+	vm.lastAccepted = gBlkID
+	log.Info("initialized quarkvm from genesis", "block", gBlkID)
 	return nil
 }
 
@@ -210,30 +213,36 @@ func (vm *VM) getBlock(blkID ids.ID) (*chain.Block, error) {
 		return blk, nil
 	}
 
-	// TODO: may need to initialize here
-	return chain.GetBlock(vm.db, blkID)
+	// Need to initialize for parent lookup to work right
+	// TODO: clean this up a ton
+	b, err := chain.GetBlock(vm.db, blkID)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: set accepted here too instead of in chain
+	b.SetVM(vm)
+	return b, nil
 }
 
-func (vm *VM) readWindow(currTime int64, f func(b *chain.Block) bool) error {
+func (vm *VM) readWindow(currTime int64, f func(b *chain.Block) bool) {
 	currID := vm.preferred
 	curr, err := vm.getBlock(currID)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	for curr != nil && (currTime-curr.Tmstmp <= chain.LookbackWindow || curr.ID() == vm.preferred) {
 		if !f(curr) {
-			return nil
+			return
 		}
 		if curr.Prnt == (ids.ID{}) /* genesis */ {
-			return nil
+			return
 		}
 		b, err := vm.getBlock(curr.Prnt)
 		if err != nil {
-			return err
+			panic(err)
 		}
 		curr = b
 	}
-	return nil
 }
 
 func (vm *VM) ValidBlockID(blockID ids.ID) bool {
@@ -262,7 +271,7 @@ func (vm *VM) DifficultyEstimate() uint64 {
 func (vm *VM) Recents(currTime int64, lastBlock *chain.Block) (ids.Set, ids.Set, uint64, uint64) {
 	recentBlockIDs := ids.Set{}
 	recentTxIDs := ids.Set{}
-	vm.readWindow(time.Now().Unix(), func(b *chain.Block) bool {
+	vm.readWindow(currTime, func(b *chain.Block) bool {
 		recentBlockIDs.Add(b.ID())
 		for _, tx := range b.Txs {
 			recentTxIDs.Add(tx.ID())
@@ -273,6 +282,9 @@ func (vm *VM) Recents(currTime int64, lastBlock *chain.Block) (ids.Set, ids.Set,
 	// compute new block cost
 	secondsSinceLast := currTime - lastBlock.Tmstmp
 	newBlockCost := lastBlock.Cost
+	if newBlockCost < chain.MinBlockCost {
+		newBlockCost = chain.MinBlockCost // needed for genesis (TODO: cleanup)
+	}
 	if secondsSinceLast < chain.BlockTarget {
 		newBlockCost += uint64(chain.BlockTarget - secondsSinceLast)
 	} else {
@@ -286,6 +298,9 @@ func (vm *VM) Recents(currTime int64, lastBlock *chain.Block) (ids.Set, ids.Set,
 
 	// compute new min difficulty
 	newMinDifficulty := lastBlock.Difficulty
+	if newMinDifficulty < chain.MinDifficulty {
+		newMinDifficulty = chain.MinDifficulty // needed for genesis (TODO: cleanup)
+	}
 	recentTxs := recentTxIDs.Len()
 	if recentTxs > chain.TargetTransactions {
 		newMinDifficulty++
@@ -304,26 +319,23 @@ func (vm *VM) Recents(currTime int64, lastBlock *chain.Block) (ids.Set, ids.Set,
 // implements "snowmanblock.ChainVM.commom.VM.Parser"
 // replaces "core.SnowmanVM.ParseBlock"
 func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
-	blk := new(chain.Block)
-	if _, err := codec.Unmarshal(source, blk); err != nil {
-		return nil, err
-	}
-	blk.Initialize(
+	return chain.InitializeBlock(
 		source,
 		choices.Processing,
 		vm,
 	)
-	return blk, nil
 }
 
 // implements "snowmanblock.ChainVM"
 func (vm *VM) BuildBlock() (snowman.Block, error) {
+	log.Info("attempting block building")
 	vm.l.Lock()
 	defer vm.l.Unlock()
 
 	nextTime := time.Now().Unix()
 	parent, err := vm.getBlock(vm.preferred)
 	if err != nil {
+		log.Debug("block building failed: couldn't get parent", "err", err)
 		return nil, err
 	}
 	recentBlockIDs, recentTxIDs, blockCost, minDifficulty := vm.Recents(nextTime, parent)
@@ -333,6 +345,7 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 	// TODO: move into chain package
 	parentDB, err := parent.OnAccept()
 	if err != nil {
+		log.Debug("block building failed: couldn't get parent db", "err", err)
 		return nil, err
 	}
 	tdb := versiondb.New(parentDB)
@@ -342,11 +355,13 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 		next, diff := vm.mempool.PopMax()
 		if diff < b.Difficulty {
 			vm.mempool.Push(next)
+			log.Debug("skipping tx: too low difficulty", "block diff", b.Difficulty, "tx diff", next.Difficulty())
 			break
 		}
 		// Verify that changes pass
 		ttdb := versiondb.New(tdb)
 		if err := next.Verify(ttdb, b.Tmstmp, recentBlockIDs, recentTxIDs, b.Difficulty); err != nil {
+			log.Debug("skipping tx: failed verification", "err", err)
 			ttdb.Abort()
 			continue
 		}
@@ -357,7 +372,7 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 		b.Txs = append(b.Txs, next)
 	}
 	if err := b.Verify(); err != nil {
-		log.Debug("new block failed verification", "err", err)
+		log.Debug("block building failed: failed verification", "err", err)
 		return nil, err
 	}
 	return b, nil

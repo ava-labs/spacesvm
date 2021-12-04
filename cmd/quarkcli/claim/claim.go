@@ -118,6 +118,7 @@ func mine(requester rpc.EndpointRequester, utx chain.UnsignedTransaction) (chain
 				return nil, err
 			}
 			if !v {
+				color.Yellow("%v is no longer a valid block id", cbID)
 				break
 			}
 			utx.SetGraffiti(graffiti.Bytes())
@@ -168,12 +169,13 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	tx := chain.NewTx(utx, sig)
+	tx := chain.NewTx(mtx, sig)
+	color.Yellow("Submitting tx %s: %v", tx.ID(), tx)
 
 	resp := new(vm.IssueTxReply)
 	if err := requester.SendRequest(
 		"issueTx",
-		&vm.IssueTxArgs{Tx: tx},
+		&vm.IssueTxArgs{Tx: tx.Bytes()},
 		resp,
 	); err != nil {
 		color.Red("failed to issue transaction %v", err)

@@ -2,6 +2,7 @@ package chain
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/database"
@@ -37,7 +38,6 @@ type Block struct {
 	Cost       uint64         `serialize:"true" json:"cost"`
 	Txs        []*Transaction `serialize:"true" json:"txs"`
 
-	raw         []byte
 	id          ids.ID
 	st          choices.Status
 	parentBlock *Block
@@ -60,19 +60,18 @@ func NewBlock(vm VM, parent *Block, tmstp int64, difficulty uint64, cost uint64)
 	}
 }
 
-func (b *Block) Initialize(
+func InitializeBlock(
 	source []byte,
 	status choices.Status,
 	vm VM,
-) {
-	id, err := ids.ToID(hashing.ComputeHash256(source))
-	if err != nil {
-		panic(err)
+) (*Block, error) {
+	b := new(Block)
+	if _, err := codec.Unmarshal(source, b); err != nil {
+		return nil, err
 	}
-	b.raw = source
-	b.id = id
 	b.st = status
 	b.vm = vm
+	return b, nil
 }
 
 // implements "snowman.Block.choices.Decidable"
@@ -87,14 +86,16 @@ func (b *Block) ID() ids.ID {
 	return b.id
 }
 
+// TODO: remove this, very ugly
+func (b *Block) SetVM(vm VM) {
+	b.vm = vm
+}
+
 // implements "snowman.Block"
 func (b *Block) Verify() error {
 	if b.st == choices.Accepted {
 		return nil
 	}
-
-	// TODO: NEED TO HANDLE VERIFICATION OF GENESIS BLOCK
-
 	if b.parentBlock == nil {
 		parentBlock, err := b.vm.Get(b.Prnt)
 		if err != nil {
@@ -114,7 +115,7 @@ func (b *Block) Verify() error {
 	}
 	recentBlockIDs, recentTxIDs, cost, difficulty := b.vm.Recents(b.Tmstmp, b.parentBlock)
 	if b.Cost != cost {
-		return ErrInvalidCost
+		return fmt.Errorf("%w: expected %d, but got %d", ErrInvalidCost, cost, b.Cost)
 	}
 	if b.Difficulty != difficulty {
 		return ErrInvalidDifficulty
@@ -171,7 +172,13 @@ func (b *Block) Status() choices.Status { return b.st }
 func (b *Block) Parent() ids.ID { return b.Prnt }
 
 // implements "snowman.Block"
-func (b *Block) Bytes() []byte { return b.raw }
+func (b *Block) Bytes() []byte {
+	by, err := codec.Marshal(b)
+	if err != nil {
+		panic(err)
+	}
+	return by
+}
 
 // implements "snowman.Block"
 func (b *Block) Height() uint64 {

@@ -3,6 +3,7 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/snow/choices"
 
 	"github.com/ava-labs/quarkvm/codec"
 	"github.com/ava-labs/quarkvm/types"
@@ -113,6 +114,7 @@ func GetBlock(db database.Database, bid ids.ID) (*Block, error) {
 	if _, err := codec.Unmarshal(v, &b); err != nil {
 		return nil, err
 	}
+	b.st = choices.Accepted // if block on disk, it must've been accepted
 	return &b, nil
 }
 

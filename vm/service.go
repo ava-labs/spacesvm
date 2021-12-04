@@ -11,6 +11,7 @@ import (
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/quarkvm/codec"
 )
 
 var (
@@ -36,7 +37,7 @@ func (svc *Service) Ping(_ *http.Request, args *PingArgs, reply *PingReply) (err
 }
 
 type IssueTxArgs struct {
-	Tx *chain.Transaction `serialize:"true" json:"tx"`
+	Tx []byte `serialize:"true" json:"tx"`
 }
 
 type IssueTxReply struct {
@@ -46,8 +47,13 @@ type IssueTxReply struct {
 }
 
 func (svc *Service) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
-	svc.vm.Submit(args.Tx)
-	reply.TxID = args.Tx.ID()
+	tx := new(chain.Transaction)
+	if _, err := codec.Unmarshal(args.Tx, tx); err != nil {
+		reply.Error = err
+		return nil
+	}
+	svc.vm.Submit(tx)
+	reply.TxID = tx.ID()
 	reply.Success = true
 	return nil
 }
