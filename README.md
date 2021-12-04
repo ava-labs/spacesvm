@@ -12,240 +12,58 @@ KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin)
 
 At its core, the Avalanche protocol still maintains the immutable ordered sequence of states in a fully permissionless settings. And KVVM defines the rules and data structures to store key-value pairs.
 
-Build the `quarkvm` plugin for the AvalancheGo:
+## Build the `quarkvm` plugin for AvalancheGo
 
 ```bash
 cd ${HOME}/go/src/github.com/ava-labs/quarkvm
 ./scripts/build.sh
-```
-## TODO: MIGRATE TO USING AVA-SIM
 
-*Step 1.* To interact with Avalanche network RPC chain APIs, download and run a [AvalancheGo](https://github.com/ava-labs/avalanchego#installation) node locally, as follows:
-
-```bash
-# run 1 avalanchego node in local network
-# TODO: test with 3 nodes?
-kill -9 $(lsof -t -i:9650)
-kill -9 $(lsof -t -i:9651)
-cd ${HOME}/go/src/github.com/ava-labs/avalanchego
-rm -rf ./logs
-./build/avalanchego \
---log-level=info \
---log-dir=./logs \
---network-id=local \
---public-ip=127.0.0.1 \
---http-port=9650 \
---db-type=memdb \
---staking-enabled=false
-
-# make sure the node is up
-curl -X POST --data '{
-    "jsonrpc":"2.0",
-    "id"     :1,
-    "method" :"health.health"
-}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/health
+> Building quarkvm in /Users/patrickogrady/go/src/github.com/ava-labs/avalanchego/build/plugins/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH
 ```
 
-*Step 2.* Create a user:
+## Generate a Gensis File
 
 ```bash
-curl --location --request POST '127.0.0.1:9650/ext/keystore' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "jsonrpc":"2.0",
-    "id"     :1,
-    "method" :"keystore.createUser",
-    "params" :{
-        "username":"testusername123",
-        "password":"insecurestring789"
-    }
-}'
+./build/quark-cli genesis
+
+> created genesis and saved to /Users/patrickogrady/code/quarkvm/genesis.json
 ```
 
-*Step 3.* Import the pre-funded key for the P-chain:
+## Clone ava-sim (separate folder)
 
 ```bash
-curl --location --request POST '127.0.0.1:9650/ext/P' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "jsonrpc":"2.0",
-    "id"     :1,
-    "method" :"platform.importKey",
-    "params" :{
-        "username":"testusername123",
-        "password":"insecurestring789",
-        "privateKey":"PrivateKey-ewoqjP7PxY4yr3iLTpLisriqt94hdyDFNgchSxGGztUrTXtNN"
-    }
-}'
-# {"jsonrpc":"2.0","result":{"address":"P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"},"id":1}
+git clone https://github.com/ava-labs/ava-sim.git
+./scripts/build.sh
 ```
 
-*Step 4.* Get the list of P-chain addresses:
+## Start ava-sim
 
 ```bash
-curl -X POST --data '{
-    "jsonrpc": "2.0",
-    "method": "platform.listAddresses",
-    "params": {
-        "username":"testusername123",
-        "password":"insecurestring789"
-    },
-    "id": 1
-}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P
-# {"jsonrpc":"2.0","result":{"addresses":["P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"]},"id":1}
+./scripts/run.sh /Users/patrickogrady/go/src/github.com/ava-labs/avalanchego/build/plugins/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH /Users/patrickogrady/code/quarkvm/genesis.json
+
+>>>>>>
+Custom VM endpoints now accessible at:
+NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg: http://127.0.0.1:9650/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa
+NodeID-MFrZFVCXPv5iCn6M9K6XduxGTYp891xXZ: http://127.0.0.1:9652/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa
+NodeID-NFBbbJ4qCmNaCzeW7sxErhvWqvEQMnYcN: http://127.0.0.1:9654/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa
+NodeID-GWPcbFJZFfZreETSoWjPimr846mXEKCtu: http://127.0.0.1:9656/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa
+NodeID-P7oB2McjBGgW2NXXWVYjV8JEDFoW9xDE5: http://127.0.0.1:9658/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa
 ```
 
-*Step 5.* Create a subnet:
+## Claim a Prefix (work done automatically)
 
 ```bash
-curl --location --request POST '127.0.0.1:9650/ext/P' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "jsonrpc":"2.0",
-    "id"     :1,
-    "method" :"platform.createSubnet",
-    "params" :{
-        "username":"testusername123",
-        "password":"insecurestring789",
-        "threshold":1,
-        "controlKeys":["P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"]
-    }
-}'
-# {"jsonrpc":"2.0","result":{"txID":"29uVeLPJB1eQJkzRemU8g8wZDw5uJRqpab5U2mX9euieVwiEbL","changeAddr":"P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"},"id":1}
-# 29uVeLPJB1eQJkzRemU8g8wZDw5uJRqpab5U2mX9euieVwiEbL is the subnet blockchain ID
-```
-
-*Step 6.* Try RPC endpoint and encode genesis:
-
-```bash
-curl -X POST --data '{
-   "jsonrpc": "2.0",
-    "method" : "quarkvm.encode",
-    "params" : {
-        "data": "mynewblock"
-    },
-    "id": 1
-}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/vm/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH
-# {"jsonrpc":"2.0","result":{"bytes":"hFJC2u1J4KynGjyuPk6","encoding":"cb58"},"id":1}
-```
-
-*Step 7.* Create a blockchain:
-
-```bash
-curl --location --request POST '127.0.0.1:9650/ext/P' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "jsonrpc":"2.0",
-    "id"     :1,
-    "method" :"platform.createBlockchain",
-    "params" :{
-        "username":"testusername123",
-        "password":"insecurestring789",
-        "vmID":"tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH",
-        "subnetID":"29uVeLPJB1eQJkzRemU8g8wZDw5uJRqpab5U2mX9euieVwiEbL",
-        "name":"my new quarkvm",
-        "genesisData":"hFJC2u1J4KynGjyuPk6"
-    }
-}'
-# {"jsonrpc":"2.0","result":{"txID":"FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ","changeAddr":"P-local18jma8ppw3nhx5r4ap8clazz0dps7rv5u00z96u"},"id":1}
-```
-
-```bash
-curl -X POST --data '{
-    "jsonrpc":"2.0",
-    "id"     :1,
-    "method" :"platform.getBlockchainStatus",
-    "params" :{
-        "blockchainID":"FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ"
-    }
-}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P
-# {"jsonrpc":"2.0","result":{"status":"Syncing"},"id":1}
-
-curl -X POST --data '{
-    "jsonrpc": "2.0",
-    "method": "quarkvm.ping",
-    "params":{},
-    "id": 1
-}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ
-# {"jsonrpc":"2.0","result":{"success":true},"id":1}
-
-curl -X POST --data '{
-    "jsonrpc": "2.0",
-    "method": "quarkvm.issueTx",
-    "params":{},
-    "id": 1
-}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ
-# {"jsonrpc":"2.0","error":{"code":-32000,"message":"invalid empty transaction","data":null},"id":1}
-```
-
-*Step 8.* Create a new key pair using `quark-cli`:
-
-```bash
-# TODO: add config file/env for key location and/or RPC
-cd ${HOME}/go/src/github.com/ava-labs/quarkvm
-./build/quark-cli create
-```
-
-*Step 9.* Interact with `quarkvm` using `quark-cli`:
-
-```bash
-cd ${HOME}/go/src/github.com/ava-labs/quarkvm
 ./build/quark-cli \
 --private-key-file .quark-cli-pk \
 --url http://127.0.0.1:9650 \
---endpoint /ext/bc/FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ \
-put hello.avax/twitter @hello
-<<COMMENT
-creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt"
-issued transaction NSXnBw8TUbjnYGYhkmxWCXAXWGdJa2Ajbqirdwbtt9uKRAaxr (success true)
-polling transaction "NSXnBw8TUbjnYGYhkmxWCXAXWGdJa2Ajbqirdwbtt9uKRAaxr"
-confirmed transaction "NSXnBw8TUbjnYGYhkmxWCXAXWGdJa2Ajbqirdwbtt9uKRAaxr"
-COMMENT
+--endpoint /ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa  \
+claim pat
 
-cd ${HOME}/go/src/github.com/ava-labs/quarkvm
-./build/quark-cli \
---private-key-file .quark-cli-pk \
---url http://127.0.0.1:9650 \
---endpoint /ext/bc/FLeCHRHHXmeeZZBA82iX2ksyXbZkC3jUVvDRKALByq2KhWDqQ \
-put hello.avax/address 123
-<<COMMENT
-creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt"
-issued transaction ZgDMEM7EM6KFDMWSRTxRsuLNS3u4HqynaaQ8BMwqx4KgcXW7G (success true)
-polling transaction "ZgDMEM7EM6KFDMWSRTxRsuLNS3u4HqynaaQ8BMwqx4KgcXW7G"
-confirmed transaction "ZgDMEM7EM6KFDMWSRTxRsuLNS3u4HqynaaQ8BMwqx4KgcXW7G"
-COMMENT
-
-cd ${HOME}/go/src/github.com/ava-labs/quarkvm
-./build/quark-cli \
---private-key-file .quark-cli-pk \
---url http://127.0.0.1:9650 \
---endpoint /ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt \
-get hello.avax/address
-<<COMMENT
-creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt"
-sending range ["hello.avax/address", ""]
-range ["hello.avax/address", ""] success true
-hello.avax/address 123
-COMMENT
-
-# TODO: support --with-prefix
-cd ${HOME}/go/src/github.com/ava-labs/quarkvm
-./build/quark-cli \
---private-key-file .quark-cli-pk \
---url http://127.0.0.1:9650 \
---endpoint /ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt \
-get hello.avax/ hello.avax/x
-<<COMMENT
-creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/aZcnEU7EoqZ41jnmj64i1NhxavgC6M7s8PzkFbvuYu8qMe1Mt"
-sending range ["hello.avax/", "hello.avax/x"]
-range ["hello.avax/", "hello.avax/x"] success true
-hello.avax/address 123
-hello.avax/twitter @hello
-COMMENT
-```
-
-```bash
-# TODO: implement
-quark-cli lifeline hello.avax
-quark-cli info hello.avax (remaining life, num keys, claimed/unclaimed/expired)
+>>>>>
+creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa"
+Submitting tx NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw with BlockID (zgvHpznxkG7xAh2qgsQFVkrioB4ENdKYfum6KWe6rZGiuzdPf): &{0xc00011a0c8 [175 87 123 222 38 232 10 27 198 13 215 107 60 56 102 21 11 12 195 39 191 122 160 156 155 11 183 164 202 22 22 76 231 28 232 58 18 187 198 249 170 168 232 227 43 85 90 54 94 76 49 184 59 9 194 205 222 162 20 67 208 185 115 12] 0}
+issued transaction NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw (success true)
+polling transaction "NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw"
+confirmed transaction "NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw"
+prefix pat info &{Owner:0xc00011dd70 LastUpdated:1638591044 Expiry:1638591074 Keys:1}
 ```
