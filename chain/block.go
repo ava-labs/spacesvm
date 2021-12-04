@@ -49,6 +49,7 @@ type Block struct {
 
 func NewBlock(vm VM, parent *Block, tmstp int64, difficulty uint64, cost uint64) *Block {
 	return &Block{
+		Tmstmp:     tmstp,
 		Prnt:       parent.ID(),
 		Hght:       parent.Height() + 1,
 		Difficulty: difficulty,
