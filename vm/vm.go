@@ -224,13 +224,14 @@ func (vm *VM) getBlock(blkID ids.ID) (*chain.Block, error) {
 	return b, nil
 }
 
-func (vm *VM) readWindow(currTime int64, f func(b *chain.Block) bool) {
-	currID := vm.preferred
-	curr, err := vm.getBlock(currID)
+func (vm *VM) readWindow(currTime int64, lastID ids.ID, f func(b *chain.Block) bool) {
+	curr, err := vm.getBlock(lastID)
 	if err != nil {
 		panic(err)
 	}
-	for curr != nil && (currTime-curr.Tmstmp <= chain.LookbackWindow || curr.ID() == vm.preferred) {
+	// Include at least parent block in the window, regardless of how old (TODO:
+	// should we change that?)
+	for curr != nil && (currTime-curr.Tmstmp <= chain.LookbackWindow || curr.ID() == lastID) {
 		if !f(curr) {
 			return
 		}
@@ -247,7 +248,7 @@ func (vm *VM) readWindow(currTime int64, f func(b *chain.Block) bool) {
 
 func (vm *VM) ValidBlockID(blockID ids.ID) bool {
 	var foundBlockID bool
-	vm.readWindow(time.Now().Unix(), func(b *chain.Block) bool {
+	vm.readWindow(time.Now().Unix(), vm.preferred, func(b *chain.Block) bool {
 		if b.ID() == blockID {
 			foundBlockID = true
 			return false
@@ -260,7 +261,7 @@ func (vm *VM) ValidBlockID(blockID ids.ID) bool {
 func (vm *VM) DifficultyEstimate() uint64 {
 	totalDifficulty := uint64(0)
 	totalBlocks := uint64(0)
-	vm.readWindow(time.Now().Unix(), func(b *chain.Block) bool {
+	vm.readWindow(time.Now().Unix(), vm.preferred, func(b *chain.Block) bool {
 		totalDifficulty += b.Difficulty
 		totalBlocks++
 		return true
@@ -271,7 +272,7 @@ func (vm *VM) DifficultyEstimate() uint64 {
 func (vm *VM) Recents(currTime int64, lastBlock *chain.Block) (ids.Set, ids.Set, uint64, uint64) {
 	recentBlockIDs := ids.Set{}
 	recentTxIDs := ids.Set{}
-	vm.readWindow(currTime, func(b *chain.Block) bool {
+	vm.readWindow(currTime, lastBlock.ID(), func(b *chain.Block) bool {
 		recentBlockIDs.Add(b.ID())
 		for _, tx := range b.Txs {
 			recentTxIDs.Add(tx.ID())
@@ -319,11 +320,17 @@ func (vm *VM) Recents(currTime int64, lastBlock *chain.Block) (ids.Set, ids.Set,
 // implements "snowmanblock.ChainVM.commom.VM.Parser"
 // replaces "core.SnowmanVM.ParseBlock"
 func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
-	return chain.InitializeBlock(
+	blk, err := chain.InitializeBlock(
 		source,
 		choices.Processing,
 		vm,
 	)
+	if blk == nil {
+		log.Debug("parsing block", "err", err)
+	} else {
+		log.Debug("parsing block", "id", blk.ID())
+	}
+	return blk, err
 }
 
 // implements "snowmanblock.ChainVM"
@@ -392,6 +399,7 @@ func (vm *VM) Submit(tx *chain.Transaction) {
 // "SetPreference" implements "snowmanblock.ChainVM"
 // replaces "core.SnowmanVM.SetPreference"
 func (vm *VM) SetPreference(id ids.ID) error {
+	log.Info("set preference", "id", id)
 	vm.preferred = id
 	return nil
 }
@@ -426,16 +434,19 @@ func (vm *VM) Verified(b *chain.Block) error {
 	vm.verifiedBlocks[b.ID()] = b
 	// TODO: remove txs from mempool (need to be careful not to create a deadlock
 	// with BuildBlock)
+	log.Info("verified block", "id", b.ID(), "parent", b.Prnt)
 	return nil
 }
 func (vm *VM) Rejected(b *chain.Block) error {
 	delete(vm.verifiedBlocks, b.ID())
 	// TODO: add txs to mempool
+	log.Info("rejected block", "id", b.ID())
 	return nil
 }
 func (vm *VM) Accepted(b *chain.Block) error {
 	// TODO: do reorg if preferred not in canonical chain
 	vm.lastAccepted = b.ID()
 	delete(vm.verifiedBlocks, b.ID())
+	log.Info("accepted block", "id", b.ID())
 	return nil
 }

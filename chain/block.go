@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/utils/hashing"
+	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/quarkvm/codec"
 )
@@ -95,11 +96,13 @@ func (b *Block) SetVM(vm VM) {
 // implements "snowman.Block"
 func (b *Block) Verify() error {
 	if b.st == choices.Accepted {
+		log.Debug("block already accepted", "id", b.ID())
 		return nil
 	}
 	if b.parentBlock == nil {
 		parentBlock, err := b.vm.Get(b.Prnt)
 		if err != nil {
+			log.Debug("could not get parent", "id", b.Prnt)
 			return err
 		}
 		b.parentBlock = parentBlock
@@ -125,10 +128,19 @@ func (b *Block) Verify() error {
 	if err != nil {
 		return err
 	}
+	if b.onAcceptDB != nil {
+		// Could happen if previously verified
+		// TODO: probably a MUCH MUCH easier way to do this
+		if err := b.onAcceptDB.Close(); err != nil {
+			return err
+		}
+	}
 	b.onAcceptDB = versiondb.New(parentState)
 	var surplusDifficulty uint64
 	for _, tx := range b.Txs {
 		if err := tx.Verify(b.onAcceptDB, b.Tmstmp, recentBlockIDs, recentTxIDs, difficulty); err != nil {
+			err = fmt.Errorf("%w: transaction failed verification", err)
+			log.Error("failed tx verification", "err", err)
 			return err
 		}
 		surplusDifficulty += tx.Difficulty() - difficulty

@@ -2,6 +2,7 @@ package chain
 
 import (
 	"errors"
+	"fmt"
 
 	"ekyu.moe/cryptonight"
 	"github.com/ava-labs/avalanchego/database"
@@ -79,10 +80,11 @@ func (t *Transaction) Verify(db database.Database, blockTime int64, recentBlockI
 	if err := t.UnsignedTransaction.VerifyBase(); err != nil {
 		return err
 	}
+	// TODO: need to make sure this includes parent if verify twice
 	if !recentBlockIDs.Contains(t.GetBlockID()) {
 		// Hash must be recent to be any good
 		// Should not happen beause of mempool cleanup
-		return errors.New("invalid block id")
+		return fmt.Errorf("invalid blockID, expected value in %v but had %v", recentBlockIDs, t.GetBlockID())
 	}
 	if recentTxIDs.Contains(t.ID()) {
 		// Tx hash must not be recently executed (otherwise could be replayed)
