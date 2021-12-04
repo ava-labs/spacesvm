@@ -12,6 +12,7 @@ import (
 
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/codec"
+	"github.com/ava-labs/quarkvm/types"
 )
 
 var (
@@ -111,5 +112,21 @@ type DifficultyEstimateReply struct {
 
 func (svc *Service) DifficultyEstimate(_ *http.Request, args *DifficultyEstimateArgs, reply *DifficultyEstimateReply) error {
 	reply.Difficulty = svc.vm.DifficultyEstimate()
+	return nil
+}
+
+type PrefixInfoArgs struct {
+	Prefix []byte `serialize:"true" json:"prefix"`
+}
+
+type PrefixInfoReply struct {
+	Info  *types.PrefixInfo `serialize:"true" json:"info"`
+	Error error             `serialize:"true" json:"error"`
+}
+
+func (svc *Service) PrefixInfo(_ *http.Request, args *PrefixInfoArgs, reply *PrefixInfoReply) error {
+	i, _, err := chain.GetPrefixInfo(svc.vm.db, args.Prefix)
+	reply.Info = i
+	reply.Error = err
 	return nil
 }

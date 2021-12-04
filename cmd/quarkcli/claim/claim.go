@@ -16,6 +16,7 @@ import (
 
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
+	"github.com/ava-labs/quarkvm/types"
 	"github.com/ava-labs/quarkvm/vm"
 )
 
@@ -101,6 +102,19 @@ func difficultyEstimate(requester rpc.EndpointRequester) (uint64, error) {
 		return 0, err
 	}
 	return resp.Difficulty, nil
+}
+
+func prefixInfo(requester rpc.EndpointRequester, prefix []byte) (*types.PrefixInfo, error) {
+	resp := new(vm.PrefixInfoReply)
+	if err := requester.SendRequest(
+		"prefixInfo",
+		&vm.PrefixInfoArgs{Prefix: prefix},
+		resp,
+	); err != nil {
+		color.Red("failed to get prefix %v", err)
+		return nil, err
+	}
+	return resp.Info, resp.Error
 }
 
 // TODO: handle timeout
@@ -194,7 +208,7 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 done:
 	for ctx.Err() == nil {
 		select {
-		case <-time.After(5 * time.Second):
+		case <-time.After(1 * time.Second):
 		case <-ctx.Done():
 			break done
 		}
@@ -215,6 +229,12 @@ done:
 			break
 		}
 	}
+
+	info, err := prefixInfo(requester, []byte(prefix))
+	if err != nil {
+		color.Red("cannot get prefix info %v", err)
+	}
+	color.Blue("prefix %s info %+v", prefix, info)
 
 	return nil
 }
