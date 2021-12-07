@@ -28,6 +28,7 @@ type Block struct {
 
 	id    ids.ID
 	st    choices.Status
+	t     time.Time
 	bytes []byte
 
 	vm         VM
@@ -64,6 +65,7 @@ func ParseBlock(
 		return nil, err
 	}
 	b.id = id
+	b.t = time.Unix(b.Tmstmp, 0)
 	b.st = status
 	b.vm = vm
 	return b, nil
@@ -80,6 +82,7 @@ func (b *Block) init() error {
 		return err
 	}
 	b.id = id
+	b.t = time.Unix(b.Tmstmp, 0)
 	return nil
 }
 
@@ -185,7 +188,7 @@ func (b *Block) Bytes() []byte { return b.bytes }
 func (b *Block) Height() uint64 { return b.Hght }
 
 // implements "snowman.Block"
-func (b *Block) Timestamp() time.Time { return time.Unix(b.Tmstmp, 0) }
+func (b *Block) Timestamp() time.Time { return b.t }
 
 func (b *Block) onAccept() (database.Database, error) {
 	if b.st == choices.Accepted || b.Hght == 0 /* genesis */ {
