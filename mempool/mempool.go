@@ -67,10 +67,7 @@ func (th *internalTxHeap) Pop() interface{} {
 
 func (th *internalTxHeap) Get(id ids.ID) (*txEntry, bool) {
 	entry, ok := th.lookup[id]
-	if !ok {
-		return nil, false
-	}
-	return entry, true
+	return entry, ok
 }
 
 func (th *internalTxHeap) Has(id ids.ID) bool {
@@ -98,10 +95,7 @@ func (th *Mempool) Push(tx *chain.Transaction) {
 	if th.Has(txID) {
 		return
 	}
-	// Remove the lowest paying tx
-	if th.Len() >= th.maxSize {
-		_ = th.PopMin()
-	}
+	// Optimistically add tx to mempool
 	difficulty := tx.Difficulty()
 	oldLen := th.Len()
 	heap.Push(th.maxHeap, &txEntry{
@@ -116,6 +110,13 @@ func (th *Mempool) Push(tx *chain.Transaction) {
 		tx:         tx,
 		index:      oldLen,
 	})
+	// Remove the lowest paying tx
+	//
+	// Note: we do this after adding the new transaction in case it is the new
+	// lowest paying transaction
+	if th.Len() >= th.maxSize {
+		_ = th.PopMin()
+	}
 }
 
 // Assumes there is non-zero items in [Mempool]

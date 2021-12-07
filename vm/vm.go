@@ -28,7 +28,11 @@ import (
 	"github.com/ava-labs/quarkvm/version"
 )
 
-const Name = "quarkvm"
+const (
+	Name = "quarkvm"
+
+	mempoolSize = 1024
+)
 
 var (
 	_ snowmanblock.ChainVM = &VM{}
@@ -75,7 +79,7 @@ func (vm *VM) Initialize(
 
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
-	vm.mempool = mempool.New(1024)
+	vm.mempool = mempool.New(mempoolSize)
 	vm.verifiedBlocks = make(map[ids.ID]*chain.Block)
 	vm.toEngine = toEngine
 
