@@ -31,11 +31,6 @@ func (k *PublicKey) Verify(msg, sig []byte) bool {
 	return ed25519.Verify(k.PublicKey, msg, sig)
 }
 
-// VerifyHash implements the PublicKey interface
-func (k *PublicKey) VerifyHash(hash, sig []byte) bool {
-	return k.Verify(hash, sig)
-}
-
 // Address implements the PublicKey interface
 func (k *PublicKey) Address() string {
 	if len(k.Addr) == 0 {
@@ -64,11 +59,6 @@ func (k *PrivateKey) PublicKey() *PublicKey {
 // Sign implements the PrivateKey interface
 func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
 	return ed25519.Sign(k.PrivateKey, msg), nil
-}
-
-// SignHash implements the PrivateKey interface
-func (k PrivateKey) SignHash(hash []byte) ([]byte, error) {
-	return k.Sign(hash)
 }
 
 // Bytes implements the PrivateKey interface

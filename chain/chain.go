@@ -5,6 +5,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 )
 
 // TODO: load from genesis
@@ -22,14 +23,25 @@ const (
 	expiryTime         = 30 // TODO: set much longer on real network
 )
 
+type Context struct {
+	RecentBlockIDs ids.Set
+	RecentTxIDs    ids.Set
+
+	NextCost       uint64
+	NextDifficulty uint64
+}
+
 type VM interface {
 	State() database.Database
-	// TODO: change naming
-	Get(ids.ID) (*Block, error)
-	Recents(currentTime int64, parent *Block) (recentBlockIDs ids.Set, recentTxIDs ids.Set, cost uint64, difficulty uint64)
+	GetBlock(ids.ID) (snowman.Block, error)
+	ExecutionContext(currentTime int64, parent *Block) (*Context, error)
 
-	// TODO: change naming
-	Verified(*Block) error
-	Rejected(*Block) error
-	Accepted(*Block) error
+	MempoolSize() int
+	MempoolPrune(ids.Set)
+	MempoolNext() (*Transaction, uint64)
+	MempoolPush(*Transaction)
+
+	Verified(*Block)
+	Rejected(*Block)
+	Accepted(*Block)
 }

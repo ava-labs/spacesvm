@@ -3,7 +3,6 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/snow/choices"
 )
 
 // 0x0/ (singleton prefix info)
@@ -89,14 +88,11 @@ func SetLastAccepted(db database.Database, block *Block) error {
 	return db.Put(PrefixBlockKey(bid), block.Bytes())
 }
 
+func HasLastAccepted(db database.Database) (bool, error) {
+	return db.Has(lastAccepted)
+}
+
 func GetLastAccepted(db database.Database) (ids.ID, error) {
-	has, err := db.Has(lastAccepted)
-	if err != nil {
-		return ids.ID{}, err
-	}
-	if !has {
-		return ids.ID{}, nil
-	}
 	v, err := db.Get(lastAccepted)
 	if err != nil {
 		return ids.ID{}, err
@@ -104,17 +100,8 @@ func GetLastAccepted(db database.Database) (ids.ID, error) {
 	return ids.ToID(v)
 }
 
-func GetBlock(db database.Database, bid ids.ID) (*Block, error) {
-	v, err := db.Get(PrefixBlockKey(bid))
-	if err != nil {
-		return nil, err
-	}
-	var b Block
-	if _, err := Unmarshal(v, &b); err != nil {
-		return nil, err
-	}
-	b.st = choices.Accepted // if block on disk, it must've been accepted
-	return &b, nil
+func GetBlock(db database.Database, bid ids.ID) ([]byte, error) {
+	return db.Get(PrefixBlockKey(bid))
 }
 
 // DB

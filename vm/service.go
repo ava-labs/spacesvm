@@ -41,15 +41,13 @@ type IssueTxArgs struct {
 
 type IssueTxReply struct {
 	TxID    ids.ID `serialize:"true" json:"txID"`
-	Error   error  `serialize:"true" json:"error"`
 	Success bool   `serialize:"true" json:"success"`
 }
 
 func (svc *Service) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
 	tx := new(chain.Transaction)
 	if _, err := chain.Unmarshal(args.Tx, tx); err != nil {
-		reply.Error = err
-		return nil
+		return err
 	}
 	svc.vm.Submit(tx)
 	reply.TxID = tx.ID()
@@ -62,15 +60,13 @@ type CheckTxArgs struct {
 }
 
 type CheckTxReply struct {
-	Error     error `serialize:"true" json:"error"`
-	Confirmed bool  `serialize:"true" json:"confirmed"`
+	Confirmed bool `serialize:"true" json:"confirmed"`
 }
 
 func (svc *Service) CheckTx(_ *http.Request, args *CheckTxArgs, reply *CheckTxReply) error {
 	has, err := chain.HasTransaction(svc.vm.db, args.TxID)
 	if err != nil {
-		reply.Error = err
-		return nil
+		return err
 	}
 	reply.Confirmed = has
 	return nil
@@ -97,7 +93,11 @@ type ValidBlockIDReply struct {
 }
 
 func (svc *Service) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, reply *ValidBlockIDReply) error {
-	reply.Valid = svc.vm.ValidBlockID(args.BlockID)
+	valid, err := svc.vm.ValidBlockID(args.BlockID)
+	if err != nil {
+		return err
+	}
+	reply.Valid = valid
 	return nil
 }
 
@@ -109,7 +109,11 @@ type DifficultyEstimateReply struct {
 }
 
 func (svc *Service) DifficultyEstimate(_ *http.Request, args *DifficultyEstimateArgs, reply *DifficultyEstimateReply) error {
-	reply.Difficulty = svc.vm.DifficultyEstimate()
+	diff, err := svc.vm.DifficultyEstimate()
+	if err != nil {
+		return err
+	}
+	reply.Difficulty = diff
 	return nil
 }
 
@@ -118,13 +122,14 @@ type PrefixInfoArgs struct {
 }
 
 type PrefixInfoReply struct {
-	Info  *chain.PrefixInfo `serialize:"true" json:"info"`
-	Error error             `serialize:"true" json:"error"`
+	Info *chain.PrefixInfo `serialize:"true" json:"info"`
 }
 
 func (svc *Service) PrefixInfo(_ *http.Request, args *PrefixInfoArgs, reply *PrefixInfoReply) error {
 	i, _, err := chain.GetPrefixInfo(svc.vm.db, args.Prefix)
+	if err != nil {
+		return err
+	}
 	reply.Info = i
-	reply.Error = err
 	return nil
 }

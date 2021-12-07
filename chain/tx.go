@@ -68,24 +68,23 @@ func (t *Transaction) Difficulty() uint64 {
 	return t.difficulty
 }
 
-func (t *Transaction) Verify(db database.Database, blockTime int64, recentBlockIDs ids.Set, recentTxIDs ids.Set, minDifficulty uint64) error {
+func (t *Transaction) Verify(db database.Database, blockTime int64, context *Context) error {
 	if err := t.UnsignedTransaction.VerifyBase(); err != nil {
 		return err
 	}
-	// TODO: need to make sure this includes parent if verify twice
-	if !recentBlockIDs.Contains(t.GetBlockID()) {
+	if !context.RecentBlockIDs.Contains(t.GetBlockID()) {
 		// Hash must be recent to be any good
 		// Should not happen beause of mempool cleanup
 		return ErrInvalidBlockID
 	}
-	if recentTxIDs.Contains(t.ID()) {
+	if context.RecentTxIDs.Contains(t.ID()) {
 		// Tx hash must not be recently executed (otherwise could be replayed)
 		//
 		// NOTE: We only need to keep cached tx hashes around as long as the
 		// block hash referenced in the tx is valid
 		return ErrDuplicateTx
 	}
-	if t.Difficulty() < minDifficulty {
+	if t.Difficulty() < context.NextDifficulty {
 		return ErrInvalidDifficulty
 	}
 	if !t.GetSender().Verify(UnsignedBytes(t.UnsignedTransaction), t.Signature) {

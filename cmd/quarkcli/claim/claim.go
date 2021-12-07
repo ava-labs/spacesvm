@@ -113,7 +113,7 @@ func prefixInfo(requester rpc.EndpointRequester, prefix []byte) (*chain.PrefixIn
 		color.Red("failed to get prefix %v", err)
 		return nil, err
 	}
-	return resp.Info, resp.Error
+	return resp.Info, nil
 }
 
 // TODO: handle timeout
@@ -219,9 +219,6 @@ done:
 			resp,
 		); err != nil {
 			color.Red("polling transaction failed %v", err)
-		}
-		if resp.Error != nil {
-			color.Red("polling transaction error %v", resp.Error)
 		}
 		if resp.Confirmed {
 			color.Yellow("confirmed transaction %q", txID)

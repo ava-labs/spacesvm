@@ -3,6 +3,7 @@ package genesis
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -42,9 +43,13 @@ func NewCommand() *cobra.Command {
 }
 
 func genesisFunc(cmd *cobra.Command, args []string) error {
-	// TODO: pre-assign some prefixes
-	// TODO: set time at current
-	blk := &chain.Block{}
+	// Note: genesis block must have the min difficulty and block cost or else
+	// the execution context logic may over/underflow
+	blk := &chain.Block{
+		Tmstmp:     time.Now().Unix(),
+		Difficulty: chain.MinDifficulty,
+		Cost:       chain.MinBlockCost,
+	}
 	b, err := chain.Marshal(blk)
 	if err != nil {
 		return err
