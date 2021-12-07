@@ -81,6 +81,8 @@ type Mempool struct {
 	minHeap *internalTxHeap
 }
 
+// New creates a new [Mempool]. [maxSize] must be > 0 or else the
+// implementation may panic.
 func New(maxSize int) *Mempool {
 	return &Mempool{
 		maxSize: maxSize,
