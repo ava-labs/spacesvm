@@ -12,13 +12,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	log "github.com/inconshreveable/log15"
-
-	"github.com/ava-labs/quarkvm/codec"
 )
-
-func init() {
-	codec.RegisterType(&Block{})
-}
 
 var _ snowman.Block = &Block{}
 
@@ -68,7 +62,7 @@ func InitializeBlock(
 	vm VM,
 ) (*Block, error) {
 	b := new(Block)
-	if _, err := codec.Unmarshal(source, b); err != nil {
+	if _, err := Unmarshal(source, b); err != nil {
 		return nil, err
 	}
 	b.st = status
@@ -186,7 +180,7 @@ func (b *Block) Parent() ids.ID { return b.Prnt }
 
 // implements "snowman.Block"
 func (b *Block) Bytes() []byte {
-	by, err := codec.Marshal(b)
+	by, err := Marshal(b)
 	if err != nil {
 		panic(err)
 	}

@@ -16,7 +16,6 @@ import (
 
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
-	"github.com/ava-labs/quarkvm/types"
 	"github.com/ava-labs/quarkvm/vm"
 )
 
@@ -104,7 +103,7 @@ func difficultyEstimate(requester rpc.EndpointRequester) (uint64, error) {
 	return resp.Difficulty, nil
 }
 
-func prefixInfo(requester rpc.EndpointRequester, prefix []byte) (*types.PrefixInfo, error) {
+func prefixInfo(requester rpc.EndpointRequester, prefix []byte) (*chain.PrefixInfo, error) {
 	resp := new(vm.PrefixInfoReply)
 	if err := requester.SendRequest(
 		"prefixInfo",

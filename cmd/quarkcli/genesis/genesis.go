@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/codec"
 )
 
 func init() {
@@ -44,8 +43,9 @@ func NewCommand() *cobra.Command {
 
 func genesisFunc(cmd *cobra.Command, args []string) error {
 	// TODO: pre-assign some prefixes
+	// TODO: set time at current
 	blk := &chain.Block{}
-	b, err := codec.Marshal(blk)
+	b, err := chain.Marshal(blk)
 	if err != nil {
 		return err
 	}

@@ -11,8 +11,6 @@ import (
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/codec"
-	"github.com/ava-labs/quarkvm/types"
 )
 
 var (
@@ -49,7 +47,7 @@ type IssueTxReply struct {
 
 func (svc *Service) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
 	tx := new(chain.Transaction)
-	if _, err := codec.Unmarshal(args.Tx, tx); err != nil {
+	if _, err := chain.Unmarshal(args.Tx, tx); err != nil {
 		reply.Error = err
 		return nil
 	}
@@ -120,7 +118,7 @@ type PrefixInfoArgs struct {
 }
 
 type PrefixInfoReply struct {
-	Info  *types.PrefixInfo `serialize:"true" json:"info"`
+	Info  *chain.PrefixInfo `serialize:"true" json:"info"`
 	Error error             `serialize:"true" json:"error"`
 }
 

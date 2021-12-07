@@ -6,14 +6,8 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/quarkvm/codec"
 	"github.com/ava-labs/quarkvm/crypto"
-	"github.com/ava-labs/quarkvm/types"
 )
-
-func init() {
-	codec.RegisterType(&BaseTx{})
-}
 
 const (
 	MaxPrefixSize = 256
@@ -26,7 +20,7 @@ func VerifyPrefixKey(prefix []byte) error {
 	if len(prefix) > MaxPrefixSize {
 		return errors.New("prefix too big")
 	}
-	if bytes.IndexRune(prefix, types.PrefixDelimiter) != -1 {
+	if bytes.IndexRune(prefix, PrefixDelimiter) != -1 {
 		return errors.New("prefix contains delimiter")
 	}
 	return nil

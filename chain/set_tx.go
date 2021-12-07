@@ -1,16 +1,10 @@
 package chain
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/quarkvm/codec"
 )
-
-func init() {
-	codec.RegisterType(&SetTx{})
-}
 
 var (
 	_ UnsignedTransaction = &SetTx{}
@@ -36,7 +30,7 @@ func (s *SetTx) Verify(db database.Database, blockTime int64) error {
 	if !has {
 		return errors.New("cannot set if prefix doesn't exist")
 	}
-	if !bytes.Equal(i.Owner.Bytes(), s.Sender.Bytes()) {
+	if i.Owner != s.Sender.Address() {
 		return errors.New("prefix not owned by modifier")
 	}
 	if i.Expiry < blockTime {

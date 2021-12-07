@@ -9,13 +9,8 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 
-	"github.com/ava-labs/quarkvm/codec"
 	"github.com/ava-labs/quarkvm/crypto"
 )
-
-func init() {
-	codec.RegisterType(&Transaction{})
-}
 
 type UnsignedTransaction interface {
 	SetBlockID(block ids.ID)
@@ -41,7 +36,7 @@ func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
 }
 
 func UnsignedBytes(utx UnsignedTransaction) []byte {
-	v, err := codec.Marshal(utx)
+	v, err := Marshal(utx)
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +44,7 @@ func UnsignedBytes(utx UnsignedTransaction) []byte {
 }
 
 func (t *Transaction) Bytes() []byte {
-	v, err := codec.Marshal(t)
+	v, err := Marshal(t)
 	if err != nil {
 		panic(err)
 	}

@@ -7,14 +7,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/formatting"
-
-	"github.com/ava-labs/quarkvm/codec"
-	"github.com/ava-labs/quarkvm/types"
 )
-
-func init() {
-	codec.RegisterType(&ClaimTx{})
-}
 
 var (
 	_ UnsignedTransaction = &ClaimTx{}
@@ -45,7 +38,7 @@ func (c *ClaimTx) Verify(db database.Database, blockTime int64) error {
 }
 
 func (c *ClaimTx) accept(db database.Database, blockTime int64) error {
-	i := &types.PrefixInfo{Owner: c.Sender, LastUpdated: blockTime, Expiry: blockTime + expiryTime, Keys: 1}
+	i := &PrefixInfo{Owner: c.Sender.Address(), LastUpdated: blockTime, Expiry: blockTime + expiryTime, Keys: 1}
 	if err := PutPrefixInfo(db, c.Prefix, i); err != nil {
 		return err
 	}

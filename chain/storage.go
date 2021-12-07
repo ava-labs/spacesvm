@@ -4,9 +4,6 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
-
-	"github.com/ava-labs/quarkvm/codec"
-	"github.com/ava-labs/quarkvm/types"
 )
 
 // 0x0/ (singleton prefix info)
@@ -22,6 +19,8 @@ const (
 	keyPrefix   = 0x1
 	txPrefix    = 0x2
 	blockPrefix = 0x3
+
+	PrefixDelimiter = '/'
 )
 
 var (
@@ -29,24 +28,24 @@ var (
 )
 
 func PrefixInfoKey(prefix []byte) []byte {
-	return append([]byte{infoPrefix, types.PrefixDelimiter}, prefix...)
+	return append([]byte{infoPrefix, PrefixDelimiter}, prefix...)
 }
 
 func PrefixValueKey(prefix []byte, key []byte) []byte {
-	b := append([]byte{keyPrefix, types.PrefixDelimiter}, prefix...)
-	b = append(b, types.PrefixDelimiter)
+	b := append([]byte{keyPrefix, PrefixDelimiter}, prefix...)
+	b = append(b, PrefixDelimiter)
 	return append(b, key...)
 }
 
 func PrefixTxKey(txID ids.ID) []byte {
-	return append([]byte{txPrefix, types.PrefixDelimiter}, txID[:]...)
+	return append([]byte{txPrefix, PrefixDelimiter}, txID[:]...)
 }
 
 func PrefixBlockKey(blockID ids.ID) []byte {
-	return append([]byte{blockPrefix, types.PrefixDelimiter}, blockID[:]...)
+	return append([]byte{blockPrefix, PrefixDelimiter}, blockID[:]...)
 }
 
-func GetPrefixInfo(db database.Database, prefix []byte) (*types.PrefixInfo, bool, error) {
+func GetPrefixInfo(db database.Database, prefix []byte) (*PrefixInfo, bool, error) {
 	k := PrefixInfoKey(prefix)
 	has, err := db.Has(k)
 	if err != nil {
@@ -59,8 +58,8 @@ func GetPrefixInfo(db database.Database, prefix []byte) (*types.PrefixInfo, bool
 	if err != nil {
 		return nil, false, err
 	}
-	var i types.PrefixInfo
-	if _, err := codec.Unmarshal(v, &i); err != nil {
+	var i PrefixInfo
+	if _, err := Unmarshal(v, &i); err != nil {
 		return nil, false, err
 	}
 	return &i, true, nil
@@ -111,7 +110,7 @@ func GetBlock(db database.Database, bid ids.ID) (*Block, error) {
 		return nil, err
 	}
 	var b Block
-	if _, err := codec.Unmarshal(v, &b); err != nil {
+	if _, err := Unmarshal(v, &b); err != nil {
 		return nil, err
 	}
 	b.st = choices.Accepted // if block on disk, it must've been accepted
@@ -127,9 +126,9 @@ func HasPrefixKey(db database.Database, prefix []byte, key []byte) (bool, error)
 	k := PrefixValueKey(prefix, key)
 	return db.Has(k)
 }
-func PutPrefixInfo(db database.Database, prefix []byte, i *types.PrefixInfo) error {
+func PutPrefixInfo(db database.Database, prefix []byte, i *PrefixInfo) error {
 	k := PrefixInfoKey(prefix)
-	b, err := codec.Marshal(i)
+	b, err := Marshal(i)
 	if err != nil {
 		return err
 	}
@@ -148,7 +147,7 @@ func DeleteAllPrefixKeys(db database.Database, prefix []byte) error {
 }
 func SetTransaction(db database.Database, tx *Transaction) error {
 	k := PrefixTxKey(tx.ID())
-	b, err := codec.Marshal(tx)
+	b, err := Marshal(tx)
 	if err != nil {
 		return err
 	}
