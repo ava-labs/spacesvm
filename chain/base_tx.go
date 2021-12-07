@@ -2,37 +2,34 @@ package chain
 
 import (
 	"bytes"
-	"errors"
 
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/quarkvm/crypto"
 )
 
-const (
-	MaxPrefixSize = 256
-)
-
 func VerifyPrefixKey(prefix []byte) error {
 	if len(prefix) == 0 {
-		return errors.New("prefix cannot be empty")
+		return ErrPrefixEmpty
 	}
 	if len(prefix) > MaxPrefixSize {
-		return errors.New("prefix too big")
+		return ErrPrefixTooBig
 	}
 	if bytes.IndexRune(prefix, PrefixDelimiter) != -1 {
-		return errors.New("prefix contains delimiter")
+		return ErrPrefixContainsDelim
 	}
 	return nil
 }
 
 type BaseTx struct {
+	// TODO: change types
 	Sender   *crypto.PublicKey `serialize:"true"`
 	Graffiti []byte            `serialize:"true"`
 	BlockID  ids.ID            `serialize:"true"`
 	Prefix   []byte            `serialize:"true"`
 }
 
+// TODO: need public setters?
 func (b *BaseTx) SetBlockID(blockID ids.ID) {
 	b.BlockID = blockID
 }
@@ -54,10 +51,10 @@ func (b *BaseTx) VerifyBase() error {
 		return err
 	}
 	if b.Sender == nil {
-		return errors.New("invalid sender")
+		return ErrInvalidSender
 	}
 	if b.BlockID == ids.Empty {
-		return errors.New("invalid blockID")
+		return ErrInvalidBlockID
 	}
 	return nil
 }

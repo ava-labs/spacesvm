@@ -2,8 +2,6 @@ package chain
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/formatting"
@@ -21,7 +19,7 @@ func (c *ClaimTx) Verify(db database.Database, blockTime int64) error {
 	// Restrict address prefix to be owned by pk
 	if decodedPrefix, err := formatting.Decode(formatting.CB58, string(c.Prefix)); err == nil {
 		if !bytes.Equal(c.Sender.Bytes(), decodedPrefix) {
-			return errors.New("public key does not match decoded prefix")
+			return ErrPublicKeyMismatch
 		}
 	}
 	i, has, err := GetPrefixInfo(db, c.Prefix)
@@ -32,7 +30,7 @@ func (c *ClaimTx) Verify(db database.Database, blockTime int64) error {
 		return c.accept(db, blockTime)
 	}
 	if i.Expiry >= blockTime {
-		return fmt.Errorf("prefix %s not expired", c.Prefix)
+		return ErrPrefixNotExpired
 	}
 	return c.accept(db, blockTime)
 }

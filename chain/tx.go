@@ -1,9 +1,6 @@
 package chain
 
 import (
-	"errors"
-	"fmt"
-
 	"ekyu.moe/cryptonight"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
@@ -79,20 +76,20 @@ func (t *Transaction) Verify(db database.Database, blockTime int64, recentBlockI
 	if !recentBlockIDs.Contains(t.GetBlockID()) {
 		// Hash must be recent to be any good
 		// Should not happen beause of mempool cleanup
-		return fmt.Errorf("invalid blockID, expected value in %v but had %v", recentBlockIDs, t.GetBlockID())
+		return ErrInvalidBlockID
 	}
 	if recentTxIDs.Contains(t.ID()) {
 		// Tx hash must not be recently executed (otherwise could be replayed)
 		//
 		// NOTE: We only need to keep cached tx hashes around as long as the
 		// block hash referenced in the tx is valid
-		return errors.New("duplicate tx")
+		return ErrDuplicateTx
 	}
 	if t.Difficulty() < minDifficulty {
-		return errors.New("invalid difficulty")
+		return ErrInvalidDifficulty
 	}
 	if !t.GetSender().Verify(UnsignedBytes(t.UnsignedTransaction), t.Signature) {
-		return errors.New("invalid signature")
+		return ErrInvalidSignature
 	}
 	if err := t.UnsignedTransaction.Verify(db, blockTime); err != nil {
 		return err

@@ -1,8 +1,6 @@
 package chain
 
 import (
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/database"
@@ -15,15 +13,6 @@ import (
 )
 
 var _ snowman.Block = &Block{}
-
-var (
-	ErrTimestampTooEarly   = errors.New("block timestamp too early")
-	ErrTimestampTooLate    = errors.New("block timestamp too late")
-	ErrNoTxs               = errors.New("no transactions")
-	ErrInvalidCost         = errors.New("invalid block cost")
-	ErrInvalidDifficulty   = errors.New("invalid difficulty")
-	ErrInsufficientSurplus = errors.New("insufficient surplus difficulty")
-)
 
 type Block struct {
 	Prnt       ids.ID         `serialize:"true" json:"parent"`
@@ -113,7 +102,7 @@ func (b *Block) Verify() error {
 	}
 	recentBlockIDs, recentTxIDs, cost, difficulty := b.vm.Recents(b.Tmstmp, b.parentBlock)
 	if b.Cost != cost {
-		return fmt.Errorf("%w: expected %d, but got %d", ErrInvalidCost, cost, b.Cost)
+		return ErrInvalidCost
 	}
 	if b.Difficulty != difficulty {
 		return ErrInvalidDifficulty
@@ -133,7 +122,6 @@ func (b *Block) Verify() error {
 	var surplusDifficulty uint64
 	for _, tx := range b.Txs {
 		if err := tx.Verify(b.onAcceptDB, b.Tmstmp, recentBlockIDs, recentTxIDs, difficulty); err != nil {
-			err = fmt.Errorf("%w: transaction failed verification", err)
 			log.Error("failed tx verification", "err", err)
 			return err
 		}
@@ -205,7 +193,7 @@ func (b *Block) OnAccept() (database.Database, error) {
 	if b.onAcceptDB != nil {
 		return b.onAcceptDB, nil
 	}
-	return nil, errors.New("parent block not verified or accepted")
+	return nil, ErrParentBlockNotVerified
 }
 
 func (b *Block) addChild(c *Block) {

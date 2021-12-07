@@ -1,8 +1,6 @@
 package chain
 
 import (
-	"errors"
-
 	"github.com/ava-labs/avalanchego/database"
 )
 
@@ -17,24 +15,30 @@ type SetTx struct {
 }
 
 func (s *SetTx) Verify(db database.Database, blockTime int64) error {
-	if len(s.Key) > maxKeyLength || len(s.Key) == 0 {
-		return errors.New("invalid key length")
+	if len(s.Key) == 0 {
+		return ErrKeyEmpty
 	}
-	if len(s.Value) > maxKeyLength {
-		return errors.New("invalid value length")
+	if len(s.Key) > maxKeyLength {
+		return ErrKeyTooBig
+	}
+	if len(s.Value) > maxValueLength {
+		return ErrValueTooBig
 	}
 	i, has, err := GetPrefixInfo(db, s.Prefix)
 	if err != nil {
 		return err
 	}
+	// Cannot set key if prefix doesn't exist
 	if !has {
-		return errors.New("cannot set if prefix doesn't exist")
+		return ErrPrefixMissing
 	}
+	// Prefix cannot be updated if not owned by modifier
 	if i.Owner != s.Sender.Address() {
-		return errors.New("prefix not owned by modifier")
+		return ErrUnauthorized
 	}
+	// Prefix cannot be updated if expired
 	if i.Expiry < blockTime {
-		return errors.New("prefix expired")
+		return ErrPrefixExpired
 	}
 	// If we are trying to delete a key, make sure it previously exists.
 	if len(s.Value) > 0 {
@@ -44,8 +48,9 @@ func (s *SetTx) Verify(db database.Database, blockTime int64) error {
 	if err != nil {
 		return err
 	}
+	// Cannot delete non-existent key
 	if !has {
-		return errors.New("cannot delete non-existent key")
+		return ErrKeyMissing
 	}
 	return s.accept(db, blockTime)
 }

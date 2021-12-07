@@ -1,8 +1,6 @@
 package chain
 
 import (
-	"errors"
-
 	"github.com/ava-labs/avalanchego/database"
 )
 
@@ -19,8 +17,9 @@ func (l *LifelineTx) Verify(db database.Database, blockTime int64) error {
 	if err != nil {
 		return err
 	}
+	// Cannot add lifeline to missing prefix
 	if !has {
-		return errors.New("cannot add lifeline to missing tx")
+		return ErrPrefixMissing
 	}
 	// If you are "in debt", lifeline only adds but doesn't reset to new
 	i.Expiry += expiryTime / i.Keys
