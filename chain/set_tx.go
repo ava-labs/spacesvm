@@ -44,7 +44,7 @@ func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	}
 	// If we are trying to delete a key, make sure it previously exists.
 	if len(s.Value) > 0 {
-		return s.accept(db, blockTime)
+		return s.updatePrefix(db, blockTime, i)
 	}
 	has, err = HasPrefixKey(db, s.Prefix, s.Key)
 	if err != nil {
@@ -54,14 +54,10 @@ func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	if !has {
 		return ErrKeyMissing
 	}
-	return s.accept(db, blockTime)
+	return s.updatePrefix(db, blockTime, i)
 }
 
-func (s *SetTx) accept(db database.Database, blockTime int64) error {
-	i, _, err := GetPrefixInfo(db, s.Prefix)
-	if err != nil {
-		return err
-	}
+func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInfo) error {
 	timeRemaining := (i.Expiry - i.LastUpdated) * i.Keys
 	if len(s.Value) == 0 {
 		i.Keys--
