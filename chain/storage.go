@@ -65,7 +65,7 @@ func PrefixBlockKey(blockID ids.ID) []byte {
 	return b
 }
 
-func GetPrefixInfo(db database.Database, prefix []byte) (*PrefixInfo, bool, error) {
+func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {
 	k := PrefixInfoKey(prefix)
 	v, err := db.Get(k)
 	if err == database.ErrNotFound {
@@ -79,7 +79,7 @@ func GetPrefixInfo(db database.Database, prefix []byte) (*PrefixInfo, bool, erro
 	return &i, true, err
 }
 
-func GetValue(db database.Database, prefix []byte, key []byte) ([]byte, bool, error) {
+func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bool, error) {
 	k := PrefixValueKey(prefix, key)
 	v, err := db.Get(k)
 	if err == database.ErrNotFound {
@@ -88,7 +88,7 @@ func GetValue(db database.Database, prefix []byte, key []byte) ([]byte, bool, er
 	return v, true, err
 }
 
-func SetLastAccepted(db database.Database, block *Block) error {
+func SetLastAccepted(db database.KeyValueWriter, block *Block) error {
 	bid := block.ID()
 	if err := db.Put(lastAccepted, bid[:]); err != nil {
 		return err
@@ -100,7 +100,7 @@ func HasLastAccepted(db database.Database) (bool, error) {
 	return db.Has(lastAccepted)
 }
 
-func GetLastAccepted(db database.Database) (ids.ID, error) {
+func GetLastAccepted(db database.KeyValueReader) (ids.ID, error) {
 	v, err := db.Get(lastAccepted)
 	if err != nil {
 		return ids.ID{}, err
@@ -108,20 +108,20 @@ func GetLastAccepted(db database.Database) (ids.ID, error) {
 	return ids.ToID(v)
 }
 
-func GetBlock(db database.Database, bid ids.ID) ([]byte, error) {
+func GetBlock(db database.KeyValueReader, bid ids.ID) ([]byte, error) {
 	return db.Get(PrefixBlockKey(bid))
 }
 
 // DB
-func HasPrefix(db database.Database, prefix []byte) (bool, error) {
+func HasPrefix(db database.KeyValueReader, prefix []byte) (bool, error) {
 	k := PrefixInfoKey(prefix)
 	return db.Has(k)
 }
-func HasPrefixKey(db database.Database, prefix []byte, key []byte) (bool, error) {
+func HasPrefixKey(db database.KeyValueReader, prefix []byte, key []byte) (bool, error) {
 	k := PrefixValueKey(prefix, key)
 	return db.Has(k)
 }
-func PutPrefixInfo(db database.Database, prefix []byte, i *PrefixInfo) error {
+func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo) error {
 	k := PrefixInfoKey(prefix)
 	b, err := Marshal(i)
 	if err != nil {
@@ -129,18 +129,18 @@ func PutPrefixInfo(db database.Database, prefix []byte, i *PrefixInfo) error {
 	}
 	return db.Put(k, b)
 }
-func PutPrefixKey(db database.Database, prefix []byte, key []byte, value []byte) error {
+func PutPrefixKey(db database.KeyValueWriter, prefix []byte, key []byte, value []byte) error {
 	k := PrefixValueKey(prefix, key)
 	return db.Put(k, value)
 }
-func DeletePrefixKey(db database.Database, prefix []byte, key []byte) error {
+func DeletePrefixKey(db database.KeyValueWriter, prefix []byte, key []byte) error {
 	k := PrefixValueKey(prefix, key)
 	return db.Delete(k)
 }
 func DeleteAllPrefixKeys(db database.Database, prefix []byte) error {
 	return database.ClearPrefix(db, db, PrefixValueKey(prefix, nil))
 }
-func SetTransaction(db database.Database, tx *Transaction) error {
+func SetTransaction(db database.KeyValueWriter, tx *Transaction) error {
 	k := PrefixTxKey(tx.ID())
 	b, err := Marshal(tx)
 	if err != nil {
@@ -148,7 +148,7 @@ func SetTransaction(db database.Database, tx *Transaction) error {
 	}
 	return db.Put(k, b)
 }
-func HasTransaction(db database.Database, txID ids.ID) (bool, error) {
+func HasTransaction(db database.KeyValueReader, txID ids.ID) (bool, error) {
 	k := PrefixTxKey(txID)
 	return db.Has(k)
 }
