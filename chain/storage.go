@@ -67,38 +67,25 @@ func PrefixBlockKey(blockID ids.ID) []byte {
 
 func GetPrefixInfo(db database.Database, prefix []byte) (*PrefixInfo, bool, error) {
 	k := PrefixInfoKey(prefix)
-	has, err := db.Has(k)
-	if err != nil {
-		return nil, false, err
-	}
-	if !has {
+	v, err := db.Get(k)
+	if err == database.ErrNotFound {
 		return nil, false, nil
 	}
-	v, err := db.Get(k)
 	if err != nil {
 		return nil, false, err
 	}
 	var i PrefixInfo
-	if _, err := Unmarshal(v, &i); err != nil {
-		return nil, false, err
-	}
-	return &i, true, nil
+	_, err = Unmarshal(v, &i)
+	return &i, true, err
 }
 
 func GetValue(db database.Database, prefix []byte, key []byte) ([]byte, bool, error) {
 	k := PrefixValueKey(prefix, key)
-	has, err := db.Has(k)
-	if err != nil {
-		return nil, false, err
-	}
-	if !has {
+	v, err := db.Get(k)
+	if err == database.ErrNotFound {
 		return nil, false, nil
 	}
-	v, err := db.Get(k)
-	if err != nil {
-		return nil, false, err
-	}
-	return v, true, nil
+	return v, true, err
 }
 
 func SetLastAccepted(db database.Database, block *Block) error {
