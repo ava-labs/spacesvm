@@ -3,7 +3,6 @@ package claim
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -124,7 +123,7 @@ func mine(requester rpc.EndpointRequester, utx chain.UnsignedTransaction) (chain
 			return nil, err
 		}
 		utx.SetBlockID(cbID)
-		graffiti := big.NewInt(0)
+		graffiti := uint64(0)
 		for {
 			v, err := validBlockID(requester, cbID)
 			if err != nil {
@@ -134,7 +133,7 @@ func mine(requester rpc.EndpointRequester, utx chain.UnsignedTransaction) (chain
 				color.Yellow("%v is no longer a valid block id", cbID)
 				break
 			}
-			utx.SetGraffiti(graffiti.Bytes())
+			utx.SetGraffiti(graffiti)
 			h := cryptonight.Sum(chain.UnsignedBytes(utx), 2)
 			d, err := difficultyEstimate(requester)
 			if err != nil {
@@ -143,7 +142,7 @@ func mine(requester rpc.EndpointRequester, utx chain.UnsignedTransaction) (chain
 			if cryptonight.CheckHash(h, d) {
 				return utx, nil
 			}
-			graffiti.Add(graffiti, big.NewInt(1))
+			graffiti++
 		}
 		// Get new block hash if no longer valid
 	}
@@ -169,7 +168,7 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 
 	utx := &chain.ClaimTx{
 		BaseTx: &chain.BaseTx{
-			Sender: priv.PublicKey(),
+			Sender: priv.PublicKey().Bytes(),
 			Prefix: []byte(prefix),
 		},
 	}

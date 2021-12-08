@@ -241,7 +241,7 @@ func (vm *VM) Submit(tx *chain.Transaction) {
 	// cache difficulty
 	// TODO: fix
 	_ = tx.Difficulty()
-	vm.mempool.Push(tx)
+	vm.mempool.Add(tx)
 
 	// TODO: do on a block timer
 	vm.notifyBlockReady()

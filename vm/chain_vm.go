@@ -24,7 +24,7 @@ func (vm *VM) Verified(b *chain.Block) {
 func (vm *VM) Rejected(b *chain.Block) {
 	delete(vm.verifiedBlocks, b.ID())
 	for _, tx := range b.Txs {
-		vm.mempool.Push(tx)
+		vm.mempool.Add(tx)
 	}
 	log.Debug("rejected block", "id", b.ID())
 }

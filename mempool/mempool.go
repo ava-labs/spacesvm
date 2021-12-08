@@ -93,7 +93,7 @@ func New(maxSize int) *Mempool {
 	}
 }
 
-func (th *Mempool) Push(tx *chain.Transaction) {
+func (th *Mempool) Add(tx *chain.Transaction) {
 	txID := tx.ID()
 	// Don't add duplicates
 	if th.Has(txID) {

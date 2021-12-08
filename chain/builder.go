@@ -39,7 +39,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	for len(b.Txs) < TargetTransactions && mempool.Len() > 0 {
 		next, diff := mempool.PopMax()
 		if diff < b.Difficulty {
-			mempool.Push(next)
+			mempool.Add(next)
 			log.Debug("skipping tx: too low difficulty", "block diff", b.Difficulty, "tx diff", next.Difficulty())
 			break
 		}
