@@ -124,7 +124,7 @@ func (b *Block) verify() (*Block, *versiondb.Database, error) {
 	onAcceptDB := versiondb.New(parentState)
 	var surplusDifficulty uint64
 	for _, tx := range b.Txs {
-		if err := tx.Verify(onAcceptDB, b.Tmstmp, context); err != nil {
+		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
 			log.Debug("failed tx verification", "err", err)
 			return nil, nil, err
 		}

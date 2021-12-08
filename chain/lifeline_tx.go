@@ -12,7 +12,7 @@ type LifelineTx struct {
 	*BaseTx `serialize:"true"`
 }
 
-func (l *LifelineTx) Verify(db database.Database, blockTime int64) error {
+func (l *LifelineTx) Execute(db database.Database, blockTime int64) error {
 	i, has, err := GetPrefixInfo(db, l.Prefix)
 	if err != nil {
 		return err

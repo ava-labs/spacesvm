@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"bytes"
+
 	"github.com/ava-labs/avalanchego/database"
 )
 
@@ -14,7 +16,7 @@ type SetTx struct {
 	Value   []byte `serialize:"true"`
 }
 
-func (s *SetTx) Verify(db database.Database, blockTime int64) error {
+func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	if len(s.Key) == 0 {
 		return ErrKeyEmpty
 	}
@@ -33,7 +35,7 @@ func (s *SetTx) Verify(db database.Database, blockTime int64) error {
 		return ErrPrefixMissing
 	}
 	// Prefix cannot be updated if not owned by modifier
-	if i.Owner != s.Sender.Address() {
+	if !bytes.Equal(i.Owner[:], s.Sender[:]) {
 		return ErrUnauthorized
 	}
 	// Prefix cannot be updated if expired

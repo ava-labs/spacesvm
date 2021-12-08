@@ -8,6 +8,8 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 )
 
+var _ chain.Mempool = &Mempool{}
+
 // txEntry is used to track the work transactions pay to be included in
 // the mempool.
 type txEntry struct {

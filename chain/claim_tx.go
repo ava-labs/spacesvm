@@ -4,7 +4,8 @@ import (
 	"bytes"
 
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/avalanchego/utils/formatting"
+
+	"github.com/ava-labs/quarkvm/crypto"
 )
 
 var (
@@ -15,12 +16,10 @@ type ClaimTx struct {
 	*BaseTx `serialize:"true"`
 }
 
-func (c *ClaimTx) Verify(db database.Database, blockTime int64) error {
+func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 	// Restrict address prefix to be owned by pk
-	if decodedPrefix, err := formatting.Decode(formatting.CB58, string(c.Prefix)); err == nil {
-		if !bytes.Equal(c.Sender.Bytes(), decodedPrefix) {
-			return ErrPublicKeyMismatch
-		}
+	if len(c.Prefix) == crypto.PublicKeySize && !bytes.Equal(c.Sender[:], c.Prefix) {
+		return ErrPublicKeyMismatch
 	}
 	i, has, err := GetPrefixInfo(db, c.Prefix)
 	if err != nil {
@@ -36,7 +35,7 @@ func (c *ClaimTx) Verify(db database.Database, blockTime int64) error {
 }
 
 func (c *ClaimTx) accept(db database.Database, blockTime int64) error {
-	i := &PrefixInfo{Owner: c.Sender.Address(), LastUpdated: blockTime, Expiry: blockTime + expiryTime, Keys: 1}
+	i := &PrefixInfo{Owner: c.Sender, LastUpdated: blockTime, Expiry: blockTime + expiryTime, Keys: 1}
 	if err := PutPrefixInfo(db, c.Prefix, i); err != nil {
 		return err
 	}

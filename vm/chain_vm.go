@@ -11,17 +11,8 @@ import (
 func (vm *VM) State() database.Database {
 	return vm.db
 }
-func (vm *VM) MempoolSize() int {
-	return vm.mempool.Len()
-}
-func (vm *VM) MempoolPrune(recentBlockIDs ids.Set) {
-	vm.mempool.Prune(recentBlockIDs)
-}
-func (vm *VM) MempoolNext() (*chain.Transaction, uint64) {
-	return vm.mempool.PopMax()
-}
-func (vm *VM) MempoolPush(tx *chain.Transaction) {
-	vm.mempool.Push(tx)
+func (vm *VM) Mempool() chain.Mempool {
+	return vm.mempool
 }
 func (vm *VM) Verified(b *chain.Block) {
 	vm.verifiedBlocks[b.ID()] = b

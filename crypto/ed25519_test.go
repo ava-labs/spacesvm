@@ -16,9 +16,7 @@ func TestVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pub := pk.PublicKey()
-
-	if !Verify(pub.Bytes(), []byte("hello"), sig) {
+	if !Verify(pk.PublicKey().Bytes(), []byte("hello"), sig) {
 		t.Fatal("failed to verify")
 	}
 }

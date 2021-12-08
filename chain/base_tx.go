@@ -22,19 +22,17 @@ func VerifyPrefixKey(prefix []byte) error {
 }
 
 type BaseTx struct {
-	// TODO: change types
-	Sender   *crypto.PublicKey `serialize:"true"`
-	Graffiti []byte            `serialize:"true"`
-	BlockID  ids.ID            `serialize:"true"`
-	Prefix   []byte            `serialize:"true"`
+	Sender   [crypto.PublicKeySize]byte `serialize:"true"`
+	Graffiti uint64                     `serialize:"true"`
+	BlockID  ids.ID                     `serialize:"true"`
+	Prefix   []byte                     `serialize:"true"`
 }
 
-// TODO: need public setters?
 func (b *BaseTx) SetBlockID(blockID ids.ID) {
 	b.BlockID = blockID
 }
 
-func (b *BaseTx) SetGraffiti(graffiti []byte) {
+func (b *BaseTx) SetGraffiti(graffiti uint64) {
 	b.Graffiti = graffiti
 }
 
@@ -42,15 +40,15 @@ func (b *BaseTx) GetBlockID() ids.ID {
 	return b.BlockID
 }
 
-func (b *BaseTx) GetSender() *crypto.PublicKey {
+func (b *BaseTx) GetSender() [crypto.PublicKeySize]byte {
 	return b.Sender
 }
 
-func (b *BaseTx) VerifyBase() error {
+func (b *BaseTx) ExecuteBase() error {
 	if err := VerifyPrefixKey(b.Prefix); err != nil {
 		return err
 	}
-	if b.Sender == nil {
+	if len(b.Sender) == 0 {
 		return ErrInvalidSender
 	}
 	if b.BlockID == ids.Empty {

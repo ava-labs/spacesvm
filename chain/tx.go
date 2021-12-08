@@ -11,11 +11,12 @@ import (
 
 type UnsignedTransaction interface {
 	SetBlockID(block ids.ID)
-	SetGraffiti(graffiti []byte)
-	GetSender() *crypto.PublicKey
+	SetGraffiti(graffiti uint64)
+	GetSender() [crypto.PublicKeySize]byte
 	GetBlockID() ids.ID
-	VerifyBase() error
-	Verify(database.Database, int64) error
+
+	ExecuteBase() error
+	Execute(database.Database, int64) error
 }
 
 type Transaction struct {
@@ -68,8 +69,8 @@ func (t *Transaction) Difficulty() uint64 {
 	return t.difficulty
 }
 
-func (t *Transaction) Verify(db database.Database, blockTime int64, context *Context) error {
-	if err := t.UnsignedTransaction.VerifyBase(); err != nil {
+func (t *Transaction) Execute(db database.Database, blockTime int64, context *Context) error {
+	if err := t.UnsignedTransaction.ExecuteBase(); err != nil {
 		return err
 	}
 	if !context.RecentBlockIDs.Contains(t.GetBlockID()) {
@@ -87,10 +88,10 @@ func (t *Transaction) Verify(db database.Database, blockTime int64, context *Con
 	if t.Difficulty() < context.NextDifficulty {
 		return ErrInvalidDifficulty
 	}
-	if !t.GetSender().Verify(UnsignedBytes(t.UnsignedTransaction), t.Signature) {
+	if !crypto.Verify(t.GetSender(), UnsignedBytes(t.UnsignedTransaction), t.Signature) {
 		return ErrInvalidSignature
 	}
-	if err := t.UnsignedTransaction.Verify(db, blockTime); err != nil {
+	if err := t.UnsignedTransaction.Execute(db, blockTime); err != nil {
 		return err
 	}
 	return SetTransaction(db, t)

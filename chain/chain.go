@@ -13,6 +13,7 @@ const (
 	MaxPrefixSize      = 256
 	maxKeyLength       = 256
 	maxValueLength     = 256
+	maxGraffitiSize    = 256
 	LookbackWindow     = 10
 	BlockTarget        = 1
 	TargetTransactions = 10 * LookbackWindow / BlockTarget // TODO: can be higher on real network
@@ -31,15 +32,19 @@ type Context struct {
 	NextDifficulty uint64
 }
 
+type Mempool interface {
+	Len() int
+	Prune(ids.Set)
+	PopMax() (*Transaction, uint64)
+	Push(*Transaction)
+}
+
 type VM interface {
 	State() database.Database
+	Mempool() Mempool
+
 	GetBlock(ids.ID) (snowman.Block, error)
 	ExecutionContext(currentTime int64, parent *Block) (*Context, error)
-
-	MempoolSize() int
-	MempoolPrune(ids.Set)
-	MempoolNext() (*Transaction, uint64)
-	MempoolPush(*Transaction)
 
 	Verified(*Block)
 	Rejected(*Block)

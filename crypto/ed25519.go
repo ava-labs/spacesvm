@@ -44,7 +44,12 @@ func (k *PublicKey) Address() string {
 }
 
 // Bytes implements the PublicKey interface
-func (k *PublicKey) Bytes() []byte { return k.PublicKey }
+func (k *PublicKey) Bytes() [PublicKeySize]byte {
+	// TODO: probably a better way to do this
+	var pk [PublicKeySize]byte
+	copy(pk[:], k.PublicKey)
+	return pk
+}
 
 // PublicKey implements the PrivateKey interface
 func (k *PrivateKey) PublicKey() *PublicKey {
@@ -64,6 +69,6 @@ func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
 // Bytes implements the PrivateKey interface
 func (k PrivateKey) Bytes() []byte { return k.PrivateKey }
 
-func Verify(pub []byte, msg []byte, sig []byte) bool {
-	return ed25519.Verify(ed25519.PublicKey(pub), msg, sig)
+func Verify(pub [PublicKeySize]byte, msg []byte, sig []byte) bool {
+	return ed25519.Verify(ed25519.PublicKey(pub[:]), msg, sig)
 }
