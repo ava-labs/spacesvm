@@ -102,6 +102,9 @@ func HasLastAccepted(db database.Database) (bool, error) {
 
 func GetLastAccepted(db database.KeyValueReader) (ids.ID, error) {
 	v, err := db.Get(lastAccepted)
+	if err == database.ErrNotFound {
+		return ids.ID{}, nil
+	}
 	if err != nil {
 		return ids.ID{}, err
 	}
