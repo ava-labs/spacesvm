@@ -49,3 +49,4 @@ build/
 vendor
 
 .quark-cli-pk
+genesis.json

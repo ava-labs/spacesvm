@@ -10,10 +10,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ava-labs/quarkvm/crypto"
-	"github.com/ava-labs/quarkvm/crypto/ed25519"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+
+	"github.com/ava-labs/quarkvm/crypto"
 )
 
 func init() {
@@ -63,7 +63,7 @@ func createFunc(cmd *cobra.Command, args []string) error {
 
 	// Generate new key and save to disk
 	// TODO: encrypt key
-	pk, err := ed25519.NewPrivateKey()
+	pk, err := crypto.NewPrivateKey()
 	if err != nil {
 		return err
 	}
@@ -75,10 +75,10 @@ func createFunc(cmd *cobra.Command, args []string) error {
 }
 
 // TODO: run before all functions (erroring if can't load)
-func LoadPK(privPath string) (crypto.PrivateKey, error) {
+func LoadPK(privPath string) (*crypto.PrivateKey, error) {
 	pk, err := os.ReadFile(privPath)
 	if err != nil {
 		return nil, err
 	}
-	return ed25519.LoadPrivateKey(pk)
+	return crypto.LoadPrivateKey(pk)
 }

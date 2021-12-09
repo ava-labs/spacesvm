@@ -5,13 +5,12 @@
 package vm
 
 import (
-	"errors"
-	"fmt"
-	"math/rand"
 	"net/http"
 	"time"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/manager"
+	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/choices"
@@ -19,37 +18,34 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	snowmanblock "github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/json"
-	"github.com/ava-labs/quarkvm/block"
-	"github.com/ava-labs/quarkvm/codec"
-	"github.com/ava-labs/quarkvm/pow"
-	"github.com/ava-labs/quarkvm/storage"
-	"github.com/ava-labs/quarkvm/transaction"
-	"github.com/ava-labs/quarkvm/version"
 	"github.com/gorilla/rpc/v2"
 	log "github.com/inconshreveable/log15"
+
+	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/quarkvm/mempool"
+	"github.com/ava-labs/quarkvm/version"
 )
 
-const Name = "quarkvm"
+const (
+	Name = "quarkvm"
 
-var _ snowmanblock.ChainVM = &VM{}
+	mempoolSize = 1024
+)
 
 var (
-	ErrNoPendingTx = errors.New("no pending tx")
+	_ snowmanblock.ChainVM = &VM{}
+	_ chain.VM             = &VM{}
 )
 
-// TODO: add separate chain state manager?
-// TODO: add mutex?
-
 type VM struct {
-	ctx          *snow.Context
-	sybilControl pow.Checker
-	s            storage.Storage
-	mempool      transaction.Mempool
+	ctx     *snow.Context
+	db      database.Database
+	mempool *mempool.Mempool
 
 	// Block ID --> Block
 	// Each element is a block that passed verification but
 	// hasn't yet been accepted/rejected
-	verifiedBlocks map[ids.ID]*block.Block
+	verifiedBlocks map[ids.ID]*chain.Block
 
 	toEngine chan<- common.Message
 
@@ -70,54 +66,49 @@ func (vm *VM) Initialize(
 ) error {
 	log.Info("initializing quarkvm", "version", version.Version)
 
-	// TODO: check initialize from singleton store
-
 	vm.ctx = ctx
-	vm.sybilControl = pow.New(vm.getDifficulty)
-	vm.s = storage.New(
-		ctx,
-		dbManager.Current().Database,
-	)
-	vm.mempool = transaction.NewMempool(1024)
-	vm.verifiedBlocks = make(map[ids.ID]*block.Block)
+	vm.db = dbManager.Current().Database
+	vm.mempool = mempool.New(mempoolSize)
+	vm.verifiedBlocks = make(map[ids.ID]*chain.Block)
 	vm.toEngine = toEngine
 
-	// parent ID, height, timestamp all zero by default
-	genesisBlk := new(block.Block)
-	genesisBlk.Update(
+	// Try to load last accepted
+	has, err := chain.HasLastAccepted(vm.db)
+	if err != nil {
+		log.Error("could not determine if have last accepted")
+		return err
+	}
+	if has {
+		b, err := chain.GetLastAccepted(vm.db)
+		if err != nil {
+			log.Error("could not get last accepted", "err", err)
+			return err
+		}
+
+		vm.preferred = b
+		vm.lastAccepted = b
+		log.Info("initialized quarkvm from last accepted", "block", b)
+		return nil
+	}
+
+	// Load from genesis
+	genesisBlk, err := chain.ParseBlock(
 		genesisBytes,
-		choices.Processing,
-		vm.s,
-		func(id ids.ID) (*block.Block, error) { // lookup
-			return vm.getBlock(id)
-		},
-		func(b *block.Block) error { // persist
-			if err := vm.putBlock(b); err != nil {
-				return err
-			}
-			return vm.s.Commit()
-		},
-		func(id ids.ID) { // set last accepted
-			vm.lastAccepted = id
-		},
-		func(b *block.Block) { // on verified
-			vm.verifiedBlocks[b.ID()] = b
-		},
+		choices.Accepted,
+		vm,
 	)
-
-	if err := vm.putBlock(genesisBlk); err != nil {
+	if err != nil {
+		log.Error("unable to init genesis block", "err", err)
 		return err
 	}
-	if err := genesisBlk.Accept(); err != nil {
+	if err := chain.SetLastAccepted(vm.db, genesisBlk); err != nil {
+		log.Error("could not set genesis as last accepted", "err", err)
 		return err
 	}
-	vm.lastAccepted = genesisBlk.ID()
-	vm.preferred = genesisBlk.ID()
-
-	// TODO: set initialize for singleton store
-
-	log.Info("successfully initialized quarkvm")
-	return vm.s.Commit()
+	gBlkID := genesisBlk.ID()
+	vm.preferred, vm.lastAccepted = gBlkID, gBlkID
+	log.Info("initialized quarkvm from genesis", "block", gBlkID)
+	return nil
 }
 
 // implements "snowmanblock.ChainVM.common.VM"
@@ -135,10 +126,7 @@ func (vm *VM) Shutdown() error {
 	if vm.ctx == nil {
 		return nil
 	}
-	if err := vm.s.Commit(); err != nil {
-		return err
-	}
-	return vm.s.Close()
+	return vm.db.Close()
 }
 
 // implements "snowmanblock.ChainVM.common.VM"
@@ -155,8 +143,7 @@ func (vm *VM) CreateHandlers() (map[string]*common.HTTPHandler, error) {
 	}
 	return map[string]*common.HTTPHandler{
 		"": {
-			LockOptions: common.NoLock,
-			Handler:     server,
+			Handler: server,
 		},
 	}, nil
 }
@@ -164,18 +151,7 @@ func (vm *VM) CreateHandlers() (map[string]*common.HTTPHandler, error) {
 // implements "snowmanblock.ChainVM.common.VM"
 // for "ext/vm/[vmID]"
 func (vm *VM) CreateStaticHandlers() (map[string]*common.HTTPHandler, error) {
-	server := rpc.NewServer()
-	server.RegisterCodec(json.NewCodec(), "application/json")
-	server.RegisterCodec(json.NewCodec(), "application/json;charset=UTF-8")
-	if err := server.RegisterService(&StaticService{}, Name); err != nil {
-		return nil, err
-	}
-	return map[string]*common.HTTPHandler{
-		"": {
-			LockOptions: common.NoLock,
-			Handler:     server,
-		},
-	}, nil
+	return nil, nil
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"
@@ -198,7 +174,7 @@ func (vm *VM) AppResponse(nodeID ids.ShortID, requestID uint32, response []byte)
 
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"
 func (vm *VM) AppGossip(nodeID ids.ShortID, msg []byte) error {
-	// (currently) no app-specific messages
+	// TODO: gossip txs
 	return nil
 }
 
@@ -229,122 +205,75 @@ func (vm *VM) GetBlock(id ids.ID) (snowman.Block, error) {
 	return b, err
 }
 
-func (vm *VM) getBlock(blkID ids.ID) (*block.Block, error) {
+func (vm *VM) getBlock(blkID ids.ID) (*chain.Block, error) {
 	if blk, exists := vm.verifiedBlocks[blkID]; exists {
 		return blk, nil
 	}
-
-	blkBytes, err := vm.s.Block().Get(blkID[:])
+	bytes, err := chain.GetBlock(vm.db, blkID)
 	if err != nil {
 		return nil, err
 	}
-	blk := new(block.Block)
-	if _, err := codec.Unmarshal(blkBytes, blk); err != nil {
-		return nil, err
-	}
-	return blk, nil
+	// If block on disk, it must've been accepted
+	return chain.ParseBlock(bytes, choices.Accepted, vm)
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.Parser"
 // replaces "core.SnowmanVM.ParseBlock"
 func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
-	blk := new(block.Block)
-	if _, err := codec.Unmarshal(source, blk); err != nil {
-		return nil, err
-	}
-	blk.Update(
+	blk, err := chain.ParseBlock(
 		source,
 		choices.Processing,
-		vm.s,
-		func(id ids.ID) (*block.Block, error) { // lookup
-			return vm.getBlock(id)
-		},
-		func(b *block.Block) error { // persist
-			if err := vm.putBlock(b); err != nil {
-				return err
-			}
-			return vm.s.Commit()
-		},
-		func(id ids.ID) { // set last accepted
-			vm.lastAccepted = id
-		},
-		func(b *block.Block) { // on verified
-			vm.verifiedBlocks[b.ID()] = b
-		},
+		vm,
 	)
-	return blk, nil
+	if err != nil {
+		log.Error("could not parse block", "err", err)
+	} else {
+		log.Debug("parsing block", "id", blk.ID())
+	}
+	return blk, err
 }
-
-// TODO: move all this to "chain" own package
-// TODO: optimize using "getRecent"?
-// TODO: make batch size configurable
-// TODO: check min difficulty?
-// TODO: check duplicate prefix?
-// TODO: what if two different writes with different owners?
 
 // implements "snowmanblock.ChainVM"
 func (vm *VM) BuildBlock() (snowman.Block, error) {
-	log.Info("building block", "pending-txs", vm.mempool.Len())
-	if vm.mempool.Len() == 0 {
-		return nil, ErrNoPendingTx
-	}
+	return chain.BuildBlock(vm, vm.preferred)
+}
 
-	// for simplicity, just batch as much as we can
-	txs := make([]*transaction.Transaction, 0)
-	for len(txs) < 100 && vm.mempool.Len() > 0 {
-		next, _ := vm.mempool.PopMax()
-		txs = append(txs, next)
+func (vm *VM) Submit(tx *chain.Transaction) error {
+	if err := tx.Init(); err != nil {
+		return err
 	}
-	if vm.mempool.Len() > 0 {
-		// need more block for pending transactions
-		defer vm.notifyBlockReady()
+	if err := tx.ExecuteBase(); err != nil {
+		return err
 	}
-
-	prefBlk, err := vm.getBlock(vm.preferred)
+	blk, err := vm.GetBlock(vm.preferred)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't get preferred block: %w", err)
+		return err
 	}
-	preferredHeight := prefBlk.Height()
+	now := time.Now().Unix()
+	context, err := vm.ExecutionContext(now, blk.(*chain.Block))
+	if err != nil {
+		return err
+	}
+	vdb := versiondb.New(vm.db)
+	defer vdb.Close() // TODO: need to do everywhere?
+	if err := tx.Execute(vdb, now, context); err != nil {
+		return err
+	}
+	if added := vm.mempool.Add(tx); !added {
+		// Don't gossip if not added
+		return nil
+	}
 
-	b := &block.Block{
-		Prnt:   vm.preferred,
-		Tmstmp: time.Now().Unix(),
-		Hght:   preferredHeight + 1,
-		Txs:    txs,
-	}
-	b.Update(
-		b.Bytes(),
-		choices.Processing,
-		vm.s,
-		func(id ids.ID) (*block.Block, error) { // lookup
-			return vm.getBlock(id)
-		},
-		func(b *block.Block) error { // persist
-			if err := vm.putBlock(b); err != nil {
-				return err
-			}
-			return vm.s.Commit()
-		},
-		func(id ids.ID) { // set last accepted
-			vm.lastAccepted = id
-		},
-		func(b *block.Block) { // on verified
-			vm.verifiedBlocks[b.ID()] = b
-		},
-	)
-	log.Info("creating block", "height", b.Hght, "total-txs", len(b.Txs))
-	if err := b.Verify(); err != nil {
-		return nil, err
-	}
-	vm.verifiedBlocks[b.ID()] = b
-
-	log.Info("built block")
-	return b, nil
+	// TODO: do on a block timer
+	// TODO: wait to gossip if can create a block
+	vm.notifyBlockReady()
+	return nil
 }
 
 // "SetPreference" implements "snowmanblock.ChainVM"
 // replaces "core.SnowmanVM.SetPreference"
 func (vm *VM) SetPreference(id ids.ID) error {
+	log.Debug("set preference", "id", id)
 	vm.preferred = id
 	return nil
 }
@@ -355,34 +284,10 @@ func (vm *VM) LastAccepted() (ids.ID, error) {
 	return vm.lastAccepted, nil
 }
 
-func (vm *VM) putBlock(b *block.Block) error {
-	id := b.ID()
-	d, err := codec.Marshal(b)
-	if err != nil {
-		return err
-	}
-	return vm.s.Block().Put(id[:], d)
-}
-
-func (vm *VM) getDifficulty() uint64 {
-	rand.Seed(int64(time.Now().Nanosecond()))
-	diff := uint64(rand.Int63n(100))
-	return diff
-}
-
 func (vm *VM) notifyBlockReady() {
 	select {
 	case vm.toEngine <- common.PendingTxs:
 	default:
 		log.Debug("dropping message to consensus engine")
 	}
-}
-
-func (vm *VM) isTxConfirmed(txID ids.ID) bool {
-	id := append([]byte{}, txID[:]...)
-	has, err := vm.s.Tx().Has(id)
-	if err != nil {
-		panic(err)
-	}
-	return has
 }

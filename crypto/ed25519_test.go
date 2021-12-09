@@ -1,7 +1,7 @@
 // (c) 2019-2020, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package ed25519
+package crypto
 
 import (
 	"testing"
@@ -16,9 +16,7 @@ func TestVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pub := pk.PublicKey()
-
-	if !Verify(pub.Bytes(), []byte("hello"), sig) {
+	if !Verify(pk.PublicKey().Bytes(), []byte("hello"), sig) {
 		t.Fatal("failed to verify")
 	}
 }

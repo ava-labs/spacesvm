@@ -4,18 +4,20 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/ava-labs/avalanchego/vms/rpcchainvm"
-	"github.com/ava-labs/quarkvm/version"
-	"github.com/ava-labs/quarkvm/vm"
 	"github.com/hashicorp/go-plugin"
 	log "github.com/inconshreveable/log15"
+
+	"github.com/ava-labs/quarkvm/version"
+	"github.com/ava-labs/quarkvm/vm"
 )
+
+func init() {
+	log.Root().SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stderr, log.LogfmtFormat())))
+}
 
 func main() {
 	printVersion, err := PrintVersion()
@@ -29,23 +31,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-
-	// When we get a SIGINT or SIGTERM, stop the network.
-	signalsCh := make(chan os.Signal, 1)
-	signal.Notify(signalsCh, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		select {
-		case <-ctx.Done():
-			return
-		case sig := <-signalsCh:
-			fmt.Println("received OS signal:", sig)
-			cancel()
-		}
-	}()
-
-	log.Root().SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stderr, log.JsonFormat())))
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: rpcchainvm.Handshake,
 		Plugins: map[string]plugin.Plugin{
