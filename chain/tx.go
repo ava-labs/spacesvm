@@ -1,12 +1,12 @@
 package chain
 
 import (
-	"ekyu.moe/cryptonight"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 
 	"github.com/ava-labs/quarkvm/crypto"
+	"github.com/ava-labs/quarkvm/pow"
 )
 
 type UnsignedTransaction interface {
@@ -23,7 +23,11 @@ type Transaction struct {
 	UnsignedTransaction `serialize:"true"`
 	Signature           []byte `serialize:"true"`
 
-	difficulty uint64 // populate in mempool
+	unsignedBytes []byte
+	bytes         []byte
+	id            ids.ID
+	size          uint64
+	difficulty    uint
 }
 
 func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
@@ -33,41 +37,47 @@ func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
 	}
 }
 
-func UnsignedBytes(utx UnsignedTransaction) []byte {
-	v, err := Marshal(utx)
+func UnsignedBytes(utx UnsignedTransaction) ([]byte, error) {
+	b, err := Marshal(utx)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return v
+	return b, nil
 }
 
-func (t *Transaction) Bytes() []byte {
-	v, err := Marshal(t)
+func (t *Transaction) init() error {
+	utx, err := UnsignedBytes(t.UnsignedTransaction)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	return v
-}
+	t.unsignedBytes = utx
+	t.difficulty = pow.Difficulty(utx)
 
-func (t *Transaction) Size() uint64 {
-	return uint64(len(t.Bytes()))
-}
-
-func (t *Transaction) ID() ids.ID {
-	h, err := ids.ToID(hashing.ComputeHash256(t.Bytes()))
+	stx, err := Marshal(t)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	return h
+	t.bytes = stx
+
+	id, err := ids.ToID(hashing.ComputeHash256(t.bytes))
+	if err != nil {
+		return err
+	}
+	t.id = id
+
+	t.size = uint64(len(t.Bytes()))
+	return nil
 }
 
-func (t *Transaction) Difficulty() uint64 {
-	if t.difficulty == 0 {
-		h := cryptonight.Sum(UnsignedBytes(t.UnsignedTransaction), 2)
-		t.difficulty = cryptonight.Difficulty(h)
-	}
-	return t.difficulty
-}
+func (t *Transaction) Bytes() []byte { return t.bytes }
+
+func (t *Transaction) UnsignedBytes() []byte { return t.unsignedBytes }
+
+func (t *Transaction) Size() uint64 { return t.size }
+
+func (t *Transaction) ID() ids.ID { return t.id }
+
+func (t *Transaction) Difficulty() uint { return t.difficulty }
 
 func (t *Transaction) Execute(db database.Database, blockTime int64, context *Context) error {
 	if err := t.UnsignedTransaction.ExecuteBase(); err != nil {
@@ -88,7 +98,7 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 	if t.Difficulty() < context.NextDifficulty {
 		return ErrInvalidDifficulty
 	}
-	if !crypto.Verify(t.GetSender(), UnsignedBytes(t.UnsignedTransaction), t.Signature) {
+	if !crypto.Verify(t.GetSender(), t.unsignedBytes, t.Signature) {
 		return ErrInvalidSignature
 	}
 	if err := t.UnsignedTransaction.Execute(db, blockTime); err != nil {

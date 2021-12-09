@@ -22,8 +22,8 @@ type Block struct {
 	Prnt       ids.ID         `serialize:"true" json:"parent"`
 	Tmstmp     int64          `serialize:"true" json:"timestamp"`
 	Hght       uint64         `serialize:"true" json:"height"`
-	Difficulty uint64         `serialize:"true" json:"difficulty"`
-	Cost       uint64         `serialize:"true" json:"cost"`
+	Difficulty uint           `serialize:"true" json:"difficulty"`
+	Cost       uint           `serialize:"true" json:"cost"`
 	Txs        []*Transaction `serialize:"true" json:"txs"`
 
 	id    ids.ID
@@ -68,6 +68,11 @@ func ParseBlock(
 	b.t = time.Unix(b.Tmstmp, 0)
 	b.st = status
 	b.vm = vm
+	for _, tx := range b.Txs {
+		if err := tx.init(); err != nil {
+			return nil, err
+		}
+	}
 	return b, nil
 }
 
@@ -83,6 +88,11 @@ func (b *Block) init() error {
 	}
 	b.id = id
 	b.t = time.Unix(b.Tmstmp, 0)
+	for _, tx := range b.Txs {
+		if err := tx.init(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -122,7 +132,7 @@ func (b *Block) verify() (*Block, *versiondb.Database, error) {
 		return nil, nil, err
 	}
 	onAcceptDB := versiondb.New(parentState)
-	var surplusDifficulty uint64
+	var surplusDifficulty uint
 	for _, tx := range b.Txs {
 		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
 			log.Debug("failed tx verification", "err", err)

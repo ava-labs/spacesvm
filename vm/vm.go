@@ -240,6 +240,7 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 func (vm *VM) Submit(tx *chain.Transaction) {
 	// cache difficulty
 	// TODO: fix
+	// TODO: gossip DoS (spam with work that needs to be computed?)
 	_ = tx.Difficulty()
 	vm.mempool.Add(tx)
 

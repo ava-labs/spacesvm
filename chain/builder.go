@@ -61,7 +61,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		return nil, err
 	}
 
-	// Verify block to ensure it is formed correctly
+	// Verify block to ensure it is formed correctly (don't save)
 	_, vdb, err = b.verify()
 	if err != nil {
 		log.Debug("block building failed: failed verification", "err", err)

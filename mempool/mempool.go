@@ -15,7 +15,7 @@ var _ chain.Mempool = &Mempool{}
 type txEntry struct {
 	id         ids.ID
 	tx         *chain.Transaction
-	difficulty uint64
+	difficulty uint
 	index      int
 }
 
@@ -124,19 +124,19 @@ func (th *Mempool) Add(tx *chain.Transaction) {
 }
 
 // Assumes there is non-zero items in [Mempool]
-func (th *Mempool) PeekMax() (*chain.Transaction, uint64) {
+func (th *Mempool) PeekMax() (*chain.Transaction, uint) {
 	txEntry := th.maxHeap.items[0]
 	return txEntry.tx, txEntry.difficulty
 }
 
 // Assumes there is non-zero items in [Mempool]
-func (th *Mempool) PeekMin() (*chain.Transaction, uint64) {
+func (th *Mempool) PeekMin() (*chain.Transaction, uint) {
 	txEntry := th.minHeap.items[0]
 	return txEntry.tx, txEntry.difficulty
 }
 
 // Assumes there is non-zero items in [Mempool]
-func (th *Mempool) PopMax() (*chain.Transaction, uint64) {
+func (th *Mempool) PopMax() (*chain.Transaction, uint) {
 	item := th.maxHeap.items[0]
 	return th.Remove(item.id), item.difficulty
 }

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"ekyu.moe/cryptonight"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/rpc"
 	"github.com/fatih/color"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
+	"github.com/ava-labs/quarkvm/pow"
 	"github.com/ava-labs/quarkvm/vm"
 )
 
@@ -89,7 +89,7 @@ func validBlockID(requester rpc.EndpointRequester, blkID ids.ID) (bool, error) {
 	return resp.Valid, nil
 }
 
-func difficultyEstimate(requester rpc.EndpointRequester) (uint64, error) {
+func difficultyEstimate(requester rpc.EndpointRequester) (uint, error) {
 	resp := new(vm.DifficultyEstimateReply)
 	if err := requester.SendRequest(
 		"difficultyEstimate",
@@ -134,12 +134,16 @@ func mine(requester rpc.EndpointRequester, utx chain.UnsignedTransaction) (chain
 				break
 			}
 			utx.SetGraffiti(graffiti)
-			h := cryptonight.Sum(chain.UnsignedBytes(utx), 2)
-			d, err := difficultyEstimate(requester)
+			b, err := chain.UnsignedBytes(utx)
 			if err != nil {
 				return nil, err
 			}
-			if cryptonight.CheckHash(h, d) {
+			d := pow.Difficulty(b)
+			est, err := difficultyEstimate(requester)
+			if err != nil {
+				return nil, err
+			}
+			if d >= est {
 				return utx, nil
 			}
 			graffiti++
@@ -177,7 +181,11 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	sig, err := priv.Sign(chain.UnsignedBytes(mtx))
+	b, err := chain.UnsignedBytes(mtx)
+	if err != nil {
+		return err
+	}
+	sig, err := priv.Sign(b)
 	if err != nil {
 		return err
 	}
