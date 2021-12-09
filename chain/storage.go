@@ -23,9 +23,7 @@ const (
 	PrefixDelimiter = '/'
 )
 
-var (
-	lastAccepted = []byte("last_accepted")
-)
+var lastAccepted = []byte("last_accepted")
 
 func PrefixInfoKey(prefix []byte) []byte {
 	b := make([]byte, len(prefix)+2)

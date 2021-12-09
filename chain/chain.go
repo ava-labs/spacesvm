@@ -28,14 +28,14 @@ type Context struct {
 	RecentBlockIDs ids.Set
 	RecentTxIDs    ids.Set
 
-	NextCost       uint
-	NextDifficulty uint
+	NextCost       uint64
+	NextDifficulty uint64
 }
 
 type Mempool interface {
 	Len() int
 	Prune(ids.Set)
-	PopMax() (*Transaction, uint)
+	PopMax() (*Transaction, uint64)
 	Add(*Transaction) bool
 }
 

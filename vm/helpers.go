@@ -42,9 +42,9 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 	return foundBlockID, err
 }
 
-func (vm *VM) DifficultyEstimate() (uint, error) {
-	totalDifficulty := uint(0)
-	totalBlocks := uint(0)
+func (vm *VM) DifficultyEstimate() (uint64, error) {
+	totalDifficulty := uint64(0)
+	totalBlocks := uint64(0)
 	err := vm.lookback(time.Now().Unix(), vm.preferred, func(b *chain.Block) (bool, error) {
 		totalDifficulty += b.Difficulty
 		totalBlocks++

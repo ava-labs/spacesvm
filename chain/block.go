@@ -22,8 +22,8 @@ type Block struct {
 	Prnt       ids.ID         `serialize:"true" json:"parent"`
 	Tmstmp     int64          `serialize:"true" json:"timestamp"`
 	Hght       uint64         `serialize:"true" json:"height"`
-	Difficulty uint           `serialize:"true" json:"difficulty"`
-	Cost       uint           `serialize:"true" json:"cost"`
+	Difficulty uint64         `serialize:"true" json:"difficulty"`
+	Cost       uint64         `serialize:"true" json:"cost"`
 	Txs        []*Transaction `serialize:"true" json:"txs"`
 
 	id    ids.ID
@@ -132,7 +132,7 @@ func (b *Block) verify() (*Block, *versiondb.Database, error) {
 		return nil, nil, err
 	}
 	onAcceptDB := versiondb.New(parentState)
-	var surplusDifficulty uint
+	var surplusDifficulty uint64
 	for _, tx := range b.Txs {
 		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
 			log.Debug("failed tx verification", "err", err)
@@ -175,6 +175,7 @@ func (b *Block) Accept() error {
 	}
 	b.st = choices.Accepted
 	b.vm.Accepted(b)
+	// TODO: clear expired state (using index from timestamp to prefix)
 	return nil
 }
 

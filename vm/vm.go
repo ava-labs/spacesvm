@@ -225,7 +225,7 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 		choices.Processing,
 		vm,
 	)
-	if blk == nil {
+	if err != nil {
 		log.Error("could not parse block", "err", err)
 	} else {
 		log.Debug("parsing block", "id", blk.ID())

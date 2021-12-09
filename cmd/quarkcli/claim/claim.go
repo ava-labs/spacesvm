@@ -89,7 +89,7 @@ func validBlockID(requester rpc.EndpointRequester, blkID ids.ID) (bool, error) {
 	return resp.Valid, nil
 }
 
-func difficultyEstimate(requester rpc.EndpointRequester) (uint, error) {
+func difficultyEstimate(requester rpc.EndpointRequester) (uint64, error) {
 	resp := new(vm.DifficultyEstimateReply)
 	if err := requester.SendRequest(
 		"difficultyEstimate",

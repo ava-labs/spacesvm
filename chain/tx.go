@@ -27,7 +27,7 @@ type Transaction struct {
 	bytes         []byte
 	id            ids.ID
 	size          uint64
-	difficulty    uint
+	difficulty    uint64
 }
 
 func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
@@ -77,7 +77,7 @@ func (t *Transaction) Size() uint64 { return t.size }
 
 func (t *Transaction) ID() ids.ID { return t.id }
 
-func (t *Transaction) Difficulty() uint { return t.difficulty }
+func (t *Transaction) Difficulty() uint64 { return t.difficulty }
 
 func (t *Transaction) Execute(db database.Database, blockTime int64, context *Context) error {
 	if err := t.UnsignedTransaction.ExecuteBase(); err != nil {

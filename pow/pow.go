@@ -25,8 +25,8 @@ const (
 // BenchmarkFinalHash/Skein-256
 // BenchmarkFinalHash/Skein-256-16      	  852234	      1478 ns/op
 
-func Difficulty(b []byte) uint {
+func Difficulty(b []byte) uint64 {
 	h := hashing.ComputeHash256(b)
 	n := new(big.Int).SetBytes(h[:])
-	return uint(maxDifficulty - n.BitLen())
+	return uint64(maxDifficulty - n.BitLen())
 }

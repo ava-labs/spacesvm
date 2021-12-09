@@ -105,7 +105,7 @@ type DifficultyEstimateArgs struct {
 }
 
 type DifficultyEstimateReply struct {
-	Difficulty uint `serialize:"true" json:"valid"`
+	Difficulty uint64 `serialize:"true" json:"valid"`
 }
 
 func (svc *Service) DifficultyEstimate(_ *http.Request, args *DifficultyEstimateArgs, reply *DifficultyEstimateReply) error {
