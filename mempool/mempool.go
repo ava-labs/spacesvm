@@ -93,11 +93,11 @@ func New(maxSize int) *Mempool {
 	}
 }
 
-func (th *Mempool) Add(tx *chain.Transaction) {
+func (th *Mempool) Add(tx *chain.Transaction) bool {
 	txID := tx.ID()
 	// Don't add duplicates
 	if th.Has(txID) {
-		return
+		return false
 	}
 	// Optimistically add tx to mempool
 	difficulty := tx.Difficulty()
@@ -119,8 +119,12 @@ func (th *Mempool) Add(tx *chain.Transaction) {
 	// Note: we do this after adding the new transaction in case it is the new
 	// lowest paying transaction
 	if th.Len() >= th.maxSize {
-		_ = th.PopMin()
+		t := th.PopMin()
+		if t.ID() == txID {
+			return false
+		}
 	}
+	return true
 }
 
 // Assumes there is non-zero items in [Mempool]

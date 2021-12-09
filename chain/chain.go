@@ -36,7 +36,7 @@ type Mempool interface {
 	Len() int
 	Prune(ids.Set)
 	PopMax() (*Transaction, uint)
-	Add(*Transaction)
+	Add(*Transaction) bool
 }
 
 type VM interface {

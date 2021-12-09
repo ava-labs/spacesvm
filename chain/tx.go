@@ -45,7 +45,7 @@ func UnsignedBytes(utx UnsignedTransaction) ([]byte, error) {
 	return b, nil
 }
 
-func (t *Transaction) init() error {
+func (t *Transaction) Init() error {
 	utx, err := UnsignedBytes(t.UnsignedTransaction)
 	if err != nil {
 		return err

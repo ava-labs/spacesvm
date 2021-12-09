@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/manager"
+	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/choices"
@@ -237,15 +238,33 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 	return chain.BuildBlock(vm, vm.preferred)
 }
 
-func (vm *VM) Submit(tx *chain.Transaction) {
-	// cache difficulty
-	// TODO: fix
-	// TODO: gossip DoS (spam with work that needs to be computed?)
-	_ = tx.Difficulty()
-	vm.mempool.Add(tx)
+func (vm *VM) Submit(tx *chain.Transaction) error {
+	if err := tx.Init(); err != nil {
+		return err
+	}
+	blk, err := vm.GetBlock(vm.preferred)
+	if err != nil {
+		return err
+	}
+	now := time.Now().Unix()
+	context, err := vm.ExecutionContext(now, blk.(*chain.Block))
+	if err != nil {
+		return err
+	}
+	vdb := versiondb.New(vm.db)
+	defer vdb.Close() // TODO: need to do everywhere?
+	if err := tx.Execute(vdb, now, context); err != nil {
+		return err
+	}
+	if added := vm.mempool.Add(tx); !added {
+		// Don't gossip if not added
+		return nil
+	}
 
 	// TODO: do on a block timer
+	// TODO: wait to gossip if can create a block
 	vm.notifyBlockReady()
+	return nil
 }
 
 // "SetPreference" implements "snowmanblock.ChainVM"

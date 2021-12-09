@@ -69,7 +69,7 @@ func ParseBlock(
 	b.st = status
 	b.vm = vm
 	for _, tx := range b.Txs {
-		if err := tx.init(); err != nil {
+		if err := tx.Init(); err != nil {
 			return nil, err
 		}
 	}
@@ -89,7 +89,7 @@ func (b *Block) init() error {
 	b.id = id
 	b.t = time.Unix(b.Tmstmp, 0)
 	for _, tx := range b.Txs {
-		if err := tx.init(); err != nil {
+		if err := tx.Init(); err != nil {
 			return err
 		}
 	}
