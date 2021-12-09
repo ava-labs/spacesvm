@@ -3,7 +3,6 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/wrappers"
 )
 
 // 0x0/ (singleton prefix info)
@@ -26,41 +25,21 @@ const (
 var lastAccepted = []byte("last_accepted")
 
 func PrefixInfoKey(prefix []byte) []byte {
-	b := make([]byte, len(prefix)+2)
-	packer := wrappers.Packer{Bytes: b}
-	packer.PackByte(infoPrefix)
-	packer.PackByte(PrefixDelimiter)
-	packer.PackBytes(prefix)
-	return b
+	return append([]byte{infoPrefix, PrefixDelimiter}, prefix...)
 }
 
 func PrefixValueKey(prefix []byte, key []byte) []byte {
-	b := make([]byte, len(prefix)+len(key)+3)
-	packer := wrappers.Packer{Bytes: b}
-	packer.PackByte(keyPrefix)
-	packer.PackByte(PrefixDelimiter)
-	packer.PackBytes(prefix)
-	packer.PackByte(PrefixDelimiter)
-	packer.PackBytes(key)
-	return b
+	b := append([]byte{keyPrefix, PrefixDelimiter}, prefix...)
+	b = append(b, PrefixDelimiter)
+	return append(b, key...)
 }
 
 func PrefixTxKey(txID ids.ID) []byte {
-	b := make([]byte, len(txID)+2)
-	packer := wrappers.Packer{Bytes: b}
-	packer.PackByte(txPrefix)
-	packer.PackByte(PrefixDelimiter)
-	packer.PackBytes(txID[:])
-	return b
+	return append([]byte{txPrefix, PrefixDelimiter}, txID[:]...)
 }
 
 func PrefixBlockKey(blockID ids.ID) []byte {
-	b := make([]byte, len(blockID)+2)
-	packer := wrappers.Packer{Bytes: b}
-	packer.PackByte(blockPrefix)
-	packer.PackByte(PrefixDelimiter)
-	packer.PackBytes(blockID[:])
-	return b
+	return append([]byte{blockPrefix, PrefixDelimiter}, blockID[:]...)
 }
 
 func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {

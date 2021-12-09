@@ -242,6 +242,9 @@ func (vm *VM) Submit(tx *chain.Transaction) error {
 	if err := tx.Init(); err != nil {
 		return err
 	}
+	if err := tx.ExecuteBase(); err != nil {
+		return err
+	}
 	blk, err := vm.GetBlock(vm.preferred)
 	if err != nil {
 		return err
