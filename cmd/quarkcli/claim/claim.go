@@ -190,6 +190,9 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	tx := chain.NewTx(mtx, sig)
+	if err := tx.Init(); err != nil {
+		return err
+	}
 	color.Yellow("Submitting tx %s with BlockID (%s): %v", tx.ID(), mtx.GetBlockID(), tx)
 
 	resp := new(vm.IssueTxReply)
