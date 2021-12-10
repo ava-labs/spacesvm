@@ -11,8 +11,8 @@ fi
 
 if [ "$#" -eq 0 ]; then
   # by default, check all source code
-  # to test only "vm" package
-  # ./scripts/lint.sh ./vm/...
+  # to test only "mempool" package
+  # ./scripts/lint.sh ./mempool/...
   TARGET="./..."
 else
   TARGET="${1}"
@@ -21,10 +21,14 @@ fi
 # by default, "./scripts/lint.sh" runs all lint tests
 # to run only "license_header" test
 # TESTS='license_header' ./scripts/lint.sh
-TESTS=${TESTS:-"golangci_lint license_header"}
+TESTS=${TESTS:-"golangci_lint"}
+
+# TODO: enable "license_header" test
+# TESTS=${TESTS:-"golangci_lint license_header"}
 
 function test_golangci_lint {
-  golangci-lint run --max-same-issues=0 --timeout=2m
+  go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
+  golangci-lint run --config .golangci.yml
 }
 
 # find_go_files [package]
@@ -48,10 +52,6 @@ function test_license_header {
   addlicense \
   -f ./LICENSE.header \
   ${_addlicense_flags} \
-  --ignore 'utils/ip_test.go' \
-  --ignore 'utils/logging/highlight.go' \
-  --ignore 'utils/ulimit/ulimit_non_unix.go.go' \
-  --ignore 'utils/ulimit/ulimit_unix.go' \
   "${files[@]}"
 }
 

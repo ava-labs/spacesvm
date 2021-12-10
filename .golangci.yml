@@ -1,29 +1,34 @@
+# https://golangci-lint.run/usage/configuration/
 run:
+  timeout: 10m
   # skip auto-generated files.
   skip-files:
     - ".*\\.pb\\.go$"
+
+issues:
+  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
+  max-same-issues: 0
 
 linters:
   # please, do not use `enable-all`: it's deprecated and will be removed soon.
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true
-
   enable:
     - asciicheck
     - bodyclose
-    - deadcode
-    - errcheck
+    # - deadcode
+    # - errcheck
     - exportloopref
     - goconst
-    - gocritic
+    # - gocritic
     - gofmt
-    - gofumpt
-    - goimports
+    # - gofumpt
+    # - goimports
     - revive
-    - gosec
-    - gosimple
+    # - gosec
+    # - gosimple
     - govet
-    - ineffassign
+    # - ineffassign
     - misspell
     - nakedret
     - nolintlint
@@ -31,16 +36,25 @@ linters:
     - stylecheck
     - unconvert
     - unparam
-    - unused
-    - varcheck
+    # - unused
+    # - varcheck
     - unconvert
     - whitespace
+    # - staticcheck
+    # - structcheck
     # - lll
     # - gomnd
     # - goprintffuncname
     # - interfacer
-    # - staticcheck
-    # - structcheck
     # - typecheck
     # - goerr113
     # - noctx
+
+linters-settings:
+  staticcheck:
+    go: "1.17"
+    # https://staticcheck.io/docs/options#checks
+    checks:
+      - "all"
+      - "-SA6002" # argument should be pointer-like to avoid allocation, for sync.Pool
+      - "-SA1019" # deprecated packages e.g., golang.org/x/crypto/ripemd160
