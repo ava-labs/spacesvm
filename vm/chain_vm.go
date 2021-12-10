@@ -11,34 +11,39 @@ import (
 func (vm *VM) State() database.Database {
 	return vm.db
 }
+
 func (vm *VM) Mempool() chain.Mempool {
 	return vm.mempool
 }
-func (vm *VM) Verified(b *chain.Block) {
+
+func (vm *VM) Verified(b *chain.StatelessBlock) {
 	vm.verifiedBlocks[b.ID()] = b
 	for _, tx := range b.Txs {
 		_ = vm.mempool.Remove(tx.ID())
 	}
 	log.Debug("verified block", "id", b.ID(), "parent", b.Prnt)
 }
-func (vm *VM) Rejected(b *chain.Block) {
+
+func (vm *VM) Rejected(b *chain.StatelessBlock) {
 	delete(vm.verifiedBlocks, b.ID())
 	for _, tx := range b.Txs {
 		vm.mempool.Add(tx)
 	}
 	log.Debug("rejected block", "id", b.ID())
 }
-func (vm *VM) Accepted(b *chain.Block) {
+
+func (vm *VM) Accepted(b *chain.StatelessBlock) {
 	delete(vm.verifiedBlocks, b.ID())
 	vm.lastAccepted = b.ID()
 	log.Debug("accepted block", "id", b.ID())
 }
-func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.Block) (*chain.Context, error) {
+
+func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) (*chain.Context, error) {
 	recentBlockIDs := ids.Set{}
 	recentTxIDs := ids.Set{}
-	err := vm.lookback(currTime, lastBlock.ID(), func(b *chain.Block) (bool, error) {
+	err := vm.lookback(currTime, lastBlock.ID(), func(b *chain.StatelessBlock) (bool, error) {
 		recentBlockIDs.Add(b.ID())
-		for _, tx := range b.Txs {
+		for _, tx := range b.StatefulBlock.Txs {
 			recentTxIDs.Add(tx.ID())
 		}
 		return true, nil

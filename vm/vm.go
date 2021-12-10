@@ -45,7 +45,7 @@ type VM struct {
 	// Block ID --> Block
 	// Each element is a block that passed verification but
 	// hasn't yet been accepted/rejected
-	verifiedBlocks map[ids.ID]*chain.Block
+	verifiedBlocks map[ids.ID]*chain.StatelessBlock
 
 	toEngine chan<- common.Message
 
@@ -69,7 +69,7 @@ func (vm *VM) Initialize(
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
 	vm.mempool = mempool.New(mempoolSize)
-	vm.verifiedBlocks = make(map[ids.ID]*chain.Block)
+	vm.verifiedBlocks = make(map[ids.ID]*chain.StatelessBlock)
 	vm.toEngine = toEngine
 
 	// Try to load last accepted
@@ -205,7 +205,7 @@ func (vm *VM) GetBlock(id ids.ID) (snowman.Block, error) {
 	return b, err
 }
 
-func (vm *VM) getBlock(blkID ids.ID) (*chain.Block, error) {
+func (vm *VM) getBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
 	if blk, exists := vm.verifiedBlocks[blkID]; exists {
 		return blk, nil
 	}
@@ -250,7 +250,7 @@ func (vm *VM) Submit(tx *chain.Transaction) error {
 		return err
 	}
 	now := time.Now().Unix()
-	context, err := vm.ExecutionContext(now, blk.(*chain.Block))
+	context, err := vm.ExecutionContext(now, blk.(*chain.StatelessBlock))
 	if err != nil {
 		return err
 	}

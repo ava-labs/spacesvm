@@ -8,7 +8,7 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 )
 
-func (vm *VM) lookback(currTime int64, lastID ids.ID, f func(b *chain.Block) (bool, error)) error {
+func (vm *VM) lookback(currTime int64, lastID ids.ID, f func(b *chain.StatelessBlock) (bool, error)) error {
 	curr, err := vm.getBlock(lastID)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (vm *VM) lookback(currTime int64, lastID ids.ID, f func(b *chain.Block) (bo
 
 func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 	var foundBlockID bool
-	err := vm.lookback(time.Now().Unix(), vm.preferred, func(b *chain.Block) (bool, error) {
+	err := vm.lookback(time.Now().Unix(), vm.preferred, func(b *chain.StatelessBlock) (bool, error) {
 		if b.ID() == blockID {
 			foundBlockID = true
 			return false, nil
@@ -45,7 +45,7 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 func (vm *VM) DifficultyEstimate() (uint64, error) {
 	totalDifficulty := uint64(0)
 	totalBlocks := uint64(0)
-	err := vm.lookback(time.Now().Unix(), vm.preferred, func(b *chain.Block) (bool, error) {
+	err := vm.lookback(time.Now().Unix(), vm.preferred, func(b *chain.StatelessBlock) (bool, error) {
 		totalDifficulty += b.Difficulty
 		totalBlocks++
 		return true, nil

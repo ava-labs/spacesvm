@@ -25,7 +25,7 @@ func init() {
 		c.RegisterType(&LifelineTx{}),
 		c.RegisterType(&SetTx{}),
 		c.RegisterType(&Transaction{}),
-		c.RegisterType(&Block{}),
+		c.RegisterType(&StatefulBlock{}),
 		c.RegisterType(&PrefixInfo{}),
 		codecManager.RegisterCodec(codecVersion, c),
 	)

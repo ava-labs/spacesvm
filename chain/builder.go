@@ -18,7 +18,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		log.Debug("block building failed: couldn't get parent", "err", err)
 		return nil, err
 	}
-	parent := prnt.(*Block)
+	parent := prnt.(*StatelessBlock)
 	context, err := vm.ExecutionContext(nextTime, parent)
 	if err != nil {
 		log.Debug("block building failed: couldn't get execution context", "err", err)
