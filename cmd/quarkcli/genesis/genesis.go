@@ -45,7 +45,7 @@ func NewCommand() *cobra.Command {
 func genesisFunc(cmd *cobra.Command, args []string) error {
 	// Note: genesis block must have the min difficulty and block cost or else
 	// the execution context logic may over/underflow
-	blk := &chain.Block{
+	blk := &chain.StatefulBlock{
 		Tmstmp:     time.Now().Unix(),
 		Difficulty: chain.MinDifficulty,
 		Cost:       chain.MinBlockCost,

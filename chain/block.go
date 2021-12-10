@@ -16,15 +16,24 @@ const (
 	futureBound = 10 * time.Second
 )
 
-var _ snowman.Block = &Block{}
+var (
+	_ snowman.Block = &StatelessBlock{}
+)
 
-type Block struct {
+type StatefulBlock struct {
 	Prnt       ids.ID         `serialize:"true" json:"parent"`
 	Tmstmp     int64          `serialize:"true" json:"timestamp"`
 	Hght       uint64         `serialize:"true" json:"height"`
 	Difficulty uint64         `serialize:"true" json:"difficulty"`
 	Cost       uint64         `serialize:"true" json:"cost"`
 	Txs        []*Transaction `serialize:"true" json:"txs"`
+}
+
+// Stateless is defined separately from "Block"
+// in case external packages needs use the stateful block
+// without mocking VM or parent block
+type StatelessBlock struct {
+	*StatefulBlock `serialize:"true" json:"block"`
 
 	id    ids.ID
 	st    choices.Status
@@ -32,18 +41,19 @@ type Block struct {
 	bytes []byte
 
 	vm         VM
-	children   []*Block
+	children   []*StatelessBlock
 	onAcceptDB *versiondb.Database
 }
 
-func NewBlock(vm VM, parent *Block, tmstp int64, context *Context) *Block {
-	return &Block{
-		Tmstmp:     tmstp,
-		Prnt:       parent.ID(),
-		Hght:       parent.Height() + 1,
-		Difficulty: context.NextDifficulty,
-		Cost:       context.NextCost,
-
+func NewBlock(vm VM, parent snowman.Block, tmstp int64, context *Context) *StatelessBlock {
+	return &StatelessBlock{
+		StatefulBlock: &StatefulBlock{
+			Tmstmp:     tmstp,
+			Prnt:       parent.ID(),
+			Hght:       parent.Height() + 1,
+			Difficulty: context.NextDifficulty,
+			Cost:       context.NextCost,
+		},
 		vm: vm,
 		st: choices.Processing,
 	}
@@ -54,21 +64,24 @@ func ParseBlock(
 	source []byte,
 	status choices.Status,
 	vm VM,
-) (*Block, error) {
-	b := new(Block)
-	b.bytes = source
-	if _, err := Unmarshal(source, b); err != nil {
+) (*StatelessBlock, error) {
+	blk := new(StatefulBlock)
+	if _, err := Unmarshal(source, blk); err != nil {
 		return nil, err
+	}
+	b := &StatelessBlock{
+		StatefulBlock: blk,
+		t:             time.Unix(blk.Tmstmp, 0),
+		bytes:         source,
+		st:            status,
+		vm:            vm,
 	}
 	id, err := ids.ToID(hashing.ComputeHash256(b.bytes))
 	if err != nil {
 		return nil, err
 	}
 	b.id = id
-	b.t = time.Unix(b.Tmstmp, 0)
-	b.st = status
-	b.vm = vm
-	for _, tx := range b.Txs {
+	for _, tx := range blk.Txs {
 		if err := tx.Init(); err != nil {
 			return nil, err
 		}
@@ -76,19 +89,20 @@ func ParseBlock(
 	return b, nil
 }
 
-func (b *Block) init() error {
-	bytes, err := Marshal(b)
+func (b *StatelessBlock) init() error {
+	bytes, err := Marshal(b.StatefulBlock)
 	if err != nil {
 		return err
 	}
 	b.bytes = bytes
+
 	id, err := ids.ToID(hashing.ComputeHash256(b.bytes))
 	if err != nil {
 		return err
 	}
 	b.id = id
-	b.t = time.Unix(b.Tmstmp, 0)
-	for _, tx := range b.Txs {
+	b.t = time.Unix(b.StatefulBlock.Tmstmp, 0)
+	for _, tx := range b.StatefulBlock.Txs {
 		if err := tx.Init(); err != nil {
 			return err
 		}
@@ -97,17 +111,17 @@ func (b *Block) init() error {
 }
 
 // implements "snowman.Block.choices.Decidable"
-func (b *Block) ID() ids.ID { return b.id }
+func (b *StatelessBlock) ID() ids.ID { return b.id }
 
 // verify checks the correctness of a block and then returns the
 // *versiondb.Database computed during execution.
-func (b *Block) verify() (*Block, *versiondb.Database, error) {
+func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) {
 	prnt, err := b.vm.GetBlock(b.Prnt)
 	if err != nil {
 		log.Debug("could not get parent", "id", b.Prnt)
 		return nil, nil, err
 	}
-	parent := prnt.(*Block)
+	parent := prnt.(*StatelessBlock)
 	if len(b.Txs) == 0 {
 		return nil, nil, ErrNoTxs
 	}
@@ -148,7 +162,7 @@ func (b *Block) verify() (*Block, *versiondb.Database, error) {
 }
 
 // implements "snowman.Block"
-func (b *Block) Verify() error {
+func (b *StatelessBlock) Verify() error {
 	parent, onAcceptDB, err := b.verify()
 	if err != nil {
 		return err
@@ -166,7 +180,7 @@ func (b *Block) Verify() error {
 }
 
 // implements "snowman.Block.choices.Decidable"
-func (b *Block) Accept() error {
+func (b *StatelessBlock) Accept() error {
 	if err := b.onAcceptDB.Commit(); err != nil {
 		return err
 	}
@@ -180,28 +194,28 @@ func (b *Block) Accept() error {
 }
 
 // implements "snowman.Block.choices.Decidable"
-func (b *Block) Reject() error {
+func (b *StatelessBlock) Reject() error {
 	b.st = choices.Rejected
 	b.vm.Rejected(b)
 	return nil
 }
 
 // implements "snowman.Block.choices.Decidable"
-func (b *Block) Status() choices.Status { return b.st }
+func (b *StatelessBlock) Status() choices.Status { return b.st }
 
 // implements "snowman.Block"
-func (b *Block) Parent() ids.ID { return b.Prnt }
+func (b *StatelessBlock) Parent() ids.ID { return b.StatefulBlock.Prnt }
 
 // implements "snowman.Block"
-func (b *Block) Bytes() []byte { return b.bytes }
+func (b *StatelessBlock) Bytes() []byte { return b.bytes }
 
 // implements "snowman.Block"
-func (b *Block) Height() uint64 { return b.Hght }
+func (b *StatelessBlock) Height() uint64 { return b.StatefulBlock.Hght }
 
 // implements "snowman.Block"
-func (b *Block) Timestamp() time.Time { return b.t }
+func (b *StatelessBlock) Timestamp() time.Time { return b.t }
 
-func (b *Block) onAccept() (database.Database, error) {
+func (b *StatelessBlock) onAccept() (database.Database, error) {
 	if b.st == choices.Accepted || b.Hght == 0 /* genesis */ {
 		return b.vm.State(), nil
 	}
@@ -211,6 +225,6 @@ func (b *Block) onAccept() (database.Database, error) {
 	return nil, ErrParentBlockNotVerified
 }
 
-func (b *Block) addChild(c *Block) {
+func (b *StatelessBlock) addChild(c *StatelessBlock) {
 	b.children = append(b.children, c)
 }

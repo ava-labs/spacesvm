@@ -65,7 +65,7 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 	return v, true, err
 }
 
-func SetLastAccepted(db database.KeyValueWriter, block *Block) error {
+func SetLastAccepted(db database.KeyValueWriter, block *StatelessBlock) error {
 	bid := block.ID()
 	if err := db.Put(lastAccepted, bid[:]); err != nil {
 		return err
