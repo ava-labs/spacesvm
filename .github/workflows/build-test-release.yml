@@ -1,0 +1,39 @@
+# https://goreleaser.com/ci/actions/
+# TODO: replace other build github actions
+name: Build + test (and release)
+
+on:
+  push:
+  pull_request:
+
+# only create github release on git tag
+permissions:
+  contents: write
+
+jobs:
+  build_test_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Run tests
+        shell: bash
+        run: scripts/tests.sh
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          distribution: goreleaser
+          version: latest
+          # automate github release page announce and artifact uploads
+          # https://goreleaser.com/cmd/goreleaser_release/
+          # add "--skip-announce --skip-publish" to disable github release
+          args: release --rm-dist
+        env:
+          # https://docs.github.com/en/actions/security-guides/automatic-token-authentication#about-the-github_token-secret
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
