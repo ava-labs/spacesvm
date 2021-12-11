@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package vm
 
 import (
@@ -68,8 +71,7 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 
 	// compute new min difficulty
 	nextDifficulty := lastBlock.Difficulty
-	recentTxs := recentTxIDs.Len()
-	if recentTxs > chain.TargetTransactions {
+	if recentTxs := recentTxIDs.Len(); recentTxs > chain.TargetTransactions {
 		nextDifficulty++
 	} else if recentTxs < chain.TargetTransactions {
 		elapsedWindows := uint64(secondsSinceLast/chain.LookbackWindow) + 1 // account for current window being less
@@ -80,5 +82,10 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		}
 	}
 
-	return &chain.Context{RecentBlockIDs: recentBlockIDs, RecentTxIDs: recentTxIDs, NextCost: nextCost, NextDifficulty: nextDifficulty}, nil
+	return &chain.Context{
+		RecentBlockIDs: recentBlockIDs,
+		RecentTxIDs:    recentTxIDs,
+		NextCost:       nextCost,
+		NextDifficulty: nextDifficulty,
+	}, nil
 }

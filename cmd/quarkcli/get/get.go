@@ -7,8 +7,6 @@ package get
 import (
 	"time"
 
-	// "github.com/ava-labs/avalanchego/utils/rpc"
-	// "github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -65,21 +63,6 @@ $ quark-cli get jim/foo
 
 // TODO: move all this to a separate client code
 func getFunc(cmd *cobra.Command, args []string) error {
-	// priv, err := create.LoadPK(privateKeyFile)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// if !strings.HasPrefix(endpoint, "/") {
-	// 	endpoint = "/" + endpoint
-	// }
-	// color.Blue("creating requester with URL %s and endpoint %q", url, endpoint)
-	// _ = rpc.NewEndpointRequester(
-	// 	url,
-	// 	endpoint,
-	// 	"quarkvm",
-	// 	requestTimeout,
-	// )
-
+	// TODO
 	return nil
 }

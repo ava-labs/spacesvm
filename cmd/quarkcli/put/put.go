@@ -6,8 +6,7 @@ package put
 
 import (
 	// "context"
-	"fmt"
-	"os"
+
 	// "strings"
 	"time"
 
@@ -76,98 +75,6 @@ $ quark-cli put jim/foo "hello world"
 
 // TODO: move all this to a separate client code
 func putFunc(cmd *cobra.Command, args []string) error {
-	// priv, err := create.LoadPK(privateKeyFile)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// k, v := getPutOp(args)
-
-	// if !strings.HasPrefix(endpoint, "/") {
-	// 	endpoint = "/" + endpoint
-	// }
-	// color.Blue("creating requester with URL %s and endpoint %q", url, endpoint)
-	// requester := rpc.NewEndpointRequester(
-	// 	url,
-	// 	endpoint,
-	// 	"quarkvm",
-	// 	requestTimeout,
-	// )
-
-	// // create unsigned transaction
-	// // don't string case pubkey
-	// // after grpc hop, 32 bytes becomes 64, causing
-	// // panic: ed25519: bad public key length: 64
-	// utx := transaction.Unsigned{
-	// 	PublicKey: priv.PublicKey().Bytes(),
-	// 	Op:        "Put",
-	// 	Key:       k,
-	// 	Value:     v,
-	// }
-
-	// // sign the unsigned transaction
-	// sig, err := priv.Sign(utx.Bytes())
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // create transaction
-	// tx := &transaction.Transaction{
-	// 	Unsigned:  utx,
-	// 	Signature: sig,
-	// }
-
-	// // issue the transaction over tx
-	// resp := new(vm.IssueTxReply)
-	// if err := requester.SendRequest(
-	// 	"issueTx",
-	// 	&vm.IssueTxArgs{Transaction: tx},
-	// 	resp,
-	// ); err != nil {
-	// 	color.Red("failed to issue transaction %v", err)
-	// 	return err
-	// }
-
-	// txID := resp.TxID
-	// color.Green("issued transaction %s (success %v)", txID, resp.Success)
-	// if !resp.Success {
-	// 	return fmt.Errorf("tx %v failed", txID)
-	// }
-
-	// color.Yellow("polling transaction %q", txID)
-	// ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	// defer cancel()
-	//ndo // ne:
-	// for ctx.Err() == nil {
-	// 	select {
-	// 	case <-time.After(5 * time.Second):
-	// 	case <-ctx.Done():
-	// 		break done
-	// 	}
-
-	// 	resp := new(vm.CheckTxReply)
-	// 	if err := requester.SendRequest(
-	// 		"checkTx",
-	// 		&vm.CheckTxArgs{TxID: txID},
-	// 		resp,
-	// 	); err != nil {
-	// 		color.Red("polling transaction failed %v", err)
-	// 	}
-	// 	if resp.Error != nil {
-	// 		color.Red("polling transaction error %v", resp.Error)
-	// 	}
-	// 	if resp.Confirmed {
-	// 		color.Yellow("confirmed transaction %q", txID)
-	// 		break
-	// 	}
-	// }
+	// TODO
 	return nil
-}
-
-func getPutOp(args []string) (key string, value string) {
-	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected 2 arguments, got %d\n", len(args))
-		os.Exit(128)
-	}
-	return args[0], args[1]
 }

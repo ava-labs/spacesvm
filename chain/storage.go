@@ -1,6 +1,11 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package chain
 
 import (
+	"errors"
+
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 )
@@ -45,7 +50,7 @@ func PrefixBlockKey(blockID ids.ID) []byte {
 func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {
 	k := PrefixInfoKey(prefix)
 	v, err := db.Get(k)
-	if err == database.ErrNotFound {
+	if errors.Is(err, database.ErrNotFound) {
 		return nil, false, nil
 	}
 	if err != nil {
@@ -59,7 +64,7 @@ func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool
 func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bool, error) {
 	k := PrefixValueKey(prefix, key)
 	v, err := db.Get(k)
-	if err == database.ErrNotFound {
+	if errors.Is(err, database.ErrNotFound) {
 		return nil, false, nil
 	}
 	return v, true, err
@@ -79,7 +84,7 @@ func HasLastAccepted(db database.Database) (bool, error) {
 
 func GetLastAccepted(db database.KeyValueReader) (ids.ID, error) {
 	v, err := db.Get(lastAccepted)
-	if err == database.ErrNotFound {
+	if errors.Is(err, database.ErrNotFound) {
 		return ids.ID{}, nil
 	}
 	if err != nil {
@@ -97,10 +102,12 @@ func HasPrefix(db database.KeyValueReader, prefix []byte) (bool, error) {
 	k := PrefixInfoKey(prefix)
 	return db.Has(k)
 }
+
 func HasPrefixKey(db database.KeyValueReader, prefix []byte, key []byte) (bool, error) {
 	k := PrefixValueKey(prefix, key)
 	return db.Has(k)
 }
+
 func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo) error {
 	k := PrefixInfoKey(prefix)
 	b, err := Marshal(i)
@@ -109,17 +116,21 @@ func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo) err
 	}
 	return db.Put(k, b)
 }
+
 func PutPrefixKey(db database.KeyValueWriter, prefix []byte, key []byte, value []byte) error {
 	k := PrefixValueKey(prefix, key)
 	return db.Put(k, value)
 }
+
 func DeletePrefixKey(db database.KeyValueWriter, prefix []byte, key []byte) error {
 	k := PrefixValueKey(prefix, key)
 	return db.Delete(k)
 }
+
 func DeleteAllPrefixKeys(db database.Database, prefix []byte) error {
 	return database.ClearPrefix(db, db, PrefixValueKey(prefix, nil))
 }
+
 func SetTransaction(db database.KeyValueWriter, tx *Transaction) error {
 	k := PrefixTxKey(tx.ID())
 	b, err := Marshal(tx)
@@ -128,6 +139,7 @@ func SetTransaction(db database.KeyValueWriter, tx *Transaction) error {
 	}
 	return db.Put(k, b)
 }
+
 func HasTransaction(db database.KeyValueReader, txID ids.ID) (bool, error) {
 	k := PrefixTxKey(txID)
 	return db.Has(k)

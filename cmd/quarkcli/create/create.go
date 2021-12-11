@@ -6,7 +6,6 @@ package create
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -56,7 +55,7 @@ $ quark-cli create
 
 func createFunc(cmd *cobra.Command, args []string) error {
 	if _, err := os.Stat(privateKeyFile); err == nil {
-		return fmt.Errorf("file already exists at %s", privateKeyFile)
+		return os.ErrExist
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -67,7 +66,7 @@ func createFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(privateKeyFile, pk.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(privateKeyFile, pk.Bytes(), 0o600); err != nil {
 		return err
 	}
 	color.Green("created address %s and saved to %s", pk.PublicKey().Address(), privateKeyFile)

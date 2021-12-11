@@ -22,8 +22,7 @@ type Service struct {
 	vm *VM
 }
 
-type PingArgs struct {
-}
+type PingArgs struct{}
 
 type PingReply struct {
 	Success bool `serialize:"true" json:"success"`
@@ -40,7 +39,7 @@ type IssueTxArgs struct {
 }
 
 type IssueTxReply struct {
-	TxID    ids.ID `serialize:"true" json:"txID"`
+	TxID    ids.ID `serialize:"true" json:"txId"`
 	Success bool   `serialize:"true" json:"success"`
 }
 
@@ -49,14 +48,15 @@ func (svc *Service) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxRe
 	if _, err := chain.Unmarshal(args.Tx, tx); err != nil {
 		return err
 	}
-	svc.vm.Submit(tx)
 	reply.TxID = tx.ID()
-	reply.Success = true
-	return nil
+
+	err := svc.vm.Submit(tx)
+	reply.Success = err != nil
+	return err
 }
 
 type CheckTxArgs struct {
-	TxID ids.ID `serialize:"true" json:"txID"`
+	TxID ids.ID `serialize:"true" json:"txId"`
 }
 
 type CheckTxReply struct {
@@ -72,11 +72,10 @@ func (svc *Service) CheckTx(_ *http.Request, args *CheckTxArgs, reply *CheckTxRe
 	return nil
 }
 
-type CurrBlockArgs struct {
-}
+type CurrBlockArgs struct{}
 
 type CurrBlockReply struct {
-	BlockID ids.ID `serialize:"true" json:"blockID"`
+	BlockID ids.ID `serialize:"true" json:"blockId"`
 }
 
 func (svc *Service) CurrBlock(_ *http.Request, args *CurrBlockArgs, reply *CurrBlockReply) error {
@@ -85,7 +84,7 @@ func (svc *Service) CurrBlock(_ *http.Request, args *CurrBlockArgs, reply *CurrB
 }
 
 type ValidBlockIDArgs struct {
-	BlockID ids.ID `serialize:"true" json:"blockID"`
+	BlockID ids.ID `serialize:"true" json:"blockId"`
 }
 
 type ValidBlockIDReply struct {
@@ -101,14 +100,17 @@ func (svc *Service) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, reply 
 	return nil
 }
 
-type DifficultyEstimateArgs struct {
-}
+type DifficultyEstimateArgs struct{}
 
 type DifficultyEstimateReply struct {
 	Difficulty uint64 `serialize:"true" json:"valid"`
 }
 
-func (svc *Service) DifficultyEstimate(_ *http.Request, args *DifficultyEstimateArgs, reply *DifficultyEstimateReply) error {
+func (svc *Service) DifficultyEstimate(
+	_ *http.Request,
+	_ *DifficultyEstimateArgs,
+	reply *DifficultyEstimateReply,
+) error {
 	diff, err := svc.vm.DifficultyEstimate()
 	if err != nil {
 		return err

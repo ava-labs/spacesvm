@@ -1,6 +1,10 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package chain
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/database/versiondb"
@@ -18,7 +22,10 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		log.Debug("block building failed: couldn't get parent", "err", err)
 		return nil, err
 	}
-	parent := prnt.(*StatelessBlock)
+	parent, ok := prnt.(*StatelessBlock)
+	if !ok {
+		return nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", prnt)
+	}
 	context, err := vm.ExecutionContext(nextTime, parent)
 	if err != nil {
 		log.Debug("block building failed: couldn't get execution context", "err", err)
@@ -62,7 +69,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	}
 
 	// Verify block to ensure it is formed correctly (don't save)
-	_, vdb, err = b.verify()
+	_, _, err = b.verify()
 	if err != nil {
 		log.Debug("block building failed: failed verification", "err", err)
 		return nil, err

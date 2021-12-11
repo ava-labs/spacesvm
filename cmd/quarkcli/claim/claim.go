@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package claim
 
 import (
@@ -125,6 +128,7 @@ func mine(requester rpc.EndpointRequester, utx chain.UnsignedTransaction) (chain
 		utx.SetBlockID(cbID)
 		graffiti := uint64(0)
 		for {
+			// TODO: check maxGraffiti size?
 			v, err := validBlockID(requester, cbID)
 			if err != nil {
 				return nil, err

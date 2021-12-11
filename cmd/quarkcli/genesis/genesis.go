@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package genesis
 
 import (
@@ -54,7 +57,7 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(genesisFile, b, 0644); err != nil {
+	if err := os.WriteFile(genesisFile, b, 0o600); err != nil {
 		return err
 	}
 	color.Green("created genesis and saved to %s", genesisFile)

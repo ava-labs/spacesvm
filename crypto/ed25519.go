@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // Package ed25519 implements cryptography utilities
@@ -18,10 +18,12 @@ func NewPrivateKey() (*PrivateKey, error) {
 	return &PrivateKey{PrivateKey: k}, err
 }
 
+var ErrInvalidPrivKeySize = errors.New("invalid private key size")
+
 // LoadPrivateKey loads a private key
 func LoadPrivateKey(k []byte) (*PrivateKey, error) {
 	if len(k) != ed25519.PrivateKeySize {
-		return nil, errors.New("invalid private key size")
+		return nil, ErrInvalidPrivKeySize
 	}
 	return &PrivateKey{PrivateKey: k}, nil
 }

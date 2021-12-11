@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package chain
 
 import (
@@ -15,7 +18,7 @@ func VerifyPrefixKey(prefix []byte) error {
 	if len(prefix) > MaxPrefixSize {
 		return ErrPrefixTooBig
 	}
-	if bytes.IndexRune(prefix, PrefixDelimiter) != -1 {
+	if bytes.ContainsRune(prefix, PrefixDelimiter) {
 		return ErrPrefixContainsDelim
 	}
 	return nil
