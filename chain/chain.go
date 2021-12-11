@@ -4,16 +4,12 @@
 package chain
 
 import (
-	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 )
 
 // TODO: load from genesis
 const (
-	MaxPrefixSize      = 256
-	maxKeyLength       = 256
-	maxValueLength     = 256
+	MaxValueLength     = 256
 	LookbackWindow     = 10
 	BlockTarget        = 1
 	TargetTransactions = 10 * LookbackWindow / BlockTarget // TODO: can be higher on real network
@@ -28,23 +24,4 @@ type Context struct {
 
 	NextCost       uint64
 	NextDifficulty uint64
-}
-
-type Mempool interface {
-	Len() int
-	Prune(ids.Set)
-	PopMax() (*Transaction, uint64)
-	Add(*Transaction) bool
-}
-
-type VM interface {
-	State() database.Database
-	Mempool() Mempool
-
-	GetBlock(ids.ID) (snowman.Block, error)
-	ExecutionContext(currentTime int64, parent *StatelessBlock) (*Context, error)
-
-	Verified(*StatelessBlock)
-	Rejected(*StatelessBlock)
-	Accepted(*StatelessBlock)
 }

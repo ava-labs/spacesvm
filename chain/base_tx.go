@@ -4,31 +4,22 @@
 package chain
 
 import (
-	"bytes"
-
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/quarkvm/crypto"
 )
 
-func VerifyPrefixKey(prefix []byte) error {
-	if len(prefix) == 0 {
-		return ErrPrefixEmpty
-	}
-	if len(prefix) > MaxPrefixSize {
-		return ErrPrefixTooBig
-	}
-	if bytes.ContainsRune(prefix, PrefixDelimiter) {
-		return ErrPrefixContainsDelim
-	}
-	return nil
-}
-
 type BaseTx struct {
-	Sender   [crypto.PublicKeySize]byte `serialize:"true"`
-	Graffiti uint64                     `serialize:"true"`
-	BlockID  ids.ID                     `serialize:"true"`
-	Prefix   []byte                     `serialize:"true"`
+	Sender   [crypto.PublicKeySize]byte `serialize:"true" json:"sender"`
+	Graffiti uint64                     `serialize:"true" json:"graffiti"`
+	BlockID  ids.ID                     `serialize:"true" json:"blockId"`
+
+	// Prefix is the namespace for the "PrefixInfo"
+	// whose owner can write and read value for the
+	// specific key space.
+	// Assume the client pre-processes the inputs so that
+	// all prefix must have the delimiter '/' as suffix.
+	Prefix []byte `serialize:"true" json:"prefix"`
 }
 
 func (b *BaseTx) SetBlockID(blockID ids.ID) {
@@ -48,12 +39,15 @@ func (b *BaseTx) GetSender() [crypto.PublicKeySize]byte {
 }
 
 func (b *BaseTx) ExecuteBase() error {
-	if err := VerifyPrefixKey(b.Prefix); err != nil {
+	if _, _, _, err := ParseKey(b.Prefix); err != nil {
 		return err
 	}
-	if len(b.Sender) == 0 {
+
+	// "len(b.Sender) == 0" does not check zeroed [32]byte array
+	if crypto.IsEmptyPublicKey(b.Sender[:]) {
 		return ErrInvalidSender
 	}
+
 	if b.BlockID == ids.Empty {
 		return ErrInvalidBlockID
 	}

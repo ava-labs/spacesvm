@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/genesis"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/get"
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/put"
 )
 
 var rootCmd = &cobra.Command{
@@ -32,7 +31,6 @@ func init() {
 		genesis.NewCommand(),
 		create.NewCommand(),
 		claim.NewCommand(),
-		put.NewCommand(),
 		get.NewCommand(),
 	)
 }

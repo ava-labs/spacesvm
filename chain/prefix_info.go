@@ -8,8 +8,8 @@ import (
 )
 
 type PrefixInfo struct {
-	Owner       [crypto.PublicKeySize]byte `serialize:"true"`
-	LastUpdated int64                      `serialize:"true"`
-	Expiry      int64                      `serialize:"true"`
-	Keys        int64                      `serialize:"true"` // decays faster the more keys you have
+	Owner       [crypto.PublicKeySize]byte `serialize:"true" json:"owner"`
+	LastUpdated int64                      `serialize:"true" json:"lastUpdated"`
+	Expiry      int64                      `serialize:"true" json:"expiry"`
+	Keys        int64                      `serialize:"true" json:"keys"` // decays faster the more keys you have
 }

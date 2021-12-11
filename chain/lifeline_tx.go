@@ -10,7 +10,7 @@ import (
 var _ UnsignedTransaction = &LifelineTx{}
 
 type LifelineTx struct {
-	*BaseTx `serialize:"true"`
+	*BaseTx `serialize:"true" json:"baseTx"`
 }
 
 func (l *LifelineTx) Execute(db database.Database, blockTime int64) error {

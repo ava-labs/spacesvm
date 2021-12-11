@@ -12,19 +12,9 @@ import (
 	"github.com/ava-labs/quarkvm/pow"
 )
 
-type UnsignedTransaction interface {
-	SetBlockID(block ids.ID)
-	SetGraffiti(graffiti uint64)
-	GetSender() [crypto.PublicKeySize]byte
-	GetBlockID() ids.ID
-
-	ExecuteBase() error
-	Execute(database.Database, int64) error
-}
-
 type Transaction struct {
-	UnsignedTransaction `serialize:"true"`
-	Signature           []byte `serialize:"true"`
+	UnsignedTransaction `serialize:"true" json:"unsignedTransaction"`
+	Signature           []byte `serialize:"true" json:"signature"`
 
 	unsignedBytes []byte
 	bytes         []byte

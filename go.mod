@@ -3,11 +3,13 @@ module github.com/ava-labs/quarkvm
 go 1.17
 
 require (
-	github.com/ava-labs/avalanchego v1.7.0
+	github.com/ava-labs/avalanchego v1.7.2
 	github.com/fatih/color v1.9.0
+	github.com/golang/mock v1.6.0
 	github.com/gorilla/rpc v1.2.0
 	github.com/hashicorp/go-plugin v1.4.3
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac
+	github.com/manifoldco/promptui v0.9.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.9.0
@@ -18,6 +20,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcutil v1.0.2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect

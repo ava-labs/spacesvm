@@ -59,7 +59,6 @@ linters:
     - stylecheck
     - tagliatelle
     - tenv
-    - testpackage
     - thelper
     - tparallel
     - typecheck
@@ -79,11 +78,15 @@ linters:
     # - nilerr
     # - nlreturn
     # - paralleltest
+    # - testpackage
     # - varnamelen
     # - wrapcheck
     # - wsl
 
 linters-settings:
+  gocritic:
+    disabled-checks:
+      - appendAssign
   staticcheck:
     go: "1.17"
     # https://staticcheck.io/docs/options#checks

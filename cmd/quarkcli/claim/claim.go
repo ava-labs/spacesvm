@@ -35,9 +35,64 @@ var (
 // NewCommand implements "quark-cli" command.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "claim [options] <prefix>",
+		Use:   "claim [options] <prefix/key> <value>",
 		Short: "Claims the given prefix",
-		RunE:  claimFunc,
+		Long: `
+If no value is given, claim the given prefix.
+If non-empty value is given, claim and write the given key to the store.
+
+The prefix is automatically parsed with the delimiter "/".
+When given a key "foo/hello", the "claim" creates the transaction
+with "foo" as prefix and "hello" as key. The prefix/key cannot
+have more than one delimiter (e.g., "foo/hello/world" is invalid)
+in order to maintain the flat key space.
+
+# If key and value are empty,
+# then only issue "ClaimTx" for its ownership.
+#
+# "hello.avax" is the prefix (or namespace)
+$ quark-cli claim hello.avax
+<<COMMENT
+success
+COMMENT
+
+# If the value is non-empty,
+# then issue "SetTx" to update prefix info and write key-value pair.
+#
+# "hello.avax" is the prefix (or namespace)
+# "foo" is the key
+# "hello world" is the value
+$ quark-cli claim hello.avax/foo "hello world"
+<<COMMENT
+success
+COMMENT
+
+# The existing key-value cannot be overwritten by a different owner.
+# The prefix must be claimed before it allows key-value writes.
+$ quark-cli claim hello.avax/foo "hello world" --private-key-file=.different-key
+<<COMMENT
+error
+COMMENT
+
+# If the prefix is claimed by the same owner,
+# all underlying key-values are kept
+# and its prefix info is updated with its expiry time extended.
+$ quark-cli claim hello.avax
+<<COMMENT
+success
+COMMENT
+
+# The prefix can claimed if and only if
+# the previous prefix (owner) info has been expired.
+# When the prefix is newly claimed by a different owner,
+# all underlying key-values will be deleted.
+$ quark-cli claim hello.avax --private-key-file=.different-key
+<<COMMENT
+success if the previous prefix owner has been expired
+COMMENT
+
+`,
+		RunE: claimFunc,
 	}
 	cmd.PersistentFlags().StringVar(
 		&privateKeyFile,
@@ -105,30 +160,20 @@ func difficultyEstimate(requester rpc.EndpointRequester) (uint64, error) {
 	return resp.Difficulty, nil
 }
 
-func prefixInfo(requester rpc.EndpointRequester, prefix []byte) (*chain.PrefixInfo, error) {
-	resp := new(vm.PrefixInfoReply)
-	if err := requester.SendRequest(
-		"prefixInfo",
-		&vm.PrefixInfoArgs{Prefix: prefix},
-		resp,
-	); err != nil {
-		color.Red("failed to get prefix %v", err)
-		return nil, err
-	}
-	return resp.Info, nil
-}
-
-// TODO: handle timeout
-func mine(requester rpc.EndpointRequester, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error) {
-	for {
+func mine(
+	ctx context.Context,
+	requester rpc.EndpointRequester,
+	utx chain.UnsignedTransaction,
+) (chain.UnsignedTransaction, error) {
+	for ctx.Err() == nil {
 		cbID, err := currBlock(requester)
 		if err != nil {
 			return nil, err
 		}
 		utx.SetBlockID(cbID)
+
 		graffiti := uint64(0)
-		for {
-			// TODO: check maxGraffiti size?
+		for ctx.Err() == nil {
 			v, err := validBlockID(requester, cbID)
 			if err != nil {
 				return nil, err
@@ -154,6 +199,7 @@ func mine(requester rpc.EndpointRequester, utx chain.UnsignedTransaction) (chain
 		}
 		// Get new block hash if no longer valid
 	}
+	return nil, ctx.Err()
 }
 
 // TODO: move all this to a separate client code
@@ -162,11 +208,13 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	prefix := getClaimOp(args)
+
+	pfx, key, val := getClaimOp(args)
+
 	if !strings.HasPrefix(endpoint, "/") {
 		endpoint = "/" + endpoint
 	}
-	color.Blue("creating requester with URL %s and endpoint %q", url, endpoint)
+	color.Blue("creating requester with URL %s and endpoint %q for prefix %q and key %q", url, endpoint, pfx, key)
 	requester := rpc.NewEndpointRequester(
 		url,
 		endpoint,
@@ -174,17 +222,32 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 		requestTimeout,
 	)
 
-	utx := &chain.ClaimTx{
-		BaseTx: &chain.BaseTx{
-			Sender: priv.PublicKey().Bytes(),
-			Prefix: []byte(prefix),
-		},
+	baseTx := &chain.BaseTx{
+		Sender: priv.PublicKey().Bytes(),
+		Prefix: pfx,
 	}
+	var utx chain.UnsignedTransaction
+	switch {
+	case len(val) > 0:
+		utx = &chain.SetTx{
+			BaseTx: baseTx,
+			Key:    key,
+			Value:  val,
+		}
+	default:
+		utx = &chain.ClaimTx{
+			BaseTx: baseTx,
+		}
+	}
+
 	// TODO: make this a shared lib
-	mtx, err := mine(requester, utx)
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	mtx, err := mine(ctx, requester, utx)
+	cancel()
 	if err != nil {
 		return err
 	}
+
 	b, err := chain.UnsignedBytes(mtx)
 	if err != nil {
 		return err
@@ -216,7 +279,7 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	color.Yellow("polling transaction %q", txID)
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	ctx, cancel = context.WithTimeout(context.Background(), requestTimeout)
 	defer cancel()
 done:
 	for ctx.Err() == nil {
@@ -240,19 +303,45 @@ done:
 		}
 	}
 
-	info, err := prefixInfo(requester, []byte(prefix))
+	info, err := prefixInfo(requester, pfx)
 	if err != nil {
 		color.Red("cannot get prefix info %v", err)
 	}
-	color.Blue("prefix %s info %+v", prefix, info)
-
+	color.Blue("prefix %q info %+v", pfx, info)
 	return nil
 }
 
-func getClaimOp(args []string) string {
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "expected 1 arguments, got %d\n", len(args))
+func getClaimOp(args []string) (pfx []byte, key []byte, val []byte) {
+	if len(args) < 1 {
+		fmt.Fprintf(os.Stderr, "expected at least 1 arguments, got %d", len(args))
 		os.Exit(128)
 	}
-	return args[0]
+
+	// [prefix/key] == "foo/bar"
+	pfxKey := args[0]
+
+	var err error
+	pfx, key, _, err = chain.ParseKey([]byte(pfxKey))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
+		os.Exit(128)
+	}
+	if len(args) > 1 {
+		val = []byte(args[1])
+	}
+
+	return pfx, key, val
+}
+
+func prefixInfo(requester rpc.EndpointRequester, prefix []byte) (*chain.PrefixInfo, error) {
+	resp := new(vm.PrefixInfoReply)
+	if err := requester.SendRequest(
+		"prefixInfo",
+		&vm.PrefixInfoArgs{Prefix: prefix},
+		resp,
+	); err != nil {
+		color.Red("failed to get prefix %v", err)
+		return nil, err
+	}
+	return resp.Info, nil
 }

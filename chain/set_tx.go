@@ -12,19 +12,29 @@ import (
 var _ UnsignedTransaction = &SetTx{}
 
 type SetTx struct {
-	*BaseTx `serialize:"true"`
-	Key     []byte `serialize:"true"`
-	Value   []byte `serialize:"true"`
+	*BaseTx `serialize:"true" json:"baseTx"`
+
+	// Key is parsed from the given input, with its prefixed removed.
+	// Optional for claim/lifeline transactions.
+	// Non-empty to claim a key-value pair.
+	Key []byte `serialize:"true" json:"key"`
+
+	// Value is optional, and only non-empty for claim transaction with a key-value pair.
+	Value []byte `serialize:"true" json:"value"`
 }
 
 func (s *SetTx) Execute(db database.Database, blockTime int64) error {
+	k := append(s.Prefix, s.Key...)
+	if _, _, _, err := ParseKey(k); err != nil {
+		return err
+	}
 	if len(s.Key) == 0 {
 		return ErrKeyEmpty
 	}
-	if len(s.Key) > maxKeyLength {
+	if len(s.Key) > MaxKeyLength {
 		return ErrKeyTooBig
 	}
-	if len(s.Value) > maxValueLength {
+	if len(s.Value) > MaxValueLength {
 		return ErrValueTooBig
 	}
 	i, has, err := GetPrefixInfo(db, s.Prefix)

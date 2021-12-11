@@ -4,6 +4,7 @@
 package chain
 
 import (
+	"bytes"
 	"errors"
 
 	"github.com/ava-labs/avalanchego/database"
@@ -23,28 +24,28 @@ const (
 	keyPrefix   = 0x1
 	txPrefix    = 0x2
 	blockPrefix = 0x3
-
-	PrefixDelimiter = '/'
 )
 
 var lastAccepted = []byte("last_accepted")
 
 func PrefixInfoKey(prefix []byte) []byte {
-	return append([]byte{infoPrefix, PrefixDelimiter}, prefix...)
+	return append([]byte{infoPrefix, delimiter}, prefix...)
 }
 
 func PrefixValueKey(prefix []byte, key []byte) []byte {
-	b := append([]byte{keyPrefix, PrefixDelimiter}, prefix...)
-	b = append(b, PrefixDelimiter)
+	b := append([]byte{keyPrefix, delimiter}, prefix...)
+	if !bytes.HasSuffix(prefix, []byte{delimiter}) {
+		b = append(b, delimiter)
+	}
 	return append(b, key...)
 }
 
 func PrefixTxKey(txID ids.ID) []byte {
-	return append([]byte{txPrefix, PrefixDelimiter}, txID[:]...)
+	return append([]byte{txPrefix, delimiter}, txID[:]...)
 }
 
 func PrefixBlockKey(blockID ids.ID) []byte {
-	return append([]byte{blockPrefix, PrefixDelimiter}, blockID[:]...)
+	return append([]byte{blockPrefix, delimiter}, blockID[:]...)
 }
 
 func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {
