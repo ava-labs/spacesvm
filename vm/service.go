@@ -168,7 +168,7 @@ type RangeReply struct {
 }
 
 func (svc *Service) Range(_ *http.Request, args *RangeArgs, reply *RangeReply) (err error) {
-	log.Info("range query for key %q and range end %q", args.Key, args.RangeEnd)
+	log.Debug("range query", "key", string(args.Key), "rangeEnd", string(args.RangeEnd))
 	opts := make([]chain.OpOption, 0)
 	if len(args.RangeEnd) > 0 {
 		opts = append(opts, chain.WithRangeEnd(args.RangeEnd))
