@@ -169,36 +169,36 @@ func (th *Mempool) PopMin() *chain.Transaction {
 	return th.Remove(th.minHeap.items[0].id)
 }
 
-func (th *Mempool) Remove(id ids.ID) *chain.Transaction {
+func (th *Mempool) Remove(id ids.ID) *chain.Transaction { // O(N)
 	th.mu.Lock()
 	defer th.mu.Unlock()
 
-	maxEntry, ok := th.maxHeap.Get(id)
+	maxEntry, ok := th.maxHeap.Get(id) // O(1)
 	if !ok {
 		return nil
 	}
-	heap.Remove(th.maxHeap, maxEntry.index)
+	heap.Remove(th.maxHeap, maxEntry.index) // O(N)
 
-	minEntry, ok := th.minHeap.Get(id)
+	minEntry, ok := th.minHeap.Get(id) // O(1)
 	if !ok {
 		// This should never happen, as that would mean the heaps are out of
 		// sync.
 		return nil
 	}
-	return heap.Remove(th.minHeap, minEntry.index).(*txEntry).tx
+	return heap.Remove(th.minHeap, minEntry.index).(*txEntry).tx // O(N)
 }
 
-// TODO: remember to prune
+// Prune removes all transactions that are not found in "validHashes".
 func (th *Mempool) Prune(validHashes ids.Set) {
 	th.mu.RLock()
 	toRemove := []ids.ID{}
-	for _, txE := range th.maxHeap.items {
+	for _, txE := range th.maxHeap.items { // O(N)
 		if !validHashes.Contains(txE.tx.GetBlockID()) {
 			toRemove = append(toRemove, txE.id)
 		}
 	}
 	th.mu.RUnlock()
-	for _, txID := range toRemove {
+	for _, txID := range toRemove { // O(N*K)
 		th.Remove(txID)
 	}
 }

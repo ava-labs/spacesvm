@@ -35,6 +35,7 @@ db*
 *mem[0-9]*
 *lock[0-9]*
 *.profile
+*.txt
 *.swp
 *.aux
 *.fdb*
