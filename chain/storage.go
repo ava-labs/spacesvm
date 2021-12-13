@@ -28,7 +28,7 @@ const (
 
 var lastAccepted = []byte("last_accepted")
 
-func PrefixInfoKey(prefix []byte) []byte {
+func PrefixInfoKey(prefix []byte) (k []byte) {
 	return append([]byte{infoPrefix, delimiter}, prefix...)
 }
 
@@ -144,4 +144,81 @@ func SetTransaction(db database.KeyValueWriter, tx *Transaction) error {
 func HasTransaction(db database.KeyValueReader, txID ids.ID) (bool, error) {
 	k := PrefixTxKey(txID)
 	return db.Has(k)
+}
+
+type KeyValue struct {
+	Key   []byte `serialize:"true" json:"key"`
+	Value []byte `serialize:"true" json:"value"`
+}
+
+// Range(reads keys from the store.
+// TODO: check prefix info to restrict reads to the owner?
+func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (kvs []KeyValue) {
+	ret := &Op{key: key}
+	ret.applyOpts(opts)
+
+	startKey := PrefixValueKey(prefix, key)
+	var endKey []byte
+	if len(ret.rangeEnd) > 0 {
+		endKey = PrefixValueKey(prefix, ret.rangeEnd)
+	}
+
+	kvs = make([]KeyValue, 0)
+	cursor := db.NewIteratorWithStart(startKey)
+	for cursor.Next() {
+		if ret.rangeLimit > 0 && len(kvs) == int(ret.rangeLimit) {
+			break
+		}
+
+		curKey := cursor.Key()
+
+		comp := bytes.Compare(startKey, curKey)
+		if comp == 0 { // startKey == curKey
+			kvs = append(kvs, KeyValue{Key: bytes.Replace(curKey, []byte{keyPrefix, delimiter}, nil, 1), Value: cursor.Value()})
+			continue
+		}
+		if comp < -1 { // startKey < curKey; continue search
+			continue
+		}
+
+		// startKey > curKey; continue search iff no range end is specified
+		if len(endKey) == 0 {
+			break
+		}
+		if bytes.Compare(curKey, endKey) >= 0 { // curKey > endKey
+			break
+		}
+
+		kvs = append(kvs, KeyValue{Key: bytes.Replace(curKey, []byte{keyPrefix, delimiter}, nil, 1), Value: cursor.Value()})
+	}
+	return kvs
+}
+
+type Op struct {
+	key        []byte
+	rangeEnd   []byte
+	rangeLimit uint32
+}
+
+type OpOption func(*Op)
+
+func (op *Op) applyOpts(opts []OpOption) {
+	for _, opt := range opts {
+		opt(op)
+	}
+}
+
+func WithPrefix() OpOption {
+	return func(op *Op) {
+		op.rangeEnd = getRangeEnd(op.key)
+	}
+}
+
+// Queries range [start,end).
+func WithRangeEnd(end []byte) OpOption {
+	return func(op *Op) { op.rangeEnd = end }
+}
+
+func WithRangeLimit(limit uint32) OpOption {
+	return func(op *Op) { op.rangeLimit = limit }
 }

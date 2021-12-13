@@ -135,3 +135,42 @@ func (svc *Service) PrefixInfo(_ *http.Request, args *PrefixInfoArgs, reply *Pre
 	reply.Info = i
 	return nil
 }
+
+type RangeArgs struct {
+	// Prefix is the namespace for the "PrefixInfo"
+	// whose owner can write and read value for the
+	// specific key space.
+	// Assume the client pre-processes the inputs so that
+	// all prefix must have the delimiter '/' as suffix.
+	Prefix []byte `serialize:"true" json:"prefix"`
+
+	// Key is parsed from the given input, with its prefixed removed.
+	// Optional for claim/lifeline transactions.
+	// Non-empty to claim a key-value pair.
+	Key []byte `serialize:"true" json:"key"`
+
+	// RangeEnd is optional, and only non-empty for range query transactions.
+	RangeEnd []byte `serialize:"true" json:"rangeEnd"`
+
+	// Limit limits the number of key-value pairs in the response.
+	Limit uint32 `serialize:"true" json:"limit"`
+}
+
+type RangeReply struct {
+	KeyValues []chain.KeyValue `serialize:"true" json:"keyValues"`
+	Error     error            `serialize:"true" json:"error"`
+}
+
+func (svc *Service) Range(_ *http.Request, args *RangeArgs, reply *RangeReply) (err error) {
+	log.Info("range query for key %q and range end %q", args.Key, args.RangeEnd)
+	opts := make([]chain.OpOption, 0)
+	if len(args.RangeEnd) > 0 {
+		opts = append(opts, chain.WithRangeEnd(args.RangeEnd))
+	}
+	if args.Limit > 0 {
+		opts = append(opts, chain.WithRangeLimit(args.Limit))
+	}
+	reply.KeyValues = chain.Range(svc.vm.db, args.Prefix, args.Key, opts...)
+	reply.Error = nil
+	return nil
+}

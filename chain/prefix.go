@@ -46,6 +46,20 @@ func ParseKey(key []byte) (pfx []byte, k []byte, end []byte, err error) {
 	}
 
 	// next lexicographical key (range end) for prefix queries
+	end = getRangeEnd(k)
+
+	if len(pfx) > MaxPrefixSize {
+		return nil, nil, nil, ErrPrefixTooBig
+	}
+	if len(key) > MaxKeyLength {
+		return nil, nil, nil, ErrKeyTooBig
+	}
+
+	return pfx, k, end, nil
+}
+
+// next lexicographical key (range end) for prefix queries
+func getRangeEnd(k []byte) (end []byte) {
 	end = make([]byte, len(k))
 	copy(end, k)
 	pfxEndExist := false
@@ -62,13 +76,5 @@ func ParseKey(key []byte) (pfx []byte, k []byte, end []byte, err error) {
 		// default to special end key
 		end = noPrefixEnd
 	}
-
-	if len(pfx) > MaxPrefixSize {
-		return nil, nil, nil, ErrPrefixTooBig
-	}
-	if len(key) > MaxKeyLength {
-		return nil, nil, nil, ErrKeyTooBig
-	}
-
-	return pfx, k, end, nil
+	return end
 }
