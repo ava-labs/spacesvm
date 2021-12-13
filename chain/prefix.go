@@ -25,6 +25,7 @@ var (
 )
 
 // GetPrefix returns the prefixed key and range query end key for list calls.
+// "end" is the range end that can be used for the prefix query with "k".
 func ParseKey(key []byte) (pfx []byte, k []byte, end []byte, err error) {
 	if len(key) == 0 {
 		return nil, nil, nil, ErrPrefixEmpty
