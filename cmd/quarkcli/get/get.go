@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/quarkvm/client"
 	"github.com/ava-labs/quarkvm/vm"
 )
 
@@ -31,7 +32,7 @@ var (
 	prefixInfo     bool
 )
 
-// NewCommand implements "quark-cli" command.
+// NewCommand implements "quark-cli get" command.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get [options] <prefix/key> <rangeEnd>",
@@ -177,7 +178,7 @@ func getFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	if prefixInfo {
-		info, err := getPrefixInfo(requester, pfx)
+		info, err := client.GetPrefixInfo(requester, pfx)
 		if err != nil {
 			color.Red("cannot get prefix info %v", err)
 		}
@@ -212,17 +213,4 @@ func getGetOp(args []string, withPrefix bool) (pfx []byte, key []byte, rangeEnd 
 		rangeEnd = []byte(args[1])
 	}
 	return pfx, key, rangeEnd
-}
-
-func getPrefixInfo(requester rpc.EndpointRequester, prefix []byte) (*chain.PrefixInfo, error) {
-	resp := new(vm.PrefixInfoReply)
-	if err := requester.SendRequest(
-		"prefixInfo",
-		&vm.PrefixInfoArgs{Prefix: prefix},
-		resp,
-	); err != nil {
-		color.Red("failed to get prefix %v", err)
-		return nil, err
-	}
-	return resp.Info, nil
 }

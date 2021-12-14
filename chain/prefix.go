@@ -40,7 +40,7 @@ func ParseKey(key []byte) (pfx []byte, k []byte, end []byte, err error) {
 		pfx = append(key, delimiter)
 	case idx == len(key)-1: // "foo/"
 		pfx = key
-	default: // "a/b", then "a/" becomes prefix
+	default: // "a/b", then "a/" becomes prefix, "b" becomes prefix
 		splits := bytes.Split(key, []byte{delimiter})
 		pfx = append(splits[0], delimiter)
 		k = splits[1]
@@ -52,7 +52,7 @@ func ParseKey(key []byte) (pfx []byte, k []byte, end []byte, err error) {
 	if len(pfx) > MaxPrefixSize {
 		return nil, nil, nil, ErrPrefixTooBig
 	}
-	if len(key) > MaxKeyLength {
+	if len(k) > MaxKeyLength {
 		return nil, nil, nil, ErrKeyTooBig
 	}
 

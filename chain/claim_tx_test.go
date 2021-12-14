@@ -21,7 +21,15 @@ func TestClaimTx(t *testing.T) {
 	}
 	pub := priv.PublicKey()
 
+	priv2, err := crypto.NewPrivateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub2 := priv2.PublicKey()
+
 	db := memdb.New()
+	defer db.Close()
+
 	tt := []struct {
 		tx        *ClaimTx
 		blockTime int64
@@ -47,11 +55,34 @@ func TestClaimTx(t *testing.T) {
 			blockTime: 100,
 			err:       nil,
 		},
+		{ // successful new claim by different owner
+			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: pub2.Bytes(), Prefix: []byte("foo")}},
+			blockTime: 150,
+			err:       nil,
+		},
+		{ // invalid claim due to expiration by different owner
+			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: pub2.Bytes(), Prefix: []byte("foo")}},
+			blockTime: 177,
+			err:       ErrPrefixNotExpired,
+		},
 	}
 	for i, tv := range tt {
 		err := tv.tx.Execute(db, tv.blockTime)
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
+		}
+		if tv.err != nil {
+			continue
+		}
+		info, exists, err := GetPrefixInfo(db, tv.tx.Prefix)
+		if err != nil {
+			t.Fatalf("#%d: failed to get prefix info %v", i, err)
+		}
+		if !exists {
+			t.Fatalf("#%d: failed to find prefix info", i)
+		}
+		if !bytes.Equal(info.Owner[:], tv.tx.Sender[:]) {
+			t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(pub.PublicKey))
 		}
 	}
 }

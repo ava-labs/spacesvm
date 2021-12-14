@@ -69,14 +69,21 @@ func TestParseKey(t *testing.T) {
 			err: ErrPrefixEmpty,
 		},
 		{
-			key: bytes.Repeat([]byte{'a'}, MaxPrefixSize+1),
+			key: append(maxPfx('b'), maxK('c')...),
+			pfx: maxPfx('b'),
+			k:   maxK('c'),
+			end: append(maxK('c'), 'd')[1:],
+			err: nil,
+		},
+		{
+			key: append([]byte{'a'}, maxPfx('a')...),
 			pfx: nil,
 			k:   nil,
 			end: nil,
 			err: ErrPrefixTooBig,
 		},
 		{
-			key: append([]byte("foo/"), bytes.Repeat([]byte{'a'}, MaxKeyLength+1)...),
+			key: append(maxPfx('a'), append(maxK('e'), 'e')...),
 			pfx: nil,
 			k:   nil,
 			end: nil,
@@ -98,4 +105,12 @@ func TestParseKey(t *testing.T) {
 			t.Fatalf("#%d: end expected %q, got %q", i, tv.end, end)
 		}
 	}
+}
+
+func maxPfx(b byte) []byte {
+	return append(bytes.Repeat([]byte{b}, MaxPrefixSize-1), delimiter)
+}
+
+func maxK(b byte) []byte {
+	return bytes.Repeat([]byte{b}, MaxKeyLength)
 }

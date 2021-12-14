@@ -30,15 +30,15 @@ func TestBaseTx(t *testing.T) {
 			err: nil,
 		},
 		{
-			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo/"), BlockID: ids.GenerateTestID()},
-			err: nil,
-		},
-		{
 			tx:  &BaseTx{Prefix: []byte("foo"), BlockID: ids.GenerateTestID()},
 			err: ErrInvalidSender,
 		},
 		{
 			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo/")},
+			err: ErrPrefixHasDelimiter,
+		},
+		{
+			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo")},
 			err: ErrInvalidBlockID,
 		},
 		{

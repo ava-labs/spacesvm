@@ -30,7 +30,7 @@ var (
 	privateKeyFile string
 )
 
-// NewCommand implements "quark-cli" command.
+// NewCommand implements "quark-cli create" command.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create [options]",
@@ -53,6 +53,8 @@ $ quark-cli create
 	return cmd
 }
 
+const fsModeWrite = 0o600
+
 func createFunc(cmd *cobra.Command, args []string) error {
 	if _, err := os.Stat(privateKeyFile); err == nil {
 		return os.ErrExist
@@ -66,7 +68,7 @@ func createFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(privateKeyFile, pk.Bytes(), 0o600); err != nil {
+	if err := os.WriteFile(privateKeyFile, pk.Bytes(), fsModeWrite); err != nil {
 		return err
 	}
 	color.Green("created address %s and saved to %s", pk.PublicKey().Address(), privateKeyFile)

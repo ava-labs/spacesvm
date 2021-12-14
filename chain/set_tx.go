@@ -14,13 +14,14 @@ var _ UnsignedTransaction = &SetTx{}
 type SetTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 
-	// Key is parsed from the given input, with its prefixed removed.
-	// Optional for claim/lifeline transactions.
-	// Non-empty to claim a key-value pair.
+	// Key is parsed from the given input, with its prefix removed.
 	Key []byte `serialize:"true" json:"key"`
-
-	// Value is optional, and only non-empty for claim transaction with a key-value pair.
+	// Value is empty if and only if set transaction is issued for the delete.
+	// If non-empty, the transaction writes the key-value pair to the storage.
+	// If empty, the transaction deletes the value for the "prefix/key".
 	Value []byte `serialize:"true" json:"value"`
+
+	// TODO: support range deletes?
 }
 
 func (s *SetTx) Execute(db database.Database, blockTime int64) error {

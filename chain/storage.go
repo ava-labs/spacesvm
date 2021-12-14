@@ -29,23 +29,56 @@ const (
 var lastAccepted = []byte("last_accepted")
 
 func PrefixInfoKey(prefix []byte) (k []byte) {
-	return append([]byte{infoPrefix, delimiter}, prefix...)
+	k = make([]byte, 2+len(prefix))
+	k[0] = infoPrefix
+	k[1] = delimiter
+	copy(k[2:], prefix)
+	return k
 }
 
-func PrefixValueKey(prefix []byte, key []byte) []byte {
-	b := append([]byte{keyPrefix, delimiter}, prefix...)
-	if !bytes.HasSuffix(prefix, []byte{delimiter}) {
-		b = append(b, delimiter)
+func PrefixValueKey(prefix []byte, key []byte) (k []byte) {
+	prefixN, keyN := len(prefix), len(key)
+	pfxDelimExists := bytes.HasSuffix(prefix, []byte{delimiter})
+
+	n := 2 + prefixN + keyN
+	if !pfxDelimExists {
+		n++
 	}
-	return append(b, key...)
+
+	k = make([]byte, n)
+	k[0] = keyPrefix
+	k[1] = delimiter
+	cur := 2
+
+	copy(k[cur:], prefix)
+	cur += prefixN
+
+	if !pfxDelimExists {
+		k[cur] = delimiter
+		cur++
+	}
+	if len(key) == 0 {
+		return k
+	}
+
+	copy(k[cur:], key)
+	return k
 }
 
-func PrefixTxKey(txID ids.ID) []byte {
-	return append([]byte{txPrefix, delimiter}, txID[:]...)
+func PrefixTxKey(txID ids.ID) (k []byte) {
+	k = make([]byte, 2+len(txID))
+	k[0] = txPrefix
+	k[1] = delimiter
+	copy(k[2:], txID[:])
+	return k
 }
 
-func PrefixBlockKey(blockID ids.ID) []byte {
-	return append([]byte{blockPrefix, delimiter}, blockID[:]...)
+func PrefixBlockKey(blockID ids.ID) (k []byte) {
+	k = make([]byte, 2+len(blockID))
+	k[0] = blockPrefix
+	k[1] = delimiter
+	copy(k[2:], blockID[:])
+	return k
 }
 
 func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {
@@ -154,13 +187,18 @@ type KeyValue struct {
 // Range(reads keys from the store.
 // TODO: check prefix info to restrict reads to the owner?
 func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (kvs []KeyValue) {
-	ret := &Op{key: key}
+	ret := &Op{key: PrefixValueKey(prefix, key)}
 	ret.applyOpts(opts)
 
-	startKey := PrefixValueKey(prefix, key)
+	startKey := ret.key
 	var endKey []byte
 	if len(ret.rangeEnd) > 0 {
-		endKey = PrefixValueKey(prefix, ret.rangeEnd)
+		// set via "WithPrefix"
+		endKey = ret.rangeEnd
+		if !bytes.HasPrefix(endKey, []byte{keyPrefix, delimiter}) {
+			// if overwritten via "WithRange"
+			endKey = PrefixValueKey(prefix, endKey)
+		}
 	}
 
 	kvs = make([]KeyValue, 0)

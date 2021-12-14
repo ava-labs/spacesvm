@@ -144,7 +144,7 @@ type RangeArgs struct {
 	// all prefix must have the delimiter '/' as suffix.
 	Prefix []byte `serialize:"true" json:"prefix"`
 
-	// Key is parsed from the given input, with its prefixed removed.
+	// Key is parsed from the given input, with its prefix removed.
 	// Optional for claim/lifeline transactions.
 	// Non-empty to claim a key-value pair.
 	Key []byte `serialize:"true" json:"key"`

@@ -23,9 +23,6 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 	if len(c.Prefix) == crypto.PublicKeySize && !bytes.Equal(c.Sender[:], c.Prefix) {
 		return ErrPublicKeyMismatch
 	}
-	if crypto.IsEmptyPublicKey(c.Sender[:]) {
-		return ErrInvalidSender
-	}
 
 	prevInfo, infoExists, err := GetPrefixInfo(db, c.Prefix)
 	if err != nil {
@@ -35,23 +32,22 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 		return ErrPrefixNotExpired
 	}
 
-	if infoExists && !bytes.Equal(prevInfo.Owner[:], c.Sender[:]) {
-		// only clean up when claimed by different owner
-		// if same owner, don't overwrite
-		if err := DeleteAllPrefixKeys(db, c.Prefix); err != nil {
-			return err
-		}
+	// every successful "claim" deletes the existing keys
+	// whether "c.Sender" is same as or different than "prevInfo.Owner"
+	// now write with either prefix expired or new prefix owner
+	newInfo := &PrefixInfo{
+		Owner:       c.Sender,
+		LastUpdated: blockTime,
+		Expiry:      blockTime + expiryTime,
+		Keys:        1,
+	}
+	if err := PutPrefixInfo(db, c.Prefix, newInfo); err != nil {
+		return err
 	}
 
-	// either prefix expired or new prefix owner
-	newInfo := &PrefixInfo{Owner: c.Sender, LastUpdated: blockTime, Expiry: blockTime + expiryTime}
-	switch {
-	case infoExists:
-		// use previous info's keys
-		newInfo.Keys = prevInfo.Keys
-	case !infoExists:
-		// new claim, prefix was never written
-		newInfo.Keys = 1
-	}
-	return PutPrefixInfo(db, c.Prefix, newInfo)
+	// Remove anything that is stored in value prefix
+	// overwrite even if claimed by the same owner
+	// TODO(patrick-ogrady): free things async for faster block verification loops
+	// e.g., lazily free what is said to be freed in the block?
+	return DeleteAllPrefixKeys(db, c.Prefix)
 }

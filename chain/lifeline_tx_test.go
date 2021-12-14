@@ -18,8 +18,10 @@ func TestLifelineTx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db := memdb.New()
 	pub := priv.PublicKey()
+
+	db := memdb.New()
+	defer db.Close()
 
 	tt := []struct {
 		utx       UnsignedTransaction

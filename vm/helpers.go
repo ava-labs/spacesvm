@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 )
 
+// TODO: add caching + test
 func (vm *VM) lookback(currTime int64, lastID ids.ID, f func(b *chain.StatelessBlock) (bool, error)) error {
 	curr, err := vm.getBlock(lastID)
 	if err != nil {

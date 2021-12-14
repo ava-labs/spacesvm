@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
+	"github.com/ava-labs/avalanchego/ids"
 )
 
 func TestPrefixValueKey(t *testing.T) {
@@ -39,6 +40,68 @@ func TestPrefixValueKey(t *testing.T) {
 	}
 }
 
+func TestPrefixInfoKey(t *testing.T) {
+	t.Parallel()
+
+	tt := []struct {
+		pfx     []byte
+		infoKey []byte
+	}{
+		{
+			pfx:     []byte("foo"),
+			infoKey: append([]byte{infoPrefix}, []byte("/foo")...),
+		},
+	}
+	for i, tv := range tt {
+		vv := PrefixInfoKey(tv.pfx)
+		if !bytes.Equal(tv.infoKey, vv) {
+			t.Fatalf("#%d: value expected %q, got %q", i, tv.infoKey, vv)
+		}
+	}
+}
+
+func TestPrefixTxKey(t *testing.T) {
+	t.Parallel()
+
+	id := ids.GenerateTestID()
+	tt := []struct {
+		txID  ids.ID
+		txKey []byte
+	}{
+		{
+			txID:  id,
+			txKey: append([]byte{txPrefix, delimiter}, id[:]...),
+		},
+	}
+	for i, tv := range tt {
+		vv := PrefixTxKey(tv.txID)
+		if !bytes.Equal(tv.txKey, vv) {
+			t.Fatalf("#%d: value expected %q, got %q", i, tv.txKey, vv)
+		}
+	}
+}
+
+func TestPrefixBlockKey(t *testing.T) {
+	t.Parallel()
+
+	id := ids.GenerateTestID()
+	tt := []struct {
+		blkID    ids.ID
+		blockKey []byte
+	}{
+		{
+			blkID:    id,
+			blockKey: append([]byte{blockPrefix, delimiter}, id[:]...),
+		},
+	}
+	for i, tv := range tt {
+		vv := PrefixBlockKey(tv.blkID)
+		if !bytes.Equal(tv.blockKey, vv) {
+			t.Fatalf("#%d: value expected %q, got %q", i, tv.blockKey, vv)
+		}
+	}
+}
+
 func TestRange(t *testing.T) {
 	t.Parallel()
 
@@ -48,7 +111,7 @@ func TestRange(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		if err := PutPrefixKey(
 			db,
-			[]byte("foo/"),
+			[]byte("foo"),
 			[]byte(fmt.Sprintf("hello%05d", i)),
 			[]byte(fmt.Sprintf("bar%05d", i)),
 		); err != nil {
@@ -87,6 +150,24 @@ func TestRange(t *testing.T) {
 				{Key: []byte("foo/hello00003"), Value: []byte("bar00003")},
 				{Key: []byte("foo/hello00004"), Value: []byte("bar00004")},
 			},
+		},
+		{ // prefix query
+			pfx:  []byte("foo/"),
+			key:  nil,
+			opts: []OpOption{WithPrefix()},
+			kvs: []KeyValue{
+				{Key: []byte("foo/hello00000"), Value: []byte("bar00000")},
+				{Key: []byte("foo/hello00001"), Value: []byte("bar00001")},
+				{Key: []byte("foo/hello00002"), Value: []byte("bar00002")},
+				{Key: []byte("foo/hello00003"), Value: []byte("bar00003")},
+				{Key: []byte("foo/hello00004"), Value: []byte("bar00004")},
+			},
+		},
+		{ // prefix query
+			pfx:  []byte("foo/"),
+			key:  []byte("x"),
+			opts: []OpOption{WithPrefix()},
+			kvs:  nil,
 		},
 		{ // range query
 			pfx:  []byte("foo/"),

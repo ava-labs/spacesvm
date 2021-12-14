@@ -4,6 +4,9 @@
 package chain
 
 import (
+	"bytes"
+	"errors"
+
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/quarkvm/crypto"
@@ -17,8 +20,8 @@ type BaseTx struct {
 	// Prefix is the namespace for the "PrefixInfo"
 	// whose owner can write and read value for the
 	// specific key space.
-	// Assume the client pre-processes the inputs so that
-	// all prefix must have the delimiter '/' as suffix.
+	// The prefix must not have the delimiter '/' as suffix.
+	// Otherwise, the verification will fail.
 	Prefix []byte `serialize:"true" json:"prefix"`
 }
 
@@ -38,7 +41,12 @@ func (b *BaseTx) GetSender() [crypto.PublicKeySize]byte {
 	return b.Sender
 }
 
+var ErrPrefixHasDelimiter = errors.New("prefix should not delimiter suffix")
+
 func (b *BaseTx) ExecuteBase() error {
+	if bytes.HasSuffix(b.Prefix, []byte{delimiter}) {
+		return ErrPrefixHasDelimiter
+	}
 	if _, _, _, err := ParseKey(b.Prefix); err != nil {
 		return err
 	}
