@@ -46,11 +46,19 @@ func TestBaseTx(t *testing.T) {
 			err: ErrInvalidBlockID,
 		},
 		{
-			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: nil},
+			tx: &BaseTx{
+				Sender:  pub.Bytes(),
+				BlockID: ids.GenerateTestID(),
+				Prefix:  nil,
+			},
 			err: ErrPrefixEmpty,
 		},
 		{
-			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: bytes.Repeat([]byte{'a'}, MaxPrefixSize+1)},
+			tx: &BaseTx{
+				Sender:  pub.Bytes(),
+				BlockID: ids.GenerateTestID(),
+				Prefix:  bytes.Repeat([]byte{'a'}, MaxPrefixSize+1),
+			},
 			err: ErrPrefixTooBig,
 		},
 	}

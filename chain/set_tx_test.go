@@ -131,27 +131,6 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Sender: pub.Bytes(),
-					Prefix: nil,
-				},
-			},
-			blockTime: 1,
-			err:       ErrPrefixEmpty,
-		},
-		{
-			utx: &SetTx{
-				BaseTx: &BaseTx{
-					Sender: pub.Bytes(),
-					Prefix: bytes.Repeat([]byte{'a'}, MaxPrefixSize+1),
-				},
-				Key: []byte{'a', 'b'},
-			},
-			blockTime: 1,
-			err:       ErrPrefixTooBig,
-		},
-		{
-			utx: &SetTx{
-				BaseTx: &BaseTx{
 					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},

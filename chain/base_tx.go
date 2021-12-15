@@ -41,12 +41,15 @@ func (b *BaseTx) GetSender() [crypto.PublicKeySize]byte {
 }
 
 func (b *BaseTx) ExecuteBase() error {
-	// prefix must not contain the delimiter at all
-	if bytes.Count(b.Prefix, []byte{delimiter}) > 0 {
-		return ErrInvalidPrefixDelimiter
+	if len(b.Prefix) == 0 {
+		return ErrPrefixEmpty
 	}
-	if _, _, _, err := ParseKey(b.Prefix); err != nil {
-		return err
+	if len(b.Prefix) > MaxPrefixSize {
+		return ErrPrefixTooBig
+	}
+	// prefix must not contain the delimiter at all
+	if bytes.ContainsRune(b.Prefix, rune(delimiter)) {
+		return ErrInvalidPrefixDelimiter
 	}
 
 	// "len(b.Sender) == 0" does not check zeroed [32]byte array

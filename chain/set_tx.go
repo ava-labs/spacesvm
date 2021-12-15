@@ -5,8 +5,6 @@ package chain
 
 import (
 	"bytes"
-	"fmt"
-	"sync"
 
 	"github.com/ava-labs/avalanchego/database"
 )
@@ -26,40 +24,21 @@ type SetTx struct {
 	// TODO: support range deletes?
 }
 
-var bufPool = sync.Pool{
-	New: func() interface{} {
-		return new(bytes.Buffer)
-	},
-}
-
 func (s *SetTx) Execute(db database.Database, blockTime int64) error {
-	if len(s.Prefix) == 0 {
-		return ErrPrefixEmpty
-	}
+	// assume prefix is already validated via "BaseTx"
 	if len(s.Key) == 0 {
 		return ErrKeyEmpty
 	}
 	if len(s.Key) > MaxKeyLength {
 		return ErrKeyTooBig
 	}
+	// prefix must not contain the delimiter at all
+	if bytes.ContainsRune(s.Key, rune(delimiter)) {
+		return ErrInvalidPrefixDelimiter
+	}
 	if len(s.Value) > MaxValueLength {
 		return ErrValueTooBig
 	}
-
-	poolOut := bufPool.Get()
-	b, ok := poolOut.(*bytes.Buffer)
-	if !ok {
-		return fmt.Errorf("unexpected entry %T from sync.Pool, expected *bytes.Buffer", poolOut)
-	}
-	b.Reset()
-	b.WriteString(string(s.Prefix))
-	b.WriteByte(delimiter)
-	b.WriteString(string(s.Key))
-	if _, _, _, err := ParseKey(b.Bytes()); err != nil {
-		bufPool.Put(b) // put it back for next use
-		return err
-	}
-	bufPool.Put(b) // put it back for next use
 
 	i, has, err := GetPrefixInfo(db, s.Prefix)
 	if err != nil {
