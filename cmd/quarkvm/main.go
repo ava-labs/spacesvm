@@ -31,6 +31,8 @@ func main() {
 		os.Exit(0)
 	}
 
+	// TODO: serve separate endpoint for range query
+	// e.g., GET http://localhost/vm/foo returns "bar"
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: rpcchainvm.Handshake,
 		Plugins: map[string]plugin.Plugin{

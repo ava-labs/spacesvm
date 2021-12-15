@@ -1,10 +1,9 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package claim
+package delete
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -35,40 +34,62 @@ var (
 	prefixInfo     bool
 )
 
-// NewCommand implements "quark-cli claim" command.
+// NewCommand implements "quark-cli" command.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "claim [options] <prefix>",
-		Short: "Claims the given prefix",
+		Use:   "delete [options] <prefix/key>",
+		Short: "Deletes a key-value pair for the given prefix",
 		Long: `
-Claims the given prefix by issuing claim transaction
-with the prefix information.
+Issues "SetTx" to delete key-value pair(s).
 
-# Issues "ClaimTx" for the ownership of "hello.avax".
+The prefix is automatically parsed with the delimiter "/".
+When given a key "foo/hello", the "set" creates the transaction
+with "foo" as prefix and "hello" as key. The prefix/key cannot
+have more than one delimiter (e.g., "foo/hello/world" is invalid)
+in order to maintain the flat key space.
+
+It assumes the prefix is already claimed via "quark-cli claim",
+and the key already exists via "quark-cli set". Otherwise, the
+transaction will fail.
+
+# claims the prefix "hello.avax"
 # "hello.avax" is the prefix (or namespace)
 $ quark-cli claim hello.avax
 <<COMMENT
 success
 COMMENT
 
-# The existing prefix can be overwritten by a different owner.
-# Once claimed, all existing key-value pairs are deleted.
-$ quark-cli claim hello.avax --private-key-file=.different-key
+# writes a key-value pair for the given namespace (prefix)
+# by issuing "SetTx" preceded by "IssueTx" on the prefix:
+# "hello.avax" is the prefix (or namespace)
+# "foo" is the key
+# "hello world" is the value
+$ quark-cli set hello.avax/foo "hello world"
 <<COMMENT
 success
 COMMENT
 
-# The prefix can be claimed if and only if
-# the previous prefix (owner) info has not been expired.
-# Even if the prefix is claimed by the same owner,
-# all underlying key-values are deleted.
-$ quark-cli claim hello.avax
+# The prefix and key can be deleted by "delete" command.
+$ quark-cli delete hello.avax/foo
 <<COMMENT
 success
+COMMENT
+
+# The prefix itself cannot be deleted by "delete" command.
+$ quark-cli delete hello.avax
+<<COMMENT
+error
+COMMENT
+
+# The existing key-value cannot be overwritten by a different owner.
+# The prefix must be claimed before it allows key-value writes.
+$ quark-cli set hello.avax/foo "hello world" --private-key-file=.different-key
+<<COMMENT
+error
 COMMENT
 
 `,
-		RunE: claimFunc,
+		RunE: deleteFunc,
 	}
 	cmd.PersistentFlags().StringVar(
 		&privateKeyFile,
@@ -185,18 +206,18 @@ func mine(
 }
 
 // TODO: move all this to a separate client code
-func claimFunc(cmd *cobra.Command, args []string) error {
+func deleteFunc(cmd *cobra.Command, args []string) error {
 	priv, err := create.LoadPK(privateKeyFile)
 	if err != nil {
 		return err
 	}
 
-	pfx := getClaimOp(args)
+	pfx, key := getDeleteOp(args)
 
 	if !strings.HasPrefix(endpoint, "/") {
 		endpoint = "/" + endpoint
 	}
-	color.Blue("creating requester with URL %s and endpoint %q for prefix %q", url, endpoint, pfx)
+	color.Blue("creating requester with URL %s and endpoint %q for prefix %q and key %q", url, endpoint, pfx, key)
 	requester := rpc.NewEndpointRequester(
 		url,
 		endpoint,
@@ -204,11 +225,13 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 		requestTimeout,
 	)
 
-	utx := &chain.ClaimTx{
+	utx := &chain.SetTx{
 		BaseTx: &chain.BaseTx{
 			Sender: priv.PublicKey().Bytes(),
 			Prefix: pfx,
 		},
+		Key:   key,
+		Value: nil,
 	}
 
 	// TODO: make this a shared lib
@@ -284,21 +307,21 @@ done:
 	return nil
 }
 
-func getClaimOp(args []string) (pfx []byte) {
+func getDeleteOp(args []string) (pfx []byte, key []byte) {
 	if len(args) != 1 {
 		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
 		os.Exit(128)
 	}
 
-	pfx = []byte(args[0])
-	if bytes.HasSuffix(pfx, []byte{'/'}) {
-		pfx = pfx[:len(pfx)-1]
-	}
+	// [prefix/key] == "foo/bar"
+	pfxKey := args[0]
 
-	if _, _, _, err := chain.ParseKey(pfx); err != nil {
+	var err error
+	pfx, key, _, err = chain.ParseKey([]byte(pfxKey))
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
 		os.Exit(128)
 	}
 
-	return pfx
+	return pfx, key
 }

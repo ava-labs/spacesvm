@@ -1,14 +1,18 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package crypto
+package crypto_test
 
 import (
 	"testing"
+
+	"github.com/ava-labs/quarkvm/crypto"
 )
 
 func TestVerify(t *testing.T) {
-	pk, err := NewPrivateKey()
+	t.Parallel()
+
+	pk, err := crypto.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -16,7 +20,7 @@ func TestVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !Verify(pk.PublicKey().Bytes(), []byte("hello"), sig) {
+	if !crypto.Verify(pk.PublicKey().Bytes(), []byte("hello"), sig) {
 		t.Fatal("failed to verify")
 	}
 }

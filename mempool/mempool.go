@@ -1,7 +1,11 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package mempool
 
 import (
 	"container/heap"
+	"fmt"
 
 	"github.com/ava-labs/avalanchego/ids"
 
@@ -50,7 +54,10 @@ func (th internalTxHeap) Swap(i, j int) {
 }
 
 func (th *internalTxHeap) Push(x interface{}) {
-	entry := x.(*txEntry)
+	entry, ok := x.(*txEntry)
+	if !ok {
+		panic(fmt.Errorf("unexpected %T, expected *txEntry", x))
+	}
 	if th.Has(entry.id) {
 		return
 	}

@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package chain
 
 import (
@@ -6,14 +9,10 @@ import (
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 )
 
-const (
-	// codecVersion is the current default codec version
-	codecVersion = 0
-)
+// codecVersion is the current default codec version
+const codecVersion = 0
 
-var (
-	codecManager codec.Manager
-)
+var codecManager codec.Manager
 
 func init() {
 	c := linearcodec.NewDefault()

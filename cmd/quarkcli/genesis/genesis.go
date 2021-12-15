@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package genesis
 
 import (
@@ -26,7 +29,7 @@ var (
 	genesisFile string
 )
 
-// NewCommand implements "quark-cli" command.
+// NewCommand implements "quark-cli genesis" command.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "genesis [options]",
@@ -42,6 +45,8 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
+const fsModeWrite = 0o600
+
 func genesisFunc(cmd *cobra.Command, args []string) error {
 	// Note: genesis block must have the min difficulty and block cost or else
 	// the execution context logic may over/underflow
@@ -54,7 +59,7 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(genesisFile, b, 0644); err != nil {
+	if err := os.WriteFile(genesisFile, b, fsModeWrite); err != nil {
 		return err
 	}
 	color.Green("created genesis and saved to %s", genesisFile)

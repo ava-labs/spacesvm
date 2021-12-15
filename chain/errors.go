@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package chain
 
 import (
@@ -5,11 +8,6 @@ import (
 )
 
 var (
-	// Prefix Correctness
-	ErrPrefixEmpty         = errors.New("prefix cannot be empty")
-	ErrPrefixTooBig        = errors.New("prefix too big")
-	ErrPrefixContainsDelim = errors.New("prefix contains delimiter")
-
 	// Block Correctness
 	ErrTimestampTooEarly      = errors.New("block timestamp too early")
 	ErrTimestampTooLate       = errors.New("block timestamp too late")

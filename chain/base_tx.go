@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package chain
 
 import (
@@ -8,24 +11,17 @@ import (
 	"github.com/ava-labs/quarkvm/crypto"
 )
 
-func VerifyPrefixKey(prefix []byte) error {
-	if len(prefix) == 0 {
-		return ErrPrefixEmpty
-	}
-	if len(prefix) > MaxPrefixSize {
-		return ErrPrefixTooBig
-	}
-	if bytes.IndexRune(prefix, PrefixDelimiter) != -1 {
-		return ErrPrefixContainsDelim
-	}
-	return nil
-}
-
 type BaseTx struct {
-	Sender   [crypto.PublicKeySize]byte `serialize:"true"`
-	Graffiti uint64                     `serialize:"true"`
-	BlockID  ids.ID                     `serialize:"true"`
-	Prefix   []byte                     `serialize:"true"`
+	Sender   [crypto.PublicKeySize]byte `serialize:"true" json:"sender"`
+	Graffiti uint64                     `serialize:"true" json:"graffiti"`
+	BlockID  ids.ID                     `serialize:"true" json:"blockId"`
+
+	// Prefix is the namespace for the "PrefixInfo"
+	// whose owner can write and read value for the
+	// specific key space.
+	// The prefix must not have the delimiter '/' as suffix.
+	// Otherwise, the verification will fail.
+	Prefix []byte `serialize:"true" json:"prefix"`
 }
 
 func (b *BaseTx) SetBlockID(blockID ids.ID) {
@@ -45,12 +41,23 @@ func (b *BaseTx) GetSender() [crypto.PublicKeySize]byte {
 }
 
 func (b *BaseTx) ExecuteBase() error {
-	if err := VerifyPrefixKey(b.Prefix); err != nil {
-		return err
+	// TODO: separate helper for verifying prefix/key
+	if len(b.Prefix) == 0 {
+		return ErrPrefixEmpty
 	}
-	if len(b.Sender) == 0 {
+	if len(b.Prefix) > MaxPrefixSize {
+		return ErrPrefixTooBig
+	}
+	// prefix must not contain the delimiter at all
+	if bytes.ContainsRune(b.Prefix, rune(delimiter)) {
+		return ErrInvalidPrefixDelimiter
+	}
+
+	// "len(b.Sender) == 0" does not check zeroed [32]byte array
+	if crypto.IsEmptyPublicKey(b.Sender[:]) {
 		return ErrInvalidSender
 	}
+
 	if b.BlockID == ids.Empty {
 		return ErrInvalidBlockID
 	}

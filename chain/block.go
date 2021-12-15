@@ -1,6 +1,10 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package chain
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/database"
@@ -12,13 +16,9 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-const (
-	futureBound = 10 * time.Second
-)
+const futureBound = 10 * time.Second
 
-var (
-	_ snowman.Block = &StatelessBlock{}
-)
+var _ snowman.Block = &StatelessBlock{}
 
 type StatefulBlock struct {
 	Prnt       ids.ID         `serialize:"true" json:"parent"`
@@ -121,7 +121,11 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		log.Debug("could not get parent", "id", b.Prnt)
 		return nil, nil, err
 	}
-	parent := prnt.(*StatelessBlock)
+	parent, ok := prnt.(*StatelessBlock)
+	if !ok {
+		return nil, nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", prnt)
+	}
+
 	if len(b.Txs) == 0 {
 		return nil, nil, ErrNoTxs
 	}
@@ -185,7 +189,9 @@ func (b *StatelessBlock) Accept() error {
 		return err
 	}
 	for _, child := range b.children {
-		child.onAcceptDB.SetDatabase(b.vm.State())
+		if err := child.onAcceptDB.SetDatabase(b.vm.State()); err != nil {
+			return err
+		}
 	}
 	b.st = choices.Accepted
 	b.vm.Accepted(b)

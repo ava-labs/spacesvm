@@ -22,8 +22,7 @@ type Service struct {
 	vm *VM
 }
 
-type PingArgs struct {
-}
+type PingArgs struct{}
 
 type PingReply struct {
 	Success bool `serialize:"true" json:"success"`
@@ -40,7 +39,7 @@ type IssueTxArgs struct {
 }
 
 type IssueTxReply struct {
-	TxID    ids.ID `serialize:"true" json:"txID"`
+	TxID    ids.ID `serialize:"true" json:"txId"`
 	Success bool   `serialize:"true" json:"success"`
 }
 
@@ -49,14 +48,15 @@ func (svc *Service) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxRe
 	if _, err := chain.Unmarshal(args.Tx, tx); err != nil {
 		return err
 	}
-	svc.vm.Submit(tx)
 	reply.TxID = tx.ID()
-	reply.Success = true
-	return nil
+
+	err := svc.vm.Submit(tx)
+	reply.Success = err != nil
+	return err
 }
 
 type CheckTxArgs struct {
-	TxID ids.ID `serialize:"true" json:"txID"`
+	TxID ids.ID `serialize:"true" json:"txId"`
 }
 
 type CheckTxReply struct {
@@ -72,11 +72,10 @@ func (svc *Service) CheckTx(_ *http.Request, args *CheckTxArgs, reply *CheckTxRe
 	return nil
 }
 
-type CurrBlockArgs struct {
-}
+type CurrBlockArgs struct{}
 
 type CurrBlockReply struct {
-	BlockID ids.ID `serialize:"true" json:"blockID"`
+	BlockID ids.ID `serialize:"true" json:"blockId"`
 }
 
 func (svc *Service) CurrBlock(_ *http.Request, args *CurrBlockArgs, reply *CurrBlockReply) error {
@@ -85,7 +84,7 @@ func (svc *Service) CurrBlock(_ *http.Request, args *CurrBlockArgs, reply *CurrB
 }
 
 type ValidBlockIDArgs struct {
-	BlockID ids.ID `serialize:"true" json:"blockID"`
+	BlockID ids.ID `serialize:"true" json:"blockId"`
 }
 
 type ValidBlockIDReply struct {
@@ -101,14 +100,17 @@ func (svc *Service) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, reply 
 	return nil
 }
 
-type DifficultyEstimateArgs struct {
-}
+type DifficultyEstimateArgs struct{}
 
 type DifficultyEstimateReply struct {
 	Difficulty uint64 `serialize:"true" json:"valid"`
 }
 
-func (svc *Service) DifficultyEstimate(_ *http.Request, args *DifficultyEstimateArgs, reply *DifficultyEstimateReply) error {
+func (svc *Service) DifficultyEstimate(
+	_ *http.Request,
+	_ *DifficultyEstimateArgs,
+	reply *DifficultyEstimateReply,
+) error {
 	diff, err := svc.vm.DifficultyEstimate()
 	if err != nil {
 		return err
@@ -131,5 +133,44 @@ func (svc *Service) PrefixInfo(_ *http.Request, args *PrefixInfoArgs, reply *Pre
 		return err
 	}
 	reply.Info = i
+	return nil
+}
+
+type RangeArgs struct {
+	// Prefix is the namespace for the "PrefixInfo"
+	// whose owner can write and read value for the
+	// specific key space.
+	// Assume the client pre-processes the inputs so that
+	// all prefix must have the delimiter '/' as suffix.
+	Prefix []byte `serialize:"true" json:"prefix"`
+
+	// Key is parsed from the given input, with its prefix removed.
+	// Optional for claim/lifeline transactions.
+	// Non-empty to claim a key-value pair.
+	Key []byte `serialize:"true" json:"key"`
+
+	// RangeEnd is optional, and only non-empty for range query transactions.
+	RangeEnd []byte `serialize:"true" json:"rangeEnd"`
+
+	// Limit limits the number of key-value pairs in the response.
+	Limit uint32 `serialize:"true" json:"limit"`
+}
+
+type RangeReply struct {
+	KeyValues []chain.KeyValue `serialize:"true" json:"keyValues"`
+	Error     error            `serialize:"true" json:"error"`
+}
+
+func (svc *Service) Range(_ *http.Request, args *RangeArgs, reply *RangeReply) (err error) {
+	log.Info("range query for key %q and range end %q", args.Key, args.RangeEnd)
+	opts := make([]chain.OpOption, 0)
+	if len(args.RangeEnd) > 0 {
+		opts = append(opts, chain.WithRangeEnd(args.RangeEnd))
+	}
+	if args.Limit > 0 {
+		opts = append(opts, chain.WithRangeLimit(args.Limit))
+	}
+	reply.KeyValues = chain.Range(svc.vm.db, args.Prefix, args.Key, opts...)
+	reply.Error = nil
 	return nil
 }

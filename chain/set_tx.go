@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package chain
 
 import (
@@ -6,26 +9,38 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 )
 
-var (
-	_ UnsignedTransaction = &SetTx{}
-)
+var _ UnsignedTransaction = &SetTx{}
 
 type SetTx struct {
-	*BaseTx `serialize:"true"`
-	Key     []byte `serialize:"true"`
-	Value   []byte `serialize:"true"`
+	*BaseTx `serialize:"true" json:"baseTx"`
+
+	// Key is parsed from the given input, with its prefix removed.
+	Key []byte `serialize:"true" json:"key"`
+	// Value is empty if and only if set transaction is issued for the delete.
+	// If non-empty, the transaction writes the key-value pair to the storage.
+	// If empty, the transaction deletes the value for the "prefix/key".
+	Value []byte `serialize:"true" json:"value"`
+
+	// TODO: support range deletes?
 }
 
 func (s *SetTx) Execute(db database.Database, blockTime int64) error {
+	// assume prefix is already validated via "BaseTx"
+	// TODO: separate helper for verifying prefix/key
 	if len(s.Key) == 0 {
 		return ErrKeyEmpty
 	}
-	if len(s.Key) > maxKeyLength {
+	if len(s.Key) > MaxKeyLength {
 		return ErrKeyTooBig
 	}
-	if len(s.Value) > maxValueLength {
+	// key must not contain the delimiter at all
+	if bytes.ContainsRune(s.Key, rune(delimiter)) {
+		return ErrInvalidPrefixDelimiter
+	}
+	if len(s.Value) > MaxValueLength {
 		return ErrValueTooBig
 	}
+
 	i, has, err := GetPrefixInfo(db, s.Prefix)
 	if err != nil {
 		return err
@@ -57,7 +72,7 @@ func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	return s.updatePrefix(db, blockTime, i)
 }
 
-func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInfo) error {
+func (s *SetTx) updatePrefix(db database.KeyValueWriter, blockTime int64, i *PrefixInfo) error {
 	timeRemaining := (i.Expiry - i.LastUpdated) * i.Keys
 	if len(s.Value) == 0 {
 		i.Keys--

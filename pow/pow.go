@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package pow
 
 import (
@@ -25,8 +28,9 @@ const (
 // BenchmarkFinalHash/Skein-256
 // BenchmarkFinalHash/Skein-256-16      	  852234	      1478 ns/op
 
+// TODO: make this more complicated
 func Difficulty(b []byte) uint64 {
 	h := hashing.ComputeHash256(b)
-	n := new(big.Int).SetBytes(h[:])
+	n := new(big.Int).SetBytes(h)
 	return uint64(maxDifficulty - n.BitLen())
 }
