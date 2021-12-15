@@ -11,6 +11,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/quarkvm/storage"
 )
 
 func TestPrefixValueKey(t *testing.T) {
@@ -70,7 +71,7 @@ func TestPrefixTxKey(t *testing.T) {
 	}{
 		{
 			txID:  id,
-			txKey: append([]byte{txPrefix, delimiter}, id[:]...),
+			txKey: append([]byte{txPrefix, storage.Delimiter}, id[:]...),
 		},
 	}
 	for i, tv := range tt {
@@ -91,7 +92,7 @@ func TestPrefixBlockKey(t *testing.T) {
 	}{
 		{
 			blkID:    id,
-			blockKey: append([]byte{blockPrefix, delimiter}, id[:]...),
+			blockKey: append([]byte{blockPrefix, storage.Delimiter}, id[:]...),
 		},
 	}
 	for i, tv := range tt {

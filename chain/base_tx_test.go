@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/quarkvm/crypto"
+	"github.com/ava-labs/quarkvm/storage"
 )
 
 func TestBaseTx(t *testing.T) {
@@ -35,11 +36,11 @@ func TestBaseTx(t *testing.T) {
 		},
 		{
 			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("fo/a")},
-			err: ErrInvalidPrefixDelimiter,
+			err: storage.ErrInvalidDelimiter,
 		},
 		{
 			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo/")},
-			err: ErrInvalidPrefixDelimiter,
+			err: storage.ErrInvalidDelimiter,
 		},
 		{
 			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo")},
@@ -51,15 +52,15 @@ func TestBaseTx(t *testing.T) {
 				BlockID: ids.GenerateTestID(),
 				Prefix:  nil,
 			},
-			err: ErrPrefixEmpty,
+			err: storage.ErrPrefixEmpty,
 		},
 		{
 			tx: &BaseTx{
 				Sender:  pub.Bytes(),
 				BlockID: ids.GenerateTestID(),
-				Prefix:  bytes.Repeat([]byte{'a'}, MaxPrefixSize+1),
+				Prefix:  bytes.Repeat([]byte{'a'}, storage.MaxPrefixSize+1),
 			},
-			err: ErrPrefixTooBig,
+			err: storage.ErrPrefixTooBig,
 		},
 	}
 	for i, tv := range tt {

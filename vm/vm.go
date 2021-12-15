@@ -51,6 +51,9 @@ type VM struct {
 
 	preferred    ids.ID
 	lastAccepted ids.ID
+
+	minDifficulty uint64
+	minBlockCost  uint64
 }
 
 // implements "snowmanblock.ChainVM.common.VM"
@@ -107,6 +110,7 @@ func (vm *VM) Initialize(
 	}
 	gBlkID := genesisBlk.ID()
 	vm.preferred, vm.lastAccepted = gBlkID, gBlkID
+	vm.minDifficulty, vm.minBlockCost = genesisBlk.Difficulty, genesisBlk.Cost
 	log.Info("initialized quarkvm from genesis", "block", gBlkID)
 	return nil
 }
