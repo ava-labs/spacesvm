@@ -5,6 +5,7 @@
 package vm
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -50,6 +51,10 @@ type VM struct {
 	mempool          *mempool.Mempool
 	appSender        common.AppSender
 	gossipedTxs      *cache.LRU
+	// cache block objects to optimize "getBlock"
+	// only put when a block is accepted
+	// key: block ID, value: *chain.StatelessBlock
+	blocks *cache.LRU
 
 	// Block ID --> Block
 	// Each element is a block that passed verification but
@@ -71,7 +76,10 @@ type VM struct {
 	donecRegossip chan struct{}
 }
 
-const gossipedTxsLRUSize = 512
+const (
+	gossipedTxsLRUSize = 512
+	blocksLRUSize      = 100
+)
 
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Initialize(
@@ -96,6 +104,7 @@ func (vm *VM) Initialize(
 	vm.mempool = mempool.New(mempoolSize)
 	vm.appSender = appSender
 	vm.gossipedTxs = &cache.LRU{Size: gossipedTxsLRUSize}
+	vm.blocks = &cache.LRU{Size: blocksLRUSize}
 
 	vm.verifiedBlocks = make(map[ids.ID]*chain.StatelessBlock)
 
@@ -241,9 +250,22 @@ func (vm *VM) GetBlock(id ids.ID) (snowman.Block, error) {
 }
 
 func (vm *VM) getBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
+	// has the block been cached from previous "Accepted" call
+	bi, exist := vm.blocks.Get(blkID)
+	if exist {
+		blk, ok := bi.(*chain.StatelessBlock)
+		if !ok {
+			return nil, fmt.Errorf("unexpected entry %T found in LRU cache, expected *chain.StatelessBlock", bi)
+		}
+		return blk, nil
+	}
+
+	// has the block been verified, not yet accepted
 	if blk, exists := vm.verifiedBlocks[blkID]; exists {
 		return blk, nil
 	}
+
+	// not found in memory, fetch from disk if accepted
 	bytes, err := chain.GetBlock(vm.db, blkID)
 	if err != nil {
 		return nil, err
