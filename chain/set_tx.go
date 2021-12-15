@@ -26,13 +26,14 @@ type SetTx struct {
 
 func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	// assume prefix is already validated via "BaseTx"
+	// TODO: separate helper for verifying prefix/key
 	if len(s.Key) == 0 {
 		return ErrKeyEmpty
 	}
 	if len(s.Key) > MaxKeyLength {
 		return ErrKeyTooBig
 	}
-	// prefix must not contain the delimiter at all
+	// key must not contain the delimiter at all
 	if bytes.ContainsRune(s.Key, rune(delimiter)) {
 		return ErrInvalidPrefixDelimiter
 	}

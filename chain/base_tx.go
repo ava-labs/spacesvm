@@ -41,6 +41,7 @@ func (b *BaseTx) GetSender() [crypto.PublicKeySize]byte {
 }
 
 func (b *BaseTx) ExecuteBase() error {
+	// TODO: separate helper for verifying prefix/key
 	if len(b.Prefix) == 0 {
 		return ErrPrefixEmpty
 	}
