@@ -14,9 +14,9 @@ const (
 )
 
 var (
-	ErrPrefixEmpty         = errors.New("prefix cannot be empty")
-	ErrPrefixTooBig        = errors.New("prefix too big")
-	ErrInvalidKeyDelimiter = errors.New("key has unexpected delimiters; only one sub-key is supported")
+	ErrPrefixEmpty            = errors.New("prefix cannot be empty")
+	ErrPrefixTooBig           = errors.New("prefix too big")
+	ErrInvalidPrefixDelimiter = errors.New("prefix/key has unexpected delimiters; only one sub-key is supported")
 )
 
 var (
@@ -31,7 +31,7 @@ func ParseKey(key []byte) (pfx []byte, k []byte, end []byte, err error) {
 		return nil, nil, nil, ErrPrefixEmpty
 	}
 	if bytes.Count(key, []byte{delimiter}) > 1 {
-		return nil, nil, nil, ErrInvalidKeyDelimiter
+		return nil, nil, nil, ErrInvalidPrefixDelimiter
 	}
 
 	idx := bytes.IndexRune(key, rune(delimiter))

@@ -24,7 +24,7 @@ func TestParseKey(t *testing.T) {
 			pfx: nil,
 			k:   nil,
 			end: nil,
-			err: ErrInvalidKeyDelimiter,
+			err: ErrInvalidPrefixDelimiter,
 		},
 		{
 			key: []byte("foo"),

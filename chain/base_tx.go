@@ -5,7 +5,6 @@ package chain
 
 import (
 	"bytes"
-	"errors"
 
 	"github.com/ava-labs/avalanchego/ids"
 
@@ -41,11 +40,10 @@ func (b *BaseTx) GetSender() [crypto.PublicKeySize]byte {
 	return b.Sender
 }
 
-var ErrPrefixHasDelimiter = errors.New("prefix should not delimiter suffix")
-
 func (b *BaseTx) ExecuteBase() error {
-	if bytes.HasSuffix(b.Prefix, []byte{delimiter}) {
-		return ErrPrefixHasDelimiter
+	// prefix must not contain the delimiter at all
+	if bytes.Count(b.Prefix, []byte{delimiter}) > 0 {
+		return ErrInvalidPrefixDelimiter
 	}
 	if _, _, _, err := ParseKey(b.Prefix); err != nil {
 		return err

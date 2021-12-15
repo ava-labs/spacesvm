@@ -40,7 +40,7 @@ func TestSetTx(t *testing.T) {
 			utx: &SetTx{
 				BaseTx: &BaseTx{
 					Sender:  pub.Bytes(),
-					Prefix:  []byte("foo/"),
+					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
 				Key:   []byte("bar"),
@@ -53,7 +53,7 @@ func TestSetTx(t *testing.T) {
 			utx: &ClaimTx{
 				BaseTx: &BaseTx{
 					Sender: pub.Bytes(),
-					Prefix: []byte("foo/"),
+					Prefix: []byte("foo"),
 				},
 			},
 			blockTime: 1,
@@ -63,7 +63,7 @@ func TestSetTx(t *testing.T) {
 			utx: &SetTx{
 				BaseTx: &BaseTx{
 					Sender:  pub.Bytes(),
-					Prefix:  []byte("foo/"),
+					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
 				Key:   []byte("bar"),
@@ -76,7 +76,7 @@ func TestSetTx(t *testing.T) {
 			utx: &SetTx{
 				BaseTx: &BaseTx{
 					Sender:  pub.Bytes(),
-					Prefix:  []byte("foo/"),
+					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
 				Key: []byte("bar"),
@@ -88,7 +88,7 @@ func TestSetTx(t *testing.T) {
 			utx: &SetTx{
 				BaseTx: &BaseTx{
 					Sender:  pub.Bytes(),
-					Prefix:  []byte("foo/"),
+					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
 				Key: []byte("bar"),
@@ -100,7 +100,7 @@ func TestSetTx(t *testing.T) {
 			utx: &SetTx{
 				BaseTx: &BaseTx{
 					Sender:  pub2.Bytes(),
-					Prefix:  []byte("foo/"),
+					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
 				Key: []byte("bar"),
@@ -111,7 +111,7 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Prefix:  []byte("foo/"),
+					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
 			},
@@ -122,7 +122,7 @@ func TestSetTx(t *testing.T) {
 			utx: &SetTx{
 				BaseTx: &BaseTx{
 					Sender: pub.Bytes(),
-					Prefix: []byte("foo/"),
+					Prefix: []byte("foo"),
 				},
 			},
 			blockTime: 1,
@@ -144,6 +144,7 @@ func TestSetTx(t *testing.T) {
 					Sender: pub.Bytes(),
 					Prefix: bytes.Repeat([]byte{'a'}, MaxPrefixSize+1),
 				},
+				Key: []byte{'a', 'b'},
 			},
 			blockTime: 1,
 			err:       ErrPrefixTooBig,
@@ -151,7 +152,7 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Prefix:  []byte("foo/"),
+					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
 				Key: bytes.Repeat([]byte{'a'}, MaxKeyLength+1),
@@ -162,7 +163,7 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Prefix:  []byte("foo/"),
+					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
 				Key:   []byte("bar"),
@@ -175,13 +176,13 @@ func TestSetTx(t *testing.T) {
 			utx: &SetTx{
 				BaseTx: &BaseTx{
 					Sender:  pub.Bytes(),
-					Prefix:  []byte("foo/"),
+					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
 				Key: []byte("bar///"),
 			},
 			blockTime: 1,
-			err:       ErrInvalidKeyDelimiter,
+			err:       ErrInvalidPrefixDelimiter,
 		},
 	}
 	for i, tv := range tt {

@@ -34,8 +34,12 @@ func TestBaseTx(t *testing.T) {
 			err: ErrInvalidSender,
 		},
 		{
+			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("fo/a")},
+			err: ErrInvalidPrefixDelimiter,
+		},
+		{
 			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo/")},
-			err: ErrPrefixHasDelimiter,
+			err: ErrInvalidPrefixDelimiter,
 		},
 		{
 			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo")},
