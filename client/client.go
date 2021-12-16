@@ -1,10 +1,8 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// Package v0alpha implements "quarkvm" client SDK.
-// "v0alpha" implementation may change but its API semantics
-// are guaranteed to be compatible with any v0.* "quarkvm" releases.
-package v0alpha
+// Package client implements "quarkvm" client SDK.
+package client
 
 import (
 	"context"
@@ -15,8 +13,8 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/rpc"
 	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/quarkvm/parser"
 	"github.com/ava-labs/quarkvm/pow"
-	"github.com/ava-labs/quarkvm/storage"
 	"github.com/ava-labs/quarkvm/vm"
 	"github.com/fatih/color"
 )
@@ -251,7 +249,7 @@ func (op *Op) applyOpts(opts []OpOption) {
 
 func WithPrefix() OpOption {
 	return func(op *Op) {
-		op.rangeEnd = storage.GetRangeEnd(op.key)
+		op.rangeEnd = parser.GetRangeEnd(op.key)
 	}
 }
 

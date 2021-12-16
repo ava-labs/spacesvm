@@ -7,7 +7,7 @@ import (
 	"bytes"
 
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/quarkvm/storage"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 var _ UnsignedTransaction = &SetTx{}
@@ -27,7 +27,7 @@ type SetTx struct {
 
 func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	// assume prefix is already validated via "BaseTx"
-	if err := storage.CheckKey(s.Key); err != nil {
+	if err := parser.CheckKey(s.Key); err != nil {
 		return err
 	}
 	if len(s.Value) > MaxValueLength {

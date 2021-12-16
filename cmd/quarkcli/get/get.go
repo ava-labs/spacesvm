@@ -11,8 +11,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	client "github.com/ava-labs/quarkvm/client/v0alpha"
-	"github.com/ava-labs/quarkvm/storage"
+	"github.com/ava-labs/quarkvm/client"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 func init() {
@@ -182,16 +182,16 @@ func getGetOp(args []string, withPrefix bool) (pfx []byte, key []byte, rangeEnd 
 	pfxKey := args[0]
 
 	var err error
-	pfx, key, rangeEnd, err = storage.ParsePrefixKey([]byte(pfxKey))
+	pfx, key, rangeEnd, err = parser.ParsePrefixKey([]byte(pfxKey))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
 		os.Exit(128)
 	}
-	if err := storage.CheckPrefix(pfx); err != nil {
+	if err := parser.CheckPrefix(pfx); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to verify prefix %v", err)
 		os.Exit(128)
 	}
-	if err := storage.CheckKey(key); err != nil {
+	if err := parser.CheckKey(key); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to verify key %v", err)
 		os.Exit(128)
 	}

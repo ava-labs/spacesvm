@@ -15,9 +15,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/quarkvm/chain"
-	client "github.com/ava-labs/quarkvm/client/v0alpha"
+	"github.com/ava-labs/quarkvm/client"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
-	"github.com/ava-labs/quarkvm/storage"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 func init() {
@@ -182,11 +182,11 @@ func getClaimOp(args []string) (pfx []byte) {
 		pfx = pfx[:len(pfx)-1]
 	}
 
-	if err := storage.CheckPrefix(pfx); err != nil {
+	if err := parser.CheckPrefix(pfx); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to verify prefix %v", err)
 		os.Exit(128)
 	}
-	if _, _, _, err := storage.ParsePrefixKey(pfx); err != nil {
+	if _, _, _, err := parser.ParsePrefixKey(pfx); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
 		os.Exit(128)
 	}

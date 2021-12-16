@@ -7,7 +7,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/quarkvm/crypto"
-	"github.com/ava-labs/quarkvm/storage"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 type BaseTx struct {
@@ -40,7 +40,7 @@ func (b *BaseTx) GetSender() [crypto.PublicKeySize]byte {
 }
 
 func (b *BaseTx) ExecuteBase() error {
-	if err := storage.CheckPrefix(b.Prefix); err != nil {
+	if err := parser.CheckPrefix(b.Prefix); err != nil {
 		return err
 	}
 

@@ -11,7 +11,7 @@ import (
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/quarkvm/crypto"
-	"github.com/ava-labs/quarkvm/storage"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 func TestSetTx(t *testing.T) {
@@ -117,7 +117,7 @@ func TestSetTx(t *testing.T) {
 				},
 			},
 			blockTime: 1,
-			err:       storage.ErrKeyEmpty,
+			err:       parser.ErrKeyEmpty,
 		},
 		{
 			utx: &SetTx{
@@ -127,7 +127,7 @@ func TestSetTx(t *testing.T) {
 				},
 			},
 			blockTime: 1,
-			err:       storage.ErrKeyEmpty,
+			err:       parser.ErrKeyEmpty,
 		},
 		{
 			utx: &SetTx{
@@ -135,10 +135,10 @@ func TestSetTx(t *testing.T) {
 					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
-				Key: bytes.Repeat([]byte{'a'}, storage.MaxKeySize+1),
+				Key: bytes.Repeat([]byte{'a'}, parser.MaxKeySize+1),
 			},
 			blockTime: 1,
-			err:       storage.ErrKeyTooBig,
+			err:       parser.ErrKeyTooBig,
 		},
 		{
 			utx: &SetTx{
@@ -147,7 +147,7 @@ func TestSetTx(t *testing.T) {
 					BlockID: ids.GenerateTestID(),
 				},
 				Key:   []byte("bar"),
-				Value: bytes.Repeat([]byte{'b'}, storage.MaxKeySize+1),
+				Value: bytes.Repeat([]byte{'b'}, parser.MaxKeySize+1),
 			},
 			blockTime: 1,
 			err:       ErrValueTooBig,
@@ -162,7 +162,7 @@ func TestSetTx(t *testing.T) {
 				Key: []byte("bar///"),
 			},
 			blockTime: 1,
-			err:       storage.ErrInvalidDelimiter,
+			err:       parser.ErrInvalidDelimiter,
 		},
 	}
 	for i, tv := range tt {

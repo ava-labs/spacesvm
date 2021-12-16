@@ -19,9 +19,9 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	avago_version "github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/quarkvm/chain"
-	client "github.com/ava-labs/quarkvm/client/v0alpha"
+	"github.com/ava-labs/quarkvm/client"
 	"github.com/ava-labs/quarkvm/crypto"
-	"github.com/ava-labs/quarkvm/storage"
+	"github.com/ava-labs/quarkvm/parser"
 	"github.com/ava-labs/quarkvm/vm"
 	"github.com/fatih/color"
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -228,7 +228,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		ginkgo.By("read back from VM with range query", func() {
 			kvs, err := clients[0].Range(pfx, k)
 			gomega.Ω(err).To(gomega.BeNil())
-			gomega.Ω(kvs[0].Key).To(gomega.Equal(append(append(pfx, storage.Delimiter), k...)))
+			gomega.Ω(kvs[0].Key).To(gomega.Equal(append(append(pfx, parser.Delimiter), k...)))
 			gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
 		})
 	})

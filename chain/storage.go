@@ -9,7 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/quarkvm/storage"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 // 0x0/ (singleton prefix info)
@@ -32,14 +32,14 @@ var lastAccepted = []byte("last_accepted")
 func PrefixInfoKey(prefix []byte) (k []byte) {
 	k = make([]byte, 2+len(prefix))
 	k[0] = infoPrefix
-	k[1] = storage.Delimiter
+	k[1] = parser.Delimiter
 	copy(k[2:], prefix)
 	return k
 }
 
 func PrefixValueKey(prefix []byte, key []byte) (k []byte) {
 	prefixN, keyN := len(prefix), len(key)
-	pfxDelimExists := bytes.HasSuffix(prefix, []byte{storage.Delimiter})
+	pfxDelimExists := bytes.HasSuffix(prefix, []byte{parser.Delimiter})
 
 	n := 2 + prefixN + keyN
 	if !pfxDelimExists {
@@ -48,14 +48,14 @@ func PrefixValueKey(prefix []byte, key []byte) (k []byte) {
 
 	k = make([]byte, n)
 	k[0] = keyPrefix
-	k[1] = storage.Delimiter
+	k[1] = parser.Delimiter
 	cur := 2
 
 	copy(k[cur:], prefix)
 	cur += prefixN
 
 	if !pfxDelimExists {
-		k[cur] = storage.Delimiter
+		k[cur] = parser.Delimiter
 		cur++
 	}
 	if len(key) == 0 {
@@ -69,7 +69,7 @@ func PrefixValueKey(prefix []byte, key []byte) (k []byte) {
 func PrefixTxKey(txID ids.ID) (k []byte) {
 	k = make([]byte, 2+len(txID))
 	k[0] = txPrefix
-	k[1] = storage.Delimiter
+	k[1] = parser.Delimiter
 	copy(k[2:], txID[:])
 	return k
 }
@@ -77,7 +77,7 @@ func PrefixTxKey(txID ids.ID) (k []byte) {
 func PrefixBlockKey(blockID ids.ID) (k []byte) {
 	k = make([]byte, 2+len(blockID))
 	k[0] = blockPrefix
-	k[1] = storage.Delimiter
+	k[1] = parser.Delimiter
 	copy(k[2:], blockID[:])
 	return k
 }
@@ -196,7 +196,7 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 	if len(ret.rangeEnd) > 0 {
 		// set via "WithPrefix"
 		endKey = ret.rangeEnd
-		if !bytes.HasPrefix(endKey, []byte{keyPrefix, storage.Delimiter}) {
+		if !bytes.HasPrefix(endKey, []byte{keyPrefix, parser.Delimiter}) {
 			// if overwritten via "WithRange"
 			endKey = PrefixValueKey(prefix, endKey)
 		}
@@ -216,7 +216,7 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 			kvs = append(kvs, KeyValue{
 				Key: bytes.Replace(
 					curKey,
-					[]byte{keyPrefix, storage.Delimiter},
+					[]byte{keyPrefix, parser.Delimiter},
 					nil,
 					1,
 				),
@@ -237,7 +237,7 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 		}
 
 		kvs = append(kvs, KeyValue{
-			Key:   bytes.Replace(curKey, []byte{keyPrefix, storage.Delimiter}, nil, 1),
+			Key:   bytes.Replace(curKey, []byte{keyPrefix, parser.Delimiter}, nil, 1),
 			Value: cursor.Value(),
 		})
 	}
@@ -260,7 +260,7 @@ func (op *Op) applyOpts(opts []OpOption) {
 
 func WithPrefix() OpOption {
 	return func(op *Op) {
-		op.rangeEnd = storage.GetRangeEnd(op.key)
+		op.rangeEnd = parser.GetRangeEnd(op.key)
 	}
 }
 
