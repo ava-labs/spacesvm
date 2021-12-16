@@ -237,6 +237,9 @@ type Op struct {
 	key        []byte
 	rangeEnd   []byte
 	rangeLimit uint32
+
+	pollTx     bool
+	prefixInfo []byte
 }
 
 type OpOption func(*Op)
@@ -260,4 +263,14 @@ func WithRangeEnd(end []byte) OpOption {
 
 func WithRangeLimit(limit uint32) OpOption {
 	return func(op *Op) { op.rangeLimit = limit }
+}
+
+// "true" to poll transaction for its confirmation.
+func WithPollTx() OpOption {
+	return func(op *Op) { op.pollTx = true }
+}
+
+// Non-empty to print out prefix information.
+func WithPrefixInfo(pfx []byte) OpOption {
+	return func(op *Op) { op.prefixInfo = pfx }
 }

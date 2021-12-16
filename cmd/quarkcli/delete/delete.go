@@ -141,32 +141,14 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 		Value: nil,
 	}
 
-	txID, err := client.MineSignIssueTx(cli, requestTimeout, utx, priv)
-	if err != nil {
-		return err
-	}
-
-	color.Green("issued transaction %s (now polling)", txID)
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	confirmed, err := cli.PollTx(ctx, txID)
-	cancel()
-	if err != nil {
-		return err
-	}
-	if confirmed {
-		color.Green("transaction %s confirmed", txID)
-	} else {
-		color.Yellow("transaction %s not confirmed", txID)
-	}
-
+	opts := []client.OpOption{client.WithPollTx()}
 	if prefixInfo {
-		info, err := cli.PrefixInfo(pfx)
-		if err != nil {
-			color.Red("cannot get prefix info %v", err)
-		}
-		color.Blue("prefix %q info %+v", pfx, info)
+		opts = append(opts, client.WithPrefixInfo(pfx))
 	}
-	return nil
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	_, err = client.MineSignIssueTx(ctx, cli, utx, priv, opts...)
+	cancel()
+	return err
 }
 
 func getDeleteOp(args []string) (pfx []byte, key []byte) {

@@ -5,7 +5,6 @@ package client
 
 import (
 	"context"
-	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/quarkvm/chain"
@@ -16,14 +15,16 @@ import (
 // Mines against the unsigned transaction first.
 // And signs and issues the transaction.
 func MineSignIssueTx(
+	ctx context.Context,
 	cli Client,
-	timeout time.Duration,
 	utx chain.UnsignedTransaction,
 	priv *crypto.PrivateKey,
+	opts ...OpOption,
 ) (txID ids.ID, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ret := &Op{}
+	ret.applyOpts(opts)
+
 	mtx, err := cli.Mine(ctx, utx)
-	cancel()
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -46,6 +47,28 @@ func MineSignIssueTx(
 	txID, err = cli.IssueTx(tx.Bytes())
 	if err != nil {
 		return ids.Empty, err
+	}
+
+	if ret.pollTx {
+		color.Green("issued transaction %s (now polling)", txID)
+		confirmed, err := cli.PollTx(ctx, txID)
+		if err != nil {
+			return ids.Empty, err
+		}
+		if !confirmed {
+			color.Yellow("transaction %s not confirmed", txID)
+		} else {
+			color.Green("transaction %s confirmed", txID)
+		}
+	}
+
+	if len(ret.prefixInfo) > 0 {
+		info, err := cli.PrefixInfo(ret.prefixInfo)
+		if err != nil {
+			color.Red("cannot get prefix info %v", err)
+			return ids.Empty, err
+		}
+		color.Blue("prefix %q info %+v", ret.prefixInfo, info)
 	}
 
 	return txID, nil
