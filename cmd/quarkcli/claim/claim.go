@@ -182,6 +182,7 @@ func getClaimOp(args []string) (pfx []byte) {
 		pfx = pfx[:len(pfx)-1]
 	}
 
+	// check here first before parsing in case "pfx" is empty
 	if err := parser.CheckPrefix(pfx); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to verify prefix %v", err)
 		os.Exit(128)

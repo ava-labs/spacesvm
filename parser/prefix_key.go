@@ -56,17 +56,30 @@ var noPrefixEnd = []byte{0}
 
 // ParsePrefixKey parses the given string with delimiter to split prefix and key.
 // "end" is the range end that can be used for the prefix query with "k".
-func ParsePrefixKey(s []byte) (pfx []byte, k []byte, end []byte, err error) {
+func ParsePrefixKey(s []byte, opts ...OpOption) (pfx []byte, k []byte, end []byte, err error) {
 	idx := bytes.IndexRune(s, rune(Delimiter))
 	switch {
 	case idx == -1: // "foo"
-		pfx = append(s, Delimiter)
-	case idx == len(s)-1: // "foo/"
 		pfx = s
-	default: // "a/b", then "a/" becomes prefix, "b" becomes prefix
+	case idx == len(s)-1: // "foo/"
+		pfx = s[:len(s)-1]
+	default: // "a/b", then "a" becomes prefix, "b" becomes prefix
 		splits := bytes.Split(s, []byte{Delimiter})
-		pfx = append(splits[0], Delimiter)
+		pfx = splits[0]
 		k = splits[1]
+	}
+
+	ret := &Op{}
+	ret.applyOpts(opts)
+	if ret.checkPrefix {
+		if err = CheckPrefix(pfx); err != nil {
+			return nil, nil, nil, err
+		}
+	}
+	if ret.checkKey {
+		if err = CheckKey(k); err != nil {
+			return nil, nil, nil, err
+		}
 	}
 
 	// next lexicographical key (range end) for prefix queries
@@ -93,4 +106,29 @@ func GetRangeEnd(k []byte) (end []byte) {
 		end = noPrefixEnd
 	}
 	return end
+}
+
+type Op struct {
+	checkPrefix bool
+	checkKey    bool
+}
+
+type OpOption func(*Op)
+
+func (op *Op) applyOpts(opts []OpOption) {
+	for _, opt := range opts {
+		opt(op)
+	}
+}
+
+func WithCheckPrefix() OpOption {
+	return func(op *Op) {
+		op.checkPrefix = true
+	}
+}
+
+func WithCheckKey() OpOption {
+	return func(op *Op) {
+		op.checkKey = true
+	}
 }

@@ -6,6 +6,7 @@ package parser
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -77,50 +78,96 @@ func TestParsePrefixKey(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
-		s   []byte
-		pfx []byte
-		k   []byte
-		end []byte
-		err error
+		s    []byte
+		opts []OpOption
+		pfx  []byte
+		k    []byte
+		end  []byte
+		err  error
 	}{
 		{
-			s:   []byte("foo"),
-			pfx: []byte("foo/"),
-			k:   nil,
-			end: noPrefixEnd,
-			err: nil,
+			s:    []byte("foo"),
+			opts: nil,
+			pfx:  []byte("foo"),
+			k:    nil,
+			end:  noPrefixEnd,
+			err:  nil,
 		},
 		{
-			s:   []byte("foo/"),
-			pfx: []byte("foo/"),
-			k:   nil,
-			end: noPrefixEnd,
-			err: nil,
+			s:    []byte("a/b"),
+			opts: nil,
+			pfx:  []byte("a"),
+			k:    []byte("b"),
+			end:  []byte("c"),
+			err:  nil,
 		},
 		{
-			s:   []byte("a/b"),
-			pfx: []byte("a/"),
-			k:   []byte("b"),
-			end: []byte("c"),
-			err: nil,
+			s:    []byte("foo/1"),
+			opts: nil,
+			pfx:  []byte("foo"),
+			k:    []byte("1"),
+			end:  []byte("2"),
+			err:  nil,
 		},
 		{
-			s:   []byte("foo/1"),
-			pfx: []byte("foo/"),
-			k:   []byte("1"),
-			end: []byte("2"),
-			err: nil,
+			s:    []byte("foo/hello"),
+			opts: nil,
+			pfx:  []byte("foo"),
+			k:    []byte("hello"),
+			end:  []byte("hellp"),
+			err:  nil,
 		},
-		{
-			s:   []byte("foo/hello"),
-			pfx: []byte("foo/"),
-			k:   []byte("hello"),
-			end: []byte("hellp"),
-			err: nil,
+		{ // no check, so no error
+			s:    []byte(strings.Repeat("a", MaxPrefixSize+1) + "/foo"),
+			opts: nil,
+			pfx:  []byte(strings.Repeat("a", MaxPrefixSize+1)),
+			k:    []byte("foo"),
+			end:  []byte("fop"),
+			err:  nil,
+		},
+		{ // should error with max key when option is set with "WithCheckPrefix"
+			s:    []byte(strings.Repeat("a", MaxPrefixSize+1) + "/foo"),
+			opts: []OpOption{WithCheckPrefix(), WithCheckKey()},
+			pfx:  nil,
+			k:    nil,
+			end:  nil,
+			err:  ErrPrefixTooBig,
+		},
+		{ // no check, so no error
+			s:    []byte("foo/" + strings.Repeat("a", MaxKeySize+1)),
+			opts: nil,
+			pfx:  []byte("foo"),
+			k:    []byte(strings.Repeat("a", MaxKeySize+1)),
+			end:  []byte(strings.Repeat("a", MaxKeySize) + "b"),
+			err:  nil,
+		},
+		{ // should error with max key when option is set with "WithCheckKey"
+			s:    []byte("foo/" + strings.Repeat("a", MaxKeySize+1)),
+			opts: []OpOption{WithCheckPrefix(), WithCheckKey()},
+			pfx:  nil,
+			k:    nil,
+			end:  nil,
+			err:  ErrKeyTooBig,
+		},
+		{ // empty with no check should not error
+			s:    []byte(""),
+			opts: nil,
+			pfx:  nil,
+			k:    nil,
+			end:  noPrefixEnd,
+			err:  nil,
+		},
+		{ // empty should error if check is enabled
+			s:    []byte(""),
+			opts: []OpOption{WithCheckPrefix(), WithCheckKey()},
+			pfx:  nil,
+			k:    nil,
+			end:  nil,
+			err:  ErrPrefixEmpty,
 		},
 	}
 	for i, tv := range tt {
-		pfx, k, end, err := ParsePrefixKey(tv.s)
+		pfx, k, end, err := ParsePrefixKey(tv.s, tv.opts...)
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: err expected %v, got %v", i, tv.err, err)
 		}

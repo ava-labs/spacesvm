@@ -196,17 +196,13 @@ func getSetOp(args []string) (pfx []byte, key []byte, val []byte) {
 	pfxKey := args[0]
 
 	var err error
-	pfx, key, _, err = parser.ParsePrefixKey([]byte(pfxKey))
+	pfx, key, _, err = parser.ParsePrefixKey(
+		[]byte(pfxKey),
+		parser.WithCheckPrefix(),
+		parser.WithCheckKey(),
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
-		os.Exit(128)
-	}
-	if err := parser.CheckPrefix(pfx); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to verify prefix %v", err)
-		os.Exit(128)
-	}
-	if err := parser.CheckKey(key); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to verify key %v", err)
 		os.Exit(128)
 	}
 
