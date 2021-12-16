@@ -45,7 +45,7 @@ func init() {
 		&requestTimeout,
 		"request-timeout",
 		30*time.Second,
-		"set it to 0 to not wait for transaction confirmation",
+		"timeout for transaction issuance and confirmation",
 	)
 	flag.IntVar(
 		&vms,
