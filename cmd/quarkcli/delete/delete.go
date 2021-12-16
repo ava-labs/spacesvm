@@ -141,34 +141,13 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 		Value: nil,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	mtx, err := cli.Mine(ctx, utx)
-	cancel()
-	if err != nil {
-		return err
-	}
-
-	b, err := chain.UnsignedBytes(mtx)
-	if err != nil {
-		return err
-	}
-	sig, err := priv.Sign(b)
-	if err != nil {
-		return err
-	}
-	tx := chain.NewTx(mtx, sig)
-	if err := tx.Init(); err != nil {
-		return err
-	}
-
-	color.Yellow("issuing tx %s with block ID %s", tx.ID(), mtx.GetBlockID())
-	txID, err := cli.IssueTx(tx.Bytes())
+	txID, err := client.MineSignIssueTx(cli, requestTimeout, utx, priv)
 	if err != nil {
 		return err
 	}
 
 	color.Green("issued transaction %s (now polling)", txID)
-	ctx, cancel = context.WithTimeout(context.Background(), requestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 	confirmed, err := cli.PollTx(ctx, txID)
 	cancel()
 	if err != nil {
