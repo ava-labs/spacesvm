@@ -48,10 +48,16 @@ func (svc *Service) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxRe
 	if _, err := chain.Unmarshal(args.Tx, tx); err != nil {
 		return err
 	}
+
+	// otherwise, unexported tx.id field is empty
+	if err := tx.Init(); err != nil {
+		reply.Success = false
+		return err
+	}
 	reply.TxID = tx.ID()
 
 	err := svc.vm.Submit(tx)
-	reply.Success = err != nil
+	reply.Success = err == nil
 	return err
 }
 

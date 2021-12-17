@@ -6,16 +6,13 @@ package get
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/ava-labs/avalanchego/utils/rpc"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/vm"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 func init() {
@@ -117,7 +114,7 @@ COMMENT
 		&requestTimeout,
 		"request-timeout",
 		30*time.Second,
-		"set it to 0 to not wait for transaction confirmation",
+		"timeout for transaction issuance and confirmation",
 	)
 	cmd.PersistentFlags().Uint32Var(
 		&limit,
@@ -143,42 +140,30 @@ COMMENT
 // TODO: move all this to a separate client code
 func getFunc(cmd *cobra.Command, args []string) error {
 	pfx, key, rangeEnd := getGetOp(args, withPrefix)
-	if !strings.HasPrefix(endpoint, "/") {
-		endpoint = "/" + endpoint
-	}
+
 	color.Blue("creating requester with URL %s and endpoint %q for prefix %q and key %q", url, endpoint, pfx, key)
-	requester := rpc.NewEndpointRequester(
-		url,
-		endpoint,
-		"quarkvm",
-		requestTimeout,
-	)
+	cli := client.New(url, endpoint, requestTimeout)
 
-	color.Yellow("sending range query %s with BlockID (%s): %v")
-
-	resp := new(vm.RangeReply)
-	if err := requester.SendRequest(
-		"range",
-		&vm.RangeArgs{
-			Prefix:   pfx,
-			Key:      key,
-			RangeEnd: rangeEnd,
-			Limit:    limit,
-		},
-		resp,
-	); err != nil {
-		color.Red("failed to issue transaction %v", err)
+	opts := []client.OpOption{}
+	if len(rangeEnd) > 0 {
+		opts = append(opts, client.WithRangeEnd(rangeEnd))
+	}
+	if limit > 0 {
+		opts = append(opts, client.WithRangeLimit(limit))
+	}
+	kvs, err := cli.Range(pfx, key, opts...)
+	if err != nil {
 		return err
 	}
 
 	// TODO: suppport custom output types (e.g., JSON)
-	color.Green("range success %d key-values", len(resp.KeyValues))
-	for _, kv := range resp.KeyValues {
+	color.Green("range success %d key-values", len(kvs))
+	for _, kv := range kvs {
 		fmt.Printf("key: %q, value: %q\n", kv.Key, kv.Value)
 	}
 
 	if prefixInfo {
-		info, err := client.GetPrefixInfo(requester, pfx)
+		info, err := cli.PrefixInfo(pfx)
 		if err != nil {
 			color.Red("cannot get prefix info %v", err)
 		}
@@ -197,11 +182,16 @@ func getGetOp(args []string, withPrefix bool) (pfx []byte, key []byte, rangeEnd 
 	pfxKey := args[0]
 
 	var err error
-	pfx, key, rangeEnd, err = chain.ParseKey([]byte(pfxKey))
+	pfx, key, rangeEnd, err = parser.ParsePrefixKey(
+		[]byte(pfxKey),
+		parser.WithCheckPrefix(),
+		parser.WithCheckKey(),
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
 		os.Exit(128)
 	}
+
 	if !withPrefix {
 		rangeEnd = nil
 	}

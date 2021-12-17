@@ -25,8 +25,10 @@ func init() {
 }
 
 var (
-	workDir     string
-	genesisFile string
+	workDir       string
+	genesisFile   string
+	minDifficulty uint64
+	minBlockCost  uint64
 )
 
 // NewCommand implements "quark-cli genesis" command.
@@ -42,6 +44,18 @@ func NewCommand() *cobra.Command {
 		filepath.Join(workDir, "genesis.json"),
 		"genesis file path",
 	)
+	cmd.PersistentFlags().Uint64Var(
+		&minDifficulty,
+		"min-difficulty",
+		chain.MinDifficulty,
+		"minimum difficulty for mining",
+	)
+	cmd.PersistentFlags().Uint64Var(
+		&minBlockCost,
+		"min-block-cost",
+		chain.MinBlockCost,
+		"minimum block cost",
+	)
 	return cmd
 }
 
@@ -52,8 +66,8 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	// the execution context logic may over/underflow
 	blk := &chain.StatefulBlock{
 		Tmstmp:     time.Now().Unix(),
-		Difficulty: chain.MinDifficulty,
-		Cost:       chain.MinBlockCost,
+		Difficulty: minDifficulty,
+		Cost:       minBlockCost,
 	}
 	b, err := chain.Marshal(blk)
 	if err != nil {

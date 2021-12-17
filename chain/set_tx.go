@@ -7,6 +7,7 @@ import (
 	"bytes"
 
 	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 var _ UnsignedTransaction = &SetTx{}
@@ -26,16 +27,8 @@ type SetTx struct {
 
 func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	// assume prefix is already validated via "BaseTx"
-	// TODO: separate helper for verifying prefix/key
-	if len(s.Key) == 0 {
-		return ErrKeyEmpty
-	}
-	if len(s.Key) > MaxKeyLength {
-		return ErrKeyTooBig
-	}
-	// key must not contain the delimiter at all
-	if bytes.ContainsRune(s.Key, rune(delimiter)) {
-		return ErrInvalidPrefixDelimiter
+	if err := parser.CheckKey(s.Key); err != nil {
+		return err
 	}
 	if len(s.Value) > MaxValueLength {
 		return ErrValueTooBig

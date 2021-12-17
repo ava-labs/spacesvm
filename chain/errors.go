@@ -24,8 +24,6 @@ var (
 	ErrDuplicateTx       = errors.New("duplicate transaction")
 
 	// Execution Correctness
-	ErrKeyEmpty          = errors.New("key cannot be empty")
-	ErrKeyTooBig         = errors.New("key too big")
 	ErrValueTooBig       = errors.New("value too big")
 	ErrPrefixExpired     = errors.New("prefix expired")
 	ErrKeyMissing        = errors.New("key missing")

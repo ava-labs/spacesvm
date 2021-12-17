@@ -62,10 +62,10 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		nextCost += uint64(chain.BlockTarget - secondsSinceLast)
 	} else {
 		possibleDiff := uint64(secondsSinceLast - chain.BlockTarget)
-		if possibleDiff < nextCost-chain.MinBlockCost {
+		if possibleDiff < nextCost-vm.minBlockCost {
 			nextCost -= possibleDiff
 		} else {
-			nextCost = chain.MinBlockCost
+			nextCost = vm.minBlockCost
 		}
 	}
 
@@ -75,10 +75,10 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		nextDifficulty++
 	} else if recentTxs < chain.TargetTransactions {
 		elapsedWindows := uint64(secondsSinceLast/chain.LookbackWindow) + 1 // account for current window being less
-		if elapsedWindows < nextDifficulty-chain.MinDifficulty {
+		if elapsedWindows < nextDifficulty-vm.minDifficulty {
 			nextDifficulty -= elapsedWindows
 		} else {
-			nextDifficulty = chain.MinDifficulty
+			nextDifficulty = vm.minDifficulty
 		}
 	}
 

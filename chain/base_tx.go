@@ -4,11 +4,10 @@
 package chain
 
 import (
-	"bytes"
-
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/quarkvm/crypto"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 type BaseTx struct {
@@ -41,16 +40,8 @@ func (b *BaseTx) GetSender() [crypto.PublicKeySize]byte {
 }
 
 func (b *BaseTx) ExecuteBase() error {
-	// TODO: separate helper for verifying prefix/key
-	if len(b.Prefix) == 0 {
-		return ErrPrefixEmpty
-	}
-	if len(b.Prefix) > MaxPrefixSize {
-		return ErrPrefixTooBig
-	}
-	// prefix must not contain the delimiter at all
-	if bytes.ContainsRune(b.Prefix, rune(delimiter)) {
-		return ErrInvalidPrefixDelimiter
+	if err := parser.CheckPrefix(b.Prefix); err != nil {
+		return err
 	}
 
 	// "len(b.Sender) == 0" does not check zeroed [32]byte array

@@ -11,16 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/rpc"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/client"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
-	"github.com/ava-labs/quarkvm/pow"
-	"github.com/ava-labs/quarkvm/vm"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 func init() {
@@ -92,7 +89,7 @@ COMMENT
 		&requestTimeout,
 		"request-timeout",
 		30*time.Second,
-		"set it to 0 to not wait for transaction confirmation",
+		"timeout for transaction issuance and confirmation",
 	)
 	cmd.PersistentFlags().BoolVar(
 		&prefixInfo,
@@ -101,87 +98,6 @@ COMMENT
 		"'true' to print out the prefix owner information",
 	)
 	return cmd
-}
-
-func currBlock(requester rpc.EndpointRequester) (ids.ID, error) {
-	resp := new(vm.CurrBlockReply)
-	if err := requester.SendRequest(
-		"currBlock",
-		&vm.CurrBlockArgs{},
-		resp,
-	); err != nil {
-		color.Red("failed to get curr block %v", err)
-		return ids.ID{}, err
-	}
-	return resp.BlockID, nil
-}
-
-func validBlockID(requester rpc.EndpointRequester, blkID ids.ID) (bool, error) {
-	resp := new(vm.ValidBlockIDReply)
-	if err := requester.SendRequest(
-		"validBlockID",
-		&vm.ValidBlockIDArgs{BlockID: blkID},
-		resp,
-	); err != nil {
-		color.Red("failed to check valid block ID %v", err)
-		return false, err
-	}
-	return resp.Valid, nil
-}
-
-func difficultyEstimate(requester rpc.EndpointRequester) (uint64, error) {
-	resp := new(vm.DifficultyEstimateReply)
-	if err := requester.SendRequest(
-		"difficultyEstimate",
-		&vm.DifficultyEstimateArgs{},
-		resp,
-	); err != nil {
-		color.Red("failed to get difficulty %v", err)
-		return 0, err
-	}
-	return resp.Difficulty, nil
-}
-
-func mine(
-	ctx context.Context,
-	requester rpc.EndpointRequester,
-	utx chain.UnsignedTransaction,
-) (chain.UnsignedTransaction, error) {
-	for ctx.Err() == nil {
-		cbID, err := currBlock(requester)
-		if err != nil {
-			return nil, err
-		}
-		utx.SetBlockID(cbID)
-
-		graffiti := uint64(0)
-		for ctx.Err() == nil {
-			v, err := validBlockID(requester, cbID)
-			if err != nil {
-				return nil, err
-			}
-			if !v {
-				color.Yellow("%v is no longer a valid block id", cbID)
-				break
-			}
-			utx.SetGraffiti(graffiti)
-			b, err := chain.UnsignedBytes(utx)
-			if err != nil {
-				return nil, err
-			}
-			d := pow.Difficulty(b)
-			est, err := difficultyEstimate(requester)
-			if err != nil {
-				return nil, err
-			}
-			if d >= est {
-				return utx, nil
-			}
-			graffiti++
-		}
-		// Get new block hash if no longer valid
-	}
-	return nil, ctx.Err()
 }
 
 // TODO: move all this to a separate client code
@@ -197,12 +113,7 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 		endpoint = "/" + endpoint
 	}
 	color.Blue("creating requester with URL %s and endpoint %q for prefix %q", url, endpoint, pfx)
-	requester := rpc.NewEndpointRequester(
-		url,
-		endpoint,
-		"quarkvm",
-		requestTimeout,
-	)
+	cli := client.New(url, endpoint, requestTimeout)
 
 	utx := &chain.ClaimTx{
 		BaseTx: &chain.BaseTx{
@@ -211,77 +122,14 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	// TODO: make this a shared lib
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	mtx, err := mine(ctx, requester, utx)
-	cancel()
-	if err != nil {
-		return err
-	}
-
-	b, err := chain.UnsignedBytes(mtx)
-	if err != nil {
-		return err
-	}
-	sig, err := priv.Sign(b)
-	if err != nil {
-		return err
-	}
-	tx := chain.NewTx(mtx, sig)
-	if err := tx.Init(); err != nil {
-		return err
-	}
-	color.Yellow("Submitting tx %s with BlockID (%s): %v", tx.ID(), mtx.GetBlockID(), tx)
-
-	resp := new(vm.IssueTxReply)
-	if err := requester.SendRequest(
-		"issueTx",
-		&vm.IssueTxArgs{Tx: tx.Bytes()},
-		resp,
-	); err != nil {
-		color.Red("failed to issue transaction %v", err)
-		return err
-	}
-
-	txID := resp.TxID
-	color.Green("issued transaction %s (success %v)", txID, resp.Success)
-	if !resp.Success {
-		return fmt.Errorf("tx %v failed", txID)
-	}
-
-	color.Yellow("polling transaction %q", txID)
-	ctx, cancel = context.WithTimeout(context.Background(), requestTimeout)
-	defer cancel()
-done:
-	for ctx.Err() == nil {
-		select {
-		case <-time.After(1 * time.Second):
-		case <-ctx.Done():
-			break done
-		}
-
-		resp := new(vm.CheckTxReply)
-		if err := requester.SendRequest(
-			"checkTx",
-			&vm.CheckTxArgs{TxID: txID},
-			resp,
-		); err != nil {
-			color.Red("polling transaction failed %v", err)
-		}
-		if resp.Confirmed {
-			color.Yellow("confirmed transaction %q", txID)
-			break
-		}
-	}
-
+	opts := []client.OpOption{client.WithPollTx()}
 	if prefixInfo {
-		info, err := client.GetPrefixInfo(requester, pfx)
-		if err != nil {
-			color.Red("cannot get prefix info %v", err)
-		}
-		color.Blue("prefix %q info %+v", pfx, info)
+		opts = append(opts, client.WithPrefixInfo(pfx))
 	}
-	return nil
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	_, err = client.MineSignIssueTx(ctx, cli, utx, priv, opts...)
+	cancel()
+	return err
 }
 
 func getClaimOp(args []string) (pfx []byte) {
@@ -295,7 +143,12 @@ func getClaimOp(args []string) (pfx []byte) {
 		pfx = pfx[:len(pfx)-1]
 	}
 
-	if _, _, _, err := chain.ParseKey(pfx); err != nil {
+	// check here first before parsing in case "pfx" is empty
+	if err := parser.CheckPrefix(pfx); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to verify prefix %v", err)
+		os.Exit(128)
+	}
+	if _, _, _, err := parser.ParsePrefixKey(pfx); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
 		os.Exit(128)
 	}
