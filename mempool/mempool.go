@@ -6,6 +6,7 @@ package mempool
 import (
 	"container/heap"
 	"fmt"
+	"sync"
 
 	"github.com/ava-labs/avalanchego/ids"
 
@@ -85,6 +86,7 @@ func (th *internalTxHeap) Has(id ids.ID) bool {
 }
 
 type Mempool struct {
+	mu      sync.RWMutex
 	maxSize int
 	maxHeap *internalTxHeap
 	minHeap *internalTxHeap
@@ -109,6 +111,8 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 	// Optimistically add tx to mempool
 	difficulty := tx.Difficulty()
 	oldLen := th.Len()
+
+	th.mu.Lock()
 	heap.Push(th.maxHeap, &txEntry{
 		id:         txID,
 		difficulty: difficulty,
@@ -121,6 +125,8 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 		tx:         tx,
 		index:      oldLen,
 	})
+	th.mu.Unlock()
+
 	// Remove the lowest paying tx
 	//
 	// Note: we do this after adding the new transaction in case it is the new
@@ -136,19 +142,25 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 
 // Assumes there is non-zero items in [Mempool]
 func (th *Mempool) PeekMax() (*chain.Transaction, uint64) {
+	th.mu.RLock()
 	txEntry := th.maxHeap.items[0]
+	th.mu.RUnlock()
 	return txEntry.tx, txEntry.difficulty
 }
 
 // Assumes there is non-zero items in [Mempool]
 func (th *Mempool) PeekMin() (*chain.Transaction, uint64) {
+	th.mu.RLock()
 	txEntry := th.minHeap.items[0]
+	th.mu.RUnlock()
 	return txEntry.tx, txEntry.difficulty
 }
 
 // Assumes there is non-zero items in [Mempool]
 func (th *Mempool) PopMax() (*chain.Transaction, uint64) {
+	th.mu.RLock()
 	item := th.maxHeap.items[0]
+	th.mu.RUnlock()
 	return th.Remove(item.id), item.difficulty
 }
 
@@ -158,6 +170,9 @@ func (th *Mempool) PopMin() *chain.Transaction {
 }
 
 func (th *Mempool) Remove(id ids.ID) *chain.Transaction {
+	th.mu.Lock()
+	defer th.mu.Unlock()
+
 	maxEntry, ok := th.maxHeap.Get(id)
 	if !ok {
 		return nil
@@ -175,18 +190,22 @@ func (th *Mempool) Remove(id ids.ID) *chain.Transaction {
 
 // TODO: remember to prune
 func (th *Mempool) Prune(validHashes ids.Set) {
+	th.mu.RLock()
 	toRemove := []ids.ID{}
 	for _, txE := range th.maxHeap.items {
 		if !validHashes.Contains(txE.tx.GetBlockID()) {
 			toRemove = append(toRemove, txE.id)
 		}
 	}
+	th.mu.RUnlock()
 	for _, txID := range toRemove {
 		th.Remove(txID)
 	}
 }
 
 func (th *Mempool) Len() int {
+	th.mu.RLock()
+	defer th.mu.RUnlock()
 	return th.maxHeap.Len()
 }
 
@@ -199,5 +218,7 @@ func (th *Mempool) Get(id ids.ID) (*chain.Transaction, bool) {
 }
 
 func (th *Mempool) Has(id ids.ID) bool {
+	th.mu.RLock()
+	defer th.mu.RUnlock()
 	return th.maxHeap.Has(id)
 }

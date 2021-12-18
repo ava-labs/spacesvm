@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/manager"
 	"github.com/ava-labs/avalanchego/database/versiondb"
@@ -29,6 +30,9 @@ import (
 const (
 	Name = "quarkvm"
 
+	defaultWorkInterval     = 100 * time.Millisecond
+	defaultRegossipInterval = time.Second
+
 	mempoolSize = 1024
 )
 
@@ -38,9 +42,14 @@ var (
 )
 
 type VM struct {
-	ctx     *snow.Context
-	db      database.Database
-	mempool *mempool.Mempool
+	ctx *snow.Context
+	db  database.Database
+
+	workInterval     time.Duration
+	regossipInterval time.Duration
+	mempool          *mempool.Mempool
+	appSender        common.AppSender
+	gossipedTxs      *cache.LRU
 
 	// Block ID --> Block
 	// Each element is a block that passed verification but
@@ -48,13 +57,21 @@ type VM struct {
 	verifiedBlocks map[ids.ID]*chain.StatelessBlock
 
 	toEngine chan<- common.Message
+	// signaled when "BuildBlock" is triggered by the engine
+	blockBuilder chan struct{}
 
 	preferred    ids.ID
 	lastAccepted ids.ID
 
 	minDifficulty uint64
 	minBlockCost  uint64
+
+	stopc         chan struct{}
+	donecRun      chan struct{}
+	donecRegossip chan struct{}
 }
+
+const gossipedTxsLRUSize = 512
 
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Initialize(
@@ -65,15 +82,25 @@ func (vm *VM) Initialize(
 	configBytes []byte,
 	toEngine chan<- common.Message,
 	_ []*common.Fx,
-	_ common.AppSender,
+	appSender common.AppSender,
 ) error {
 	log.Info("initializing quarkvm", "version", version.Version)
 
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
+
+	// TODO: make this configurable via genesis
+	vm.workInterval = defaultWorkInterval
+	vm.regossipInterval = defaultRegossipInterval
+
 	vm.mempool = mempool.New(mempoolSize)
+	vm.appSender = appSender
+	vm.gossipedTxs = &cache.LRU{Size: gossipedTxsLRUSize}
+
 	vm.verifiedBlocks = make(map[ids.ID]*chain.StatelessBlock)
+
 	vm.toEngine = toEngine
+	vm.blockBuilder = make(chan struct{}, 1)
 
 	// Try to load last accepted
 	has, err := chain.HasLastAccepted(vm.db)
@@ -112,6 +139,13 @@ func (vm *VM) Initialize(
 	vm.preferred, vm.lastAccepted = gBlkID, gBlkID
 	vm.minDifficulty, vm.minBlockCost = genesisBlk.Difficulty, genesisBlk.Cost
 	log.Info("initialized quarkvm from genesis", "block", gBlkID)
+
+	vm.stopc = make(chan struct{})
+	vm.donecRun = make(chan struct{})
+	vm.donecRegossip = make(chan struct{})
+
+	go vm.run()
+	go vm.regossip()
 	return nil
 }
 
@@ -127,6 +161,9 @@ func (vm *VM) Bootstrapped() error {
 
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Shutdown() error {
+	close(vm.stopc)
+	<-vm.donecRun
+	<-vm.donecRegossip
 	if vm.ctx == nil {
 		return nil
 	}
@@ -173,12 +210,6 @@ func (vm *VM) AppRequestFailed(nodeID ids.ShortID, requestID uint32) error {
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"
 func (vm *VM) AppResponse(nodeID ids.ShortID, requestID uint32, response []byte) error {
 	// (currently) no app-specific messages
-	return nil
-}
-
-// implements "snowmanblock.ChainVM.commom.VM.AppHandler"
-func (vm *VM) AppGossip(nodeID ids.ShortID, msg []byte) error {
-	// TODO: gossip txs
 	return nil
 }
 
@@ -238,39 +269,60 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 }
 
 // implements "snowmanblock.ChainVM"
+// called via "avalanchego" node over RPC
 func (vm *VM) BuildBlock() (snowman.Block, error) {
-	return chain.BuildBlock(vm, vm.preferred)
+	log.Debug("BuildBlock triggered")
+	blk, err := chain.BuildBlock(vm, vm.preferred)
+	if err != nil {
+		log.Warn("BuildBlock failed", "error", err)
+	} else {
+		log.Debug("BuildBlock success", "blockId", blk.ID())
+	}
+	select {
+	case vm.blockBuilder <- struct{}{}:
+	default:
+	}
+	return blk, err
 }
 
-func (vm *VM) Submit(tx *chain.Transaction) error {
+func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
+	blk, err := vm.GetBlock(vm.preferred)
+	if err != nil {
+		return []error{err}
+	}
+	now := time.Now().Unix()
+	ctx, err := vm.ExecutionContext(now, blk.(*chain.StatelessBlock))
+	if err != nil {
+		return []error{err}
+	}
+	vdb := versiondb.New(vm.db)
+	defer vdb.Close() // TODO: need to do everywhere?
+
+	for _, tx := range txs {
+		if serr := vm.submit(tx, vdb, now, ctx); serr != nil {
+			log.Debug("failed to submit transaction",
+				"tx", tx.ID(),
+				"error", serr,
+			)
+			errs = append(errs, serr)
+			continue
+		}
+		vdb.Abort()
+	}
+	return errs
+}
+
+func (vm *VM) submit(tx *chain.Transaction, db database.Database, blkTime int64, ctx *chain.Context) error {
 	if err := tx.Init(); err != nil {
 		return err
 	}
 	if err := tx.ExecuteBase(); err != nil {
 		return err
 	}
-	blk, err := vm.GetBlock(vm.preferred)
-	if err != nil {
+	if err := tx.Execute(db, blkTime, ctx); err != nil {
 		return err
 	}
-	now := time.Now().Unix()
-	context, err := vm.ExecutionContext(now, blk.(*chain.StatelessBlock))
-	if err != nil {
-		return err
-	}
-	vdb := versiondb.New(vm.db)
-	defer vdb.Close() // TODO: need to do everywhere?
-	if err := tx.Execute(vdb, now, context); err != nil {
-		return err
-	}
-	if added := vm.mempool.Add(tx); !added {
-		// Don't gossip if not added
-		return nil
-	}
-
-	// TODO: do on a block timer
-	// TODO: wait to gossip if can create a block
-	vm.notifyBlockReady()
+	vm.mempool.Add(tx)
 	return nil
 }
 
@@ -286,12 +338,4 @@ func (vm *VM) SetPreference(id ids.ID) error {
 // replaces "core.SnowmanVM.LastAccepted"
 func (vm *VM) LastAccepted() (ids.ID, error) {
 	return vm.lastAccepted, nil
-}
-
-func (vm *VM) notifyBlockReady() {
-	select {
-	case vm.toEngine <- common.PendingTxs:
-	default:
-		log.Debug("dropping message to consensus engine")
-	}
 }

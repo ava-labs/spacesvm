@@ -5,6 +5,7 @@ package vm
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -56,9 +57,15 @@ func (svc *Service) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxRe
 	}
 	reply.TxID = tx.ID()
 
-	err := svc.vm.Submit(tx)
-	reply.Success = err == nil
-	return err
+	errs := svc.vm.Submit(tx)
+	reply.Success = len(errs) == 0
+	if reply.Success {
+		return nil
+	}
+	if len(errs) == 1 {
+		return errs[0]
+	}
+	return fmt.Errorf("%v", errs)
 }
 
 type CheckTxArgs struct {
@@ -168,7 +175,7 @@ type RangeReply struct {
 }
 
 func (svc *Service) Range(_ *http.Request, args *RangeArgs, reply *RangeReply) (err error) {
-	log.Info("range query for key %q and range end %q", args.Key, args.RangeEnd)
+	log.Debug("range query", "key", string(args.Key), "rangeEnd", string(args.RangeEnd))
 	opts := make([]chain.OpOption, 0)
 	if len(args.RangeEnd) > 0 {
 		opts = append(opts, chain.WithRangeEnd(args.RangeEnd))
