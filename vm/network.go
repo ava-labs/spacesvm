@@ -28,6 +28,7 @@ func (vm *VM) GossipTxs(force bool) error {
 				continue
 			}
 		}
+		// force regossip (but less aggressively with greater interval)
 		vm.gossipedTxs.Put(tx.ID(), nil)
 		txs = append(txs, tx)
 	}
@@ -74,7 +75,7 @@ func (vm *VM) AppGossip(nodeID ids.ShortID, msg []byte) error {
 
 	txs := make([]*chain.Transaction, 0)
 	if _, err := chain.Unmarshal(msg, &txs); err != nil {
-		log.Warn(
+		log.Debug(
 			"AppGossip provided invalid txs",
 			"peerID", nodeID,
 			"err", err,
@@ -84,12 +85,14 @@ func (vm *VM) AppGossip(nodeID ids.ShortID, msg []byte) error {
 
 	// submit incoming gossip
 	log.Debug("AppGossip transactions are being submitted", "txs", len(txs))
-	if err := vm.Submit(txs...); err != nil {
-		log.Warn(
-			"AppGossip failed to submit txs",
-			"peerID", nodeID,
-			"err", err,
-		)
+	if errs := vm.Submit(txs...); len(errs) > 0 {
+		for _, err := range errs {
+			log.Debug(
+				"AppGossip failed to submit txs",
+				"peerID", nodeID,
+				"err", err,
+			)
+		}
 	}
 
 	// only trace error to prevent VM's being shutdown

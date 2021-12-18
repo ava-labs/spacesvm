@@ -5,9 +5,7 @@
 package vm
 
 import (
-	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -45,18 +43,19 @@ type VM struct {
 	ctx *snow.Context
 	db  database.Database
 
-	batchInterval time.Duration
-	mempool       *mempool.Mempool
-	appSender     common.AppSender
-	gossipedTxs   *cache.LRU
+	workInterval time.Duration
+	mempool      *mempool.Mempool
+	appSender    common.AppSender
+	gossipedTxs  *cache.LRU
 
 	// Block ID --> Block
 	// Each element is a block that passed verification but
 	// hasn't yet been accepted/rejected
 	verifiedBlocks map[ids.ID]*chain.StatelessBlock
 
-	toEngine   chan<- common.Message
-	fromEngine chan struct{}
+	toEngine chan<- common.Message
+	// signaled when "BuildBlock" is triggered by the engine
+	blockBuilder chan struct{}
 
 	preferred    ids.ID
 	lastAccepted ids.ID
@@ -64,9 +63,12 @@ type VM struct {
 	minDifficulty uint64
 	minBlockCost  uint64
 
-	stopc chan struct{}
-	donec chan struct{}
+	stopc         chan struct{}
+	donecRun      chan struct{}
+	donecRegossip chan struct{}
 }
+
+const gossipedTxsLRUSize = 512
 
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Initialize(
@@ -84,15 +86,15 @@ func (vm *VM) Initialize(
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
 
-	vm.batchInterval = defaultBatchInterval
+	vm.workInterval = defaultBatchInterval
 	vm.mempool = mempool.New(mempoolSize)
 	vm.appSender = appSender
-	vm.gossipedTxs = &cache.LRU{Size: 512}
+	vm.gossipedTxs = &cache.LRU{Size: gossipedTxsLRUSize}
 
 	vm.verifiedBlocks = make(map[ids.ID]*chain.StatelessBlock)
 
 	vm.toEngine = toEngine
-	vm.fromEngine = make(chan struct{}, 1)
+	vm.blockBuilder = make(chan struct{}, 1)
 
 	// Try to load last accepted
 	has, err := chain.HasLastAccepted(vm.db)
@@ -133,81 +135,12 @@ func (vm *VM) Initialize(
 	log.Info("initialized quarkvm from genesis", "block", gBlkID)
 
 	vm.stopc = make(chan struct{})
-	vm.donec = make(chan struct{})
+	vm.donecRun = make(chan struct{})
+	vm.donecRegossip = make(chan struct{})
 
 	go vm.run()
+	go vm.regossip()
 	return nil
-}
-
-// Updates the build block/gossip interval.
-func (vm *VM) SetBatchInterval(d time.Duration) {
-	vm.batchInterval = d
-}
-
-// signal the avalanchego engine
-// to build a block from pending transactions
-func (vm *VM) NotifyBlockReady() {
-	select {
-	case vm.toEngine <- common.PendingTxs:
-	default:
-		log.Debug("dropping message to consensus engine")
-	}
-}
-
-// "batchInterval" waits to gossip more txs until some build block
-// timeout in order to avoid unnecessary/redundant gossip
-// basically, we shouldn't gossip anything included in the block
-// to make this more deterministic, we signal block ready and
-// wait until "BuildBlock is triggered" from avalanchego
-// mempool is shared between "chain.BuildBlock" and "GossipTxs"
-// so once tx is included in the block, it won't be included
-// in the following "GossipTxs"
-// however, we still need to cache recently gossiped txs
-// in "GossipTxs" to further protect the node from being
-// DDOSed via repeated gossip failures
-func (vm *VM) run() {
-	defer close(vm.donec)
-
-	t := time.NewTimer(vm.batchInterval)
-	defer t.Stop()
-
-	buildBlk := true
-	for {
-		select {
-		case <-t.C:
-		case <-vm.stopc:
-			return
-		}
-		t.Reset(vm.batchInterval)
-		if vm.mempool.Len() == 0 {
-			continue
-		}
-
-		if buildBlk {
-			// as soon as we receive at least one transaction
-			// triggers "BuildBlock" from avalanchego on the local node
-			// ref. "plugin/evm.blockBuilder.markBuilding"
-			vm.NotifyBlockReady()
-
-			// wait for this node to build a block
-			// rather than trigger gossip immediately
-			select {
-			case <-vm.fromEngine:
-				log.Debug("engine just called BuildBlock")
-			case <-vm.stopc:
-				return
-			}
-
-			// next iteration should be gossip
-			buildBlk = false
-			continue
-		}
-
-		// we shouldn't gossip anything included in the block
-		// and it's handled via mempool + block build wait above
-		_ = vm.GossipTxs(false)
-		buildBlk = true
-	}
 }
 
 // implements "snowmanblock.ChainVM.common.VM"
@@ -223,7 +156,8 @@ func (vm *VM) Bootstrapped() error {
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Shutdown() error {
 	close(vm.stopc)
-	<-vm.donec
+	<-vm.donecRun
+	<-vm.donecRegossip
 	if vm.ctx == nil {
 		return nil
 	}
@@ -339,41 +273,37 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 		log.Debug("BuildBlock success", "blockId", blk.ID())
 	}
 	select {
-	case vm.fromEngine <- struct{}{}:
+	case vm.blockBuilder <- struct{}{}:
 	default:
 	}
 	return blk, err
 }
 
-func (vm *VM) Submit(txs ...*chain.Transaction) (err error) {
+func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 	blk, err := vm.GetBlock(vm.preferred)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 	now := time.Now().Unix()
 	ctx, err := vm.ExecutionContext(now, blk.(*chain.StatelessBlock))
 	if err != nil {
-		return err
+		return []error{err}
 	}
 	vdb := versiondb.New(vm.db)
 	defer vdb.Close() // TODO: need to do everywhere?
 
-	es := make([]string, 0)
 	for _, tx := range txs {
 		if serr := vm.submit(tx, vdb, now, ctx); serr != nil {
-			log.Warn("failed to submit transaction",
+			log.Debug("failed to submit transaction",
 				"tx", tx.ID(),
 				"error", serr,
 			)
-			es = append(es, serr.Error())
+			errs = append(errs, serr)
 			continue
 		}
 		vdb.Abort()
 	}
-	if len(es) > 0 {
-		return errors.New(strings.Join(es, ","))
-	}
-	return nil
+	return errs
 }
 
 func (vm *VM) submit(tx *chain.Transaction, db database.Database, blkTime int64, ctx *chain.Context) error {

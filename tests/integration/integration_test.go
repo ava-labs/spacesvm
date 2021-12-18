@@ -133,7 +133,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 		// never trigger periodic batch gossip/block builds
 		// to make testing more deterministic
-		v.SetBatchInterval(24 * time.Hour)
+		v.SetWorkInterval(24 * time.Hour)
 
 		var hd map[string]*common.HTTPHandler
 		hd, err = v.CreateHandlers()
