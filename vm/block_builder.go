@@ -57,6 +57,8 @@ func (vm *VM) run() {
 			continue
 		}
 
+		// TODO: this is async, verify we aren't currently
+		// building a block
 		if buildBlk {
 			// as soon as we receive at least one transaction
 			// triggers "BuildBlock" from avalanchego on the local node
@@ -96,8 +98,7 @@ func (vm *VM) regossip() {
 	defer close(vm.donecRegossip)
 
 	// should retry less aggressively
-	dur := vm.workInterval * 10
-	t := time.NewTimer(dur)
+	t := time.NewTimer(vm.regossipInterval)
 	defer t.Stop()
 
 	for {
@@ -106,7 +107,7 @@ func (vm *VM) regossip() {
 		case <-vm.stopc:
 			return
 		}
-		t.Reset(dur)
+		t.Reset(vm.regossipInterval)
 		if vm.mempool.Len() == 0 {
 			continue
 		}

@@ -30,8 +30,10 @@ import (
 const (
 	Name = "quarkvm"
 
-	defaultBatchInterval = 100 * time.Millisecond
-	mempoolSize          = 1024
+	defaultWorkInterval     = 100 * time.Millisecond
+	defaultRegossipInterval = time.Second
+
+	mempoolSize = 1024
 )
 
 var (
@@ -43,10 +45,11 @@ type VM struct {
 	ctx *snow.Context
 	db  database.Database
 
-	workInterval time.Duration
-	mempool      *mempool.Mempool
-	appSender    common.AppSender
-	gossipedTxs  *cache.LRU
+	workInterval     time.Duration
+	regossipInterval time.Duration
+	mempool          *mempool.Mempool
+	appSender        common.AppSender
+	gossipedTxs      *cache.LRU
 
 	// Block ID --> Block
 	// Each element is a block that passed verification but
@@ -86,7 +89,10 @@ func (vm *VM) Initialize(
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
 
-	vm.workInterval = defaultBatchInterval
+	// TODO: make this configurable via genesis
+	vm.workInterval = defaultWorkInterval
+	vm.regossipInterval = defaultRegossipInterval
+
 	vm.mempool = mempool.New(mempoolSize)
 	vm.appSender = appSender
 	vm.gossipedTxs = &cache.LRU{Size: gossipedTxsLRUSize}
