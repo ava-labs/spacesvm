@@ -6,4 +6,4 @@ if ! [[ "$0" =~ scripts/tests.sh ]]; then
   exit 255
 fi
 
-go test -race -timeout="3m" -coverprofile="coverage.out" -covermode="atomic" $(go list ./... | grep -v integration)
+go test -race -timeout="3m" -coverprofile="coverage.out" -covermode="atomic" $(go list ./... | grep -v tests)
