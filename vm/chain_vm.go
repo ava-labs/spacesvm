@@ -36,6 +36,7 @@ func (vm *VM) Rejected(b *chain.StatelessBlock) {
 }
 
 func (vm *VM) Accepted(b *chain.StatelessBlock) {
+	vm.blocks.Put(b.ID(), b)
 	delete(vm.verifiedBlocks, b.ID())
 	vm.lastAccepted = b.ID()
 	log.Debug("accepted block", "id", b.ID())
