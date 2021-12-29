@@ -639,6 +639,6 @@ func (lc *localNetwork) writeOutput() error {
 func (lc *localNetwork) shutdown() {
 	close(lc.stopc)
 	serr := lc.nw.Stop(context.Background())
-	color.Red("shut down network (error %v)", serr)
 	<-lc.donec
+	color.Red("terminated network (error %v)", serr)
 }

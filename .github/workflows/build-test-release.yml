@@ -1,14 +1,11 @@
-# https://goreleaser.com/ci/actions/
-# TODO: replace other build github actions
-name: Build + test (and release)
+name: Build + test
 
 on:
   push:
   pull_request:
 
-# only create github release on git tag
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build_test_release:
@@ -24,19 +21,18 @@ jobs:
           go-version: 1.17
       - name: Run unit tests
         shell: bash
-        run: scripts/tests.sh
+        run: scripts/tests.unit.sh
       - name: Run integration tests
         shell: bash
-        run: scripts/integration.sh
-      - name: Run GoReleaser
+        run: scripts/tests.integration.sh
+      - name: Run e2e tests
+        shell: bash
+        run: scripts/tests.e2e.sh 1.7.3
+      - name: Run GoReleaser for cross-platform builds
         uses: goreleaser/goreleaser-action@v2
         with:
           distribution: goreleaser
           version: latest
-          # automate github release page announce and artifact uploads
+          # TODO: automate github release page announce and artifact uploads?
           # https://goreleaser.com/cmd/goreleaser_release/
-          # add "--skip-announce --skip-publish" to disable github release
-          args: release --rm-dist
-        env:
-          # https://docs.github.com/en/actions/security-guides/automatic-token-authentication#about-the-github_token-secret
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          args: release --rm-dist --skip-announce --skip-publish

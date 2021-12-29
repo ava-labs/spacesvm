@@ -99,8 +99,8 @@ var _ = ginkgo.AfterSuite(func() {
 		return
 	}
 	color.Red("shutting down local cluster on PID %d", clusterInfo.PID)
-	serr := syscall.Kill(clusterInfo.PID, syscall.SIGINT)
-	color.Red("terminated local cluster on PID %d (errror %v)", clusterInfo.PID, serr)
+	serr := syscall.Kill(clusterInfo.PID, syscall.SIGTERM)
+	color.Red("terminated local cluster on PID %d (error %v)", clusterInfo.PID, serr)
 })
 
 var _ = ginkgo.Describe("[Ping]", func() {
