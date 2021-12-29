@@ -8,7 +8,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/quarkvm/client"
 	"github.com/ava-labs/quarkvm/crypto"
 	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ava-labs/quarkvm/tests"
 	"github.com/fatih/color"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -27,10 +28,9 @@ func TestIntegration(t *testing.T) {
 }
 
 var (
-	requestTimeout time.Duration
-	uris           []string
-	u              string
-	endpoint       string
+	requestTimeout  time.Duration
+	clusterInfoPath string
+	shutdown        bool
 )
 
 func init() {
@@ -41,21 +41,22 @@ func init() {
 		"timeout for transaction issuance and confirmation",
 	)
 	flag.StringVar(
-		&u,
-		"uris",
+		&clusterInfoPath,
+		"cluster-info-path",
 		"",
-		"comma-separated quarkvm URIs (e.g., http://127.0.0.1:9650,http://127.0.0.1:9652)",
+		"cluster info YAML file path (as defined in 'tests/cluster_info.go')",
 	)
-	flag.StringVar(
-		&endpoint,
-		"endpoint",
-		"",
-		"quarkvm API endpoint (e.g., /ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa)",
+	flag.BoolVar(
+		&shutdown,
+		"shutdown",
+		false,
+		"'true' to send SIGINT to the local cluster for shutdown",
 	)
 }
 
 var (
-	priv *crypto.PrivateKey
+	priv        *crypto.PrivateKey
+	clusterInfo tests.ClusterInfo
 
 	instances []instance
 )
@@ -66,28 +67,40 @@ type instance struct {
 }
 
 var _ = ginkgo.BeforeSuite(func() {
-	gomega.Ω(endpoint).ShouldNot(gomega.BeEmpty())
-
-	uris = strings.Split(u, ",")
-	n := len(uris)
-	gomega.Ω(n).Should(gomega.BeNumerically(">", 1))
-
 	var err error
 	priv, err = crypto.NewPrivateKey()
 	gomega.Ω(err).Should(gomega.BeNil())
 
+	gomega.Ω(clusterInfoPath).ShouldNot(gomega.BeEmpty())
+	clusterInfo, err = tests.LoadClusterInfo(clusterInfoPath)
+	gomega.Ω(err).Should(gomega.BeNil())
+
+	n := len(clusterInfo.URIs)
+	gomega.Ω(n).Should(gomega.BeNumerically(">", 1))
+
+	if shutdown {
+		gomega.Ω(clusterInfo.PID).Should(gomega.BeNumerically(">", 1))
+	}
+
 	instances = make([]instance, n)
 	for i := range instances {
+		u := clusterInfo.URIs[i]
 		instances[i] = instance{
-			uri: uris[i],
-			cli: client.New(uris[i], endpoint, requestTimeout),
+			uri: u,
+			cli: client.New(u, clusterInfo.Endpoint, requestTimeout),
 		}
 	}
-	color.Blue("created clients with %v", uris)
+	color.Blue("created clients with %+v", clusterInfo)
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	// no-op
+	if !shutdown {
+		color.Red("skipping shutdown for PID %d", clusterInfo.PID)
+		return
+	}
+	color.Red("shutting down local cluster on PID %d", clusterInfo.PID)
+	serr := syscall.Kill(clusterInfo.PID, syscall.SIGINT)
+	color.Red("terminated local cluster on PID %d (errror %v)", clusterInfo.PID, serr)
 })
 
 var _ = ginkgo.Describe("[Ping]", func() {
