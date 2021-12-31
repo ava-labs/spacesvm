@@ -4,7 +4,7 @@ set -o errexit
 set -o pipefail
 set -e
 
-if ! [[ "$0" =~ scripts/lint.sh ]]; then
+if ! [[ "$0" =~ scripts/tests.lint.sh ]]; then
   echo "must be run from repository root"
   exit 255
 fi
@@ -23,6 +23,7 @@ fi
 # TESTS='license_header' ./scripts/lint.sh
 TESTS=${TESTS:-"golangci_lint license_header"}
 
+# https://github.com/golangci/golangci-lint/releases
 function test_golangci_lint {
   go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
   golangci-lint run --config .golangci.yml

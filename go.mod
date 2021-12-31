@@ -2,6 +2,9 @@ module github.com/ava-labs/quarkvm
 
 go 1.17
 
+// to add dependency (not needed for test build)
+// go get -v github.com/onsi/ginkgo/v2@v2.0.0-rc2
+
 require (
 	github.com/ava-labs/avalanchego v1.7.2
 	github.com/fatih/color v1.9.0
@@ -12,6 +15,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.0.0-rc2
 	github.com/onsi/gomega v1.17.0
 	github.com/spf13/cobra v1.2.1
+	sigs.k8s.io/yaml v1.3.0
 )
 
 require (

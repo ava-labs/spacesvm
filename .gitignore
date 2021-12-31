@@ -51,3 +51,5 @@ vendor
 .quark-cli-pk
 genesis.json
 *.test
+
+dist/
