@@ -41,6 +41,8 @@ var lastAccepted = []byte("last_accepted")
 // TODO: use indirection to automatically service prefix->rawPrefix translation
 // TODO: derive rawPrefix deterministically by hash(block hash + prefix)
 func PrefixMappingKey(prefix []byte) (k []byte) {
+	// TODO: is there a cleaner way to pack these byte arrays?
+	// TODO: can we use a sync.Pool?
 	k = make([]byte, 2+len(prefix))
 	k[0] = mappingPrefix
 	k[1] = parser.Delimiter

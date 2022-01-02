@@ -150,6 +150,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		return nil, nil, err
 	}
 	onAcceptDB := versiondb.New(parentState)
+	// TODO: first remove all expired prefixes and mark for pruning
 	var surplusDifficulty uint64
 	for _, tx := range b.Txs {
 		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {

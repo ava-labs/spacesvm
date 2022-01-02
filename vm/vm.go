@@ -155,6 +155,9 @@ func (vm *VM) Initialize(
 
 	go vm.run()
 	go vm.regossip()
+	// TODO: start async pruning loop (make sure has lock to prevent committing
+	// to vm.State while running)...also make sure children database are set
+	// after updating
 	return nil
 }
 

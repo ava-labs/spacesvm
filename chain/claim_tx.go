@@ -24,11 +24,12 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 		return ErrPublicKeyMismatch
 	}
 
-	prevInfo, infoExists, err := GetPrefixInfo(db, c.Prefix)
+	// Prefix keys only exist if they are still valid
+	exists, err := HasPrefix(db, c.Prefix)
 	if err != nil {
 		return err
 	}
-	if infoExists && prevInfo.Expiry >= blockTime {
+	if exists {
 		return ErrPrefixNotExpired
 	}
 
@@ -41,6 +42,7 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 		Expiry:      blockTime + expiryTime,
 		Keys:        1,
 	}
+	// TODO: create raw prefix with block hash or block time?
 	if err := PutPrefixInfo(db, c.Prefix, newInfo); err != nil {
 		return err
 	}
@@ -49,5 +51,6 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 	// overwrite even if claimed by the same owner
 	// TODO(patrick-ogrady): free things async for faster block verification loops
 	// e.g., lazily free what is said to be freed in the block?
+	// TODO: do this freeing async (no longer rely on direct prefixes)
 	return DeleteAllPrefixKeys(db, c.Prefix)
 }
