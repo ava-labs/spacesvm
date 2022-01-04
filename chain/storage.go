@@ -12,6 +12,7 @@ import (
 	"github.com/ava-labs/quarkvm/parser"
 )
 
+// TODO: update to Algorithm v0.2
 // 0x0/ (prefix mapping)
 //   -> [user prefix] -> [raw prefix]
 // 0x1/ (singleton prefix info)
