@@ -193,23 +193,28 @@ func GetExpired(db database.Database, parent int64, current int64) (pfxs [][]byt
 	return pfxs, nil
 }
 
-func GetNextPrunable(db database.Database) (rpfx ids.ShortID, t int64, err error) {
+func PruneNext(db database.Database, limit int) (err error) {
 	startKey := RangeTimeKey(expiryPrefix, 0)
 	cursor := db.NewIteratorWithStart(startKey)
-	for cursor.Next() {
+	removals := 0
+	for cursor.Next() && removals < limit {
 		curKey := cursor.Key()
 		if bytes.Compare(startKey, curKey) < -1 { // startKey < curKey; continue search
 			continue
 		}
-		// Extract prunable info from key
-		expired, err := binary.ReadVarint(bytes.NewReader(curKey[2 : 2+binary.MaxVarintLen64]))
-		rpfx, err = ids.ToShortID(curKey[2+binary.MaxVarintLen64+1:])
+		rpfx, err := ids.ToShortID(curKey[2+binary.MaxVarintLen64+1:])
 		if err != nil {
-			return ids.ShortID{}, -1, err
+			return err
 		}
-		return rpfx, expired, nil
+		if err := db.Delete(curKey); err != nil {
+			return err
+		}
+		if err := database.ClearPrefix(db, db, PrefixValueKey(rpfx, nil)); err != nil {
+			return err
+		}
+		removals++
 	}
-	return ids.ShortID{}, -1, nil
+	return nil
 }
 
 // DB
@@ -301,14 +306,6 @@ func DeletePrefixKey(db database.Database, prefix []byte, key []byte) error {
 	}
 	k := PrefixValueKey(prefixInfo.RawPrefix, key)
 	return db.Delete(k)
-}
-
-func PrunePrefix(db database.Database, rprefix ids.ShortID, expired int64) error {
-	k := PrefixPruningKey(rprefix, expired)
-	if err := db.Delete(k); err != nil {
-		return err
-	}
-	return database.ClearPrefix(db, db, PrefixValueKey(rprefix, nil))
 }
 
 func SetTransaction(db database.KeyValueWriter, tx *Transaction) error {
