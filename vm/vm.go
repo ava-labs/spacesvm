@@ -36,7 +36,7 @@ const (
 	defaultPruneInterval    = time.Minute
 
 	defaultMinimumDifficulty = 1
-	defaultMinBlockCost      = 1
+	defaultMinBlockCost      = 0
 
 	mempoolSize = 1024
 )

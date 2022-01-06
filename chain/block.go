@@ -157,6 +157,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	}
 
 	// Process new transactions
+	log.Debug("build context", "next difficulty", context.NextDifficulty, "next cost", context.NextCost)
 	var surplusDifficulty uint64
 	for _, tx := range b.Txs {
 		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
