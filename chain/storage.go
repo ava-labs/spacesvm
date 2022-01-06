@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/quarkvm/parser"
 )
 
@@ -81,7 +82,8 @@ func RawPrefix(prefix []byte, blockTime int64) (ids.ShortID, error) {
 	copy(r, prefix)
 	r[prefixLen] = parser.Delimiter
 	binary.PutVarint(r[prefixLen+1:], blockTime)
-	rprefix, err := ids.ToShortID(r)
+	h := hashing.ComputeHash160(r)
+	rprefix, err := ids.ToShortID(h)
 	if err != nil {
 		return ids.ShortID{}, err
 	}

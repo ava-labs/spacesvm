@@ -38,7 +38,7 @@ func TestLifelineTx(t *testing.T) {
 			blockTime: 1,
 			err:       nil,
 		},
-		{ // successful lifeline when prefix info is missing
+		{ // successful lifeline when prefix info is not missing
 			utx:       &LifelineTx{BaseTx: &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo")}},
 			blockTime: 1,
 			err:       nil,
