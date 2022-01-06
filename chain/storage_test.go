@@ -18,17 +18,12 @@ func TestPrefixValueKey(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
-		pfx      []byte
+		pfx      rawPrefix
 		key      []byte
 		valueKey []byte
 	}{
 		{
-			pfx:      []byte("foo"),
-			key:      []byte("hello"),
-			valueKey: append([]byte{keyPrefix}, []byte("/foo/hello")...),
-		},
-		{
-			pfx:      []byte("foo/"),
+			pfx:      rawPrefix(ids.ShortID{}),
 			key:      []byte("hello"),
 			valueKey: append([]byte{keyPrefix}, []byte("/foo/hello")...),
 		},
@@ -218,7 +213,10 @@ func TestRange(t *testing.T) {
 		},
 	}
 	for i, tv := range tt {
-		kvs := Range(db, tv.pfx, tv.key, tv.opts...)
+		kvs, err := Range(db, tv.pfx, tv.key, tv.opts...)
+		if err != nil {
+			t.Fatalf("#%d: unexpected error when fetching range %v", i, err)
+		}
 		if len(tv.kvs) == 0 && len(kvs) == 0 {
 			continue
 		}

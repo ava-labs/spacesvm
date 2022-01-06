@@ -5,6 +5,7 @@ package chain
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 
 	"github.com/ava-labs/avalanchego/database"
@@ -39,6 +40,9 @@ const (
 )
 
 var lastAccepted = []byte("last_accepted")
+
+// TODO: move to right spot
+var prefixMissing = errors.New("prefix missing")
 
 func PrefixInfoKey(prefix []byte) (k []byte) {
 	k = make([]byte, 2+len(prefix))
@@ -75,7 +79,22 @@ func PrefixBlockKey(blockID ids.ID) (k []byte) {
 	return k
 }
 
+func RawPrefix(prefix []byte, blockTime int64) (rawPrefix, error) {
+	prefixLen := len(prefix)
+	raw := make([]byte, prefixLen+1+binary.MaxVarintLen64)
+	copy(raw, prefix)
+	raw[prefixLen] = parser.Delimiter
+	binary.PutVarint(raw[prefixLen+1:], blockTime)
+	rp, err := ids.ToShortID(raw)
+	if err != nil {
+		// TODO: clean up casting
+		return rawPrefix(ids.ShortID{}), err
+	}
+	return rawPrefix(rp), nil
+}
+
 func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {
+	// TODO: add caching (will need some expiry when keys cleared)
 	k := PrefixInfoKey(prefix)
 	v, err := db.Get(k)
 	if errors.Is(err, database.ErrNotFound) {
@@ -161,17 +180,31 @@ func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo) err
 	return db.Put(k, b)
 }
 
-func PutPrefixKey(db database.KeyValueWriter, prefix []byte, key []byte, value []byte) error {
-	k := PrefixValueKey(prefix, key)
+func PutPrefixKey(db database.Database, prefix []byte, key []byte, value []byte) error {
+	prefixInfo, exists, err := GetPrefixInfo(db, prefix)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return prefixMissing
+	}
+	k := PrefixValueKey(prefixInfo.RawPrefix, key)
 	return db.Put(k, value)
 }
 
-func DeletePrefixKey(db database.KeyValueWriter, prefix []byte, key []byte) error {
-	k := PrefixValueKey(prefix, key)
+func DeletePrefixKey(db database.Database, prefix []byte, key []byte) error {
+	prefixInfo, exists, err := GetPrefixInfo(db, prefix)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return prefixMissing
+	}
+	k := PrefixValueKey(prefixInfo.RawPrefix, key)
 	return db.Delete(k)
 }
 
-func DeleteAllPrefixKeys(db database.Database, prefix []byte) error {
+func DeleteAllPrefixKeys(db database.Database, prefix rawPrefix) error {
 	return database.ClearPrefix(db, db, PrefixValueKey(prefix, nil))
 }
 
@@ -195,9 +228,15 @@ type KeyValue struct {
 }
 
 // Range reads keys from the store.
-// TODO: check prefix info to restrict reads to the owner?
-func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (kvs []KeyValue) {
-	ret := &Op{key: PrefixValueKey(prefix, key)}
+func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (kvs []KeyValue, err error) {
+	prefixInfo, exists, err := GetPrefixInfo(db, prefix)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, prefixMissing
+	}
+	ret := &Op{key: PrefixValueKey(prefixInfo.RawPrefix, key)}
 	ret.applyOpts(opts)
 
 	startKey := ret.key
@@ -207,7 +246,7 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 		endKey = ret.rangeEnd
 		if !bytes.HasPrefix(endKey, []byte{keyPrefix, parser.Delimiter}) {
 			// if overwritten via "WithRange"
-			endKey = PrefixValueKey(prefix, endKey)
+			endKey = PrefixValueKey(prefixInfo.RawPrefix, endKey)
 		}
 	}
 
@@ -250,7 +289,7 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 			Value: cursor.Value(),
 		})
 	}
-	return kvs
+	return kvs, nil
 }
 
 type Op struct {

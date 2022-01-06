@@ -33,24 +33,17 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 		return ErrPrefixNotExpired
 	}
 
-	// every successful "claim" deletes the existing keys
-	// whether "c.Sender" is same as or different than "prevInfo.Owner"
-	// now write with either prefix expired or new prefix owner
+	// Anything previously at the index was previously removed
+	rawPrefix, err := RawPrefix(c.Prefix, blockTime)
 	newInfo := &PrefixInfo{
 		Owner:       c.Sender,
+		RawPrefix:   rawPrefix,
 		LastUpdated: blockTime,
 		Expiry:      blockTime + expiryTime,
 		Keys:        1,
 	}
-	// TODO: create raw prefix with block hash or block time?
 	if err := PutPrefixInfo(db, c.Prefix, newInfo); err != nil {
 		return err
 	}
-
-	// Remove anything that is stored in value prefix
-	// overwrite even if claimed by the same owner
-	// TODO(patrick-ogrady): free things async for faster block verification loops
-	// e.g., lazily free what is said to be freed in the block?
-	// TODO: do this freeing async (no longer rely on direct prefixes)
-	return DeleteAllPrefixKeys(db, c.Prefix)
+	return nil
 }
