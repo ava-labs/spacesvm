@@ -261,7 +261,7 @@ func HasPrefixKey(db database.KeyValueReader, prefix []byte, key []byte) (bool, 
 }
 
 func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo, lastExpiry int64) error {
-	if i.RawPrefix == (ids.ShortID{}) {
+	if i.RawPrefix == ids.ShortEmpty {
 		rprefix, err := RawPrefix(prefix, i.Created)
 		if err != nil {
 			return err
