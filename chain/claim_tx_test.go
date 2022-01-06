@@ -91,4 +91,19 @@ func TestClaimTx(t *testing.T) {
 			t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(pub.PublicKey))
 		}
 	}
+
+	// Cleanup DB after all txs submitted
+	if err := ExpireNext(db, 0, 1000); err != nil {
+		t.Fatal(err)
+	}
+	if err := PruneNext(db, 100); err != nil {
+		t.Fatal(err)
+	}
+	_, exists, err := GetPrefixInfo(db, []byte("foo"))
+	if err != nil {
+		t.Fatalf("failed to get prefix info %v", err)
+	}
+	if exists {
+		t.Fatal("prefix should not exist")
+	}
 }
