@@ -128,7 +128,7 @@ func (vm *VM) Initialize(
 		log.Error("could not determine if have last accepted")
 		return err
 	}
-	if has {
+	if has { //nolint:nestif
 		blkID, err := chain.GetLastAccepted(vm.db)
 		if err != nil {
 			log.Error("could not get last accepted", "err", err)
@@ -143,7 +143,6 @@ func (vm *VM) Initialize(
 
 		vm.preferred, vm.lastAccepted = blkID, blk
 		log.Info("initialized quarkvm from last accepted", "block", blkID)
-		return nil
 	} else {
 		genesisBlk, err := chain.ParseBlock(
 			genesisBytes,
