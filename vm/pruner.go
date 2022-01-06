@@ -16,6 +16,26 @@ const (
 	pruneLimit = 128
 )
 
+func (vm *VM) pruneCall() {
+	// Lock to prevent concurrent modification of state
+	vm.ctx.Lock.Lock()
+	defer vm.ctx.Lock.Unlock()
+
+	vdb := versiondb.New(vm.db)
+	defer vdb.Abort()
+	if err := chain.PruneNext(vdb, pruneLimit); err != nil {
+		log.Warn("unable to prune next range", "error", err)
+		return
+	}
+	if err := vdb.Commit(); err != nil {
+		log.Warn("unable to commit pruning work", "error", err)
+		return
+	}
+	if err := vm.lastAccepted.SetChildrenDB(vm.db); err != nil {
+		log.Error("unable to update child databases of last accepted block", "error", err)
+	}
+}
+
 func (vm *VM) prune() {
 	log.Debug("starting prune loops")
 	defer close(vm.donecPrune)
@@ -31,23 +51,6 @@ func (vm *VM) prune() {
 			return
 		}
 		t.Reset(vm.pruneInterval)
-
-		// TODO: be MUCH more careful about how state is accessed here (likely need
-		// locking on DB)
-		vdb := versiondb.New(vm.db)
-		// TODO: need to close after each loop iteration?
-		if err := chain.PruneNext(vdb, pruneLimit); err != nil {
-			log.Warn("unable to prune next range", "error", err)
-			vdb.Abort()
-			continue
-		}
-		if err := vdb.Commit(); err != nil {
-			log.Warn("unable to commit pruning work", "error", err)
-			vdb.Abort()
-			continue
-		}
-		if err := vm.lastAccepted.SetChildrenDB(vm.db); err != nil {
-			log.Error("unable to update child databases of last accepted block", "error", err)
-		}
+		vm.pruneCall()
 	}
 }
