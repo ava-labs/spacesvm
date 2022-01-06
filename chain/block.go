@@ -152,14 +152,8 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	onAcceptDB := versiondb.New(parentState)
 
 	// Remove all expired prefixes
-	pfxs, err := GetExpired(onAcceptDB, parent.Tmstmp, b.Tmstmp)
-	if err != nil {
+	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp); err != nil {
 		return nil, nil, err
-	}
-	for _, pfx := range pfxs {
-		if err := ExpirePrefix(onAcceptDB, pfx); err != nil {
-			return nil, nil, err
-		}
 	}
 
 	// Process new transactions

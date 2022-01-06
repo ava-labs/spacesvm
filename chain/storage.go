@@ -175,8 +175,7 @@ func GetBlock(db database.KeyValueReader, bid ids.ID) ([]byte, error) {
 	return db.Get(PrefixBlockKey(bid))
 }
 
-func GetExpired(db database.Database, parent int64, current int64) (pfxs [][]byte, err error) {
-	pfxs = [][]byte{}
+func ExpireNext(db database.Database, parent int64, current int64) (err error) {
 	startKey := RangeTimeKey(expiryPrefix, parent)
 	endKey := RangeTimeKey(expiryPrefix, current)
 	cursor := db.NewIteratorWithStart(startKey)
@@ -188,9 +187,28 @@ func GetExpired(db database.Database, parent int64, current int64) (pfxs [][]byt
 		if bytes.Compare(curKey, endKey) > 0 { // curKey > endKey; end search
 			break
 		}
-		pfxs = append(pfxs, cursor.Value())
+		expiry, err := binary.ReadVarint(bytes.NewBuffer(curKey[2 : 2+binary.MaxVarintLen64]))
+		if err != nil {
+			return err
+		}
+		rpfx, err := ids.ToShortID(curKey[2+binary.MaxVarintLen64+1:])
+		if err != nil {
+			return err
+		}
+		k := PrefixInfoKey(cursor.Value())
+		if err := db.Delete(k); err != nil {
+			return err
+		}
+		k = PrefixExpiryKey(rpfx, expiry)
+		if err := db.Delete(k); err != nil {
+			return err
+		}
+		k = PrefixPruningKey(rpfx, expiry)
+		if err := db.Put(k, nil); err != nil {
+			return err
+		}
 	}
-	return pfxs, nil
+	return nil
 }
 
 func PruneNext(db database.Database, limit int) (err error) {
@@ -261,27 +279,6 @@ func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo, las
 		return err
 	}
 	return db.Put(k, b)
-}
-
-func ExpirePrefix(db database.Database, prefix []byte) error {
-	prefixInfo, exists, err := GetPrefixInfo(db, prefix)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return ErrPrefixMissing
-	}
-
-	k := PrefixInfoKey(prefix)
-	if err := db.Delete(k); err != nil {
-		return err
-	}
-	k = PrefixExpiryKey(prefixInfo.RawPrefix, prefixInfo.Expiry)
-	if err := db.Delete(k); err != nil {
-		return err
-	}
-	k = PrefixPruningKey(prefixInfo.RawPrefix, prefixInfo.Expiry)
-	return db.Put(k, nil)
 }
 
 func PutPrefixKey(db database.Database, prefix []byte, key []byte, value []byte) error {
