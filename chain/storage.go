@@ -12,82 +12,50 @@ import (
 	"github.com/ava-labs/quarkvm/parser"
 )
 
-// TODO: update to Algorithm v0.2
-// 0x0/ (prefix mapping)
-//   -> [user prefix] -> [raw prefix]
-// 0x1/ (singleton prefix info)
-//   -> [raw prefix]
-// 0x2/ (prefix keys)
+// TODO: cleanup mapping diagram
+// 0x0/ (singleton prefix info)
+//   -> [prefix]:[prefix info/raw prefix]
+// 0x1/ (prefix keys)
 //   -> [raw prefix]
 //     -> [key]
-// 0x3/ (tx hashes)
-// 0x4/ (block hashes)
-// 0x5/ (prefix expiry queue)
+// 0x2/ (tx hashes)
+// 0x3/ (block hashes)
+// 0x4/ (prefix expiry queue)
 //   -> [raw prefix]
-// 0x6/ (prefix pruning queue)
+// 0x5/ (prefix pruning queue)
 //   -> [raw prefix]
 
+type rawPrefix ids.ShortID
+
 const (
-	mappingPrefix = 0x0
-	infoPrefix    = 0x1
-	keyPrefix     = 0x2
-	txPrefix      = 0x3
-	blockPrefix   = 0x4
-	// prefixExpiryQueue  = 0x5
-	// prefixPruningQueue = 0x6
+	infoPrefix  = 0x0
+	keyPrefix   = 0x1
+	txPrefix    = 0x2
+	blockPrefix = 0x3
+
+	// TODO: implement queues
+	// prefixExpiryQueue  = 0x4
+	// prefixPruningQueue = 0x5
 )
 
 var lastAccepted = []byte("last_accepted")
 
-// TODO: use indirection to automatically service prefix->rawPrefix translation
-// TODO: derive rawPrefix deterministically by hash(block hash + prefix)
-func PrefixMappingKey(prefix []byte) (k []byte) {
-	// TODO: is there a cleaner way to pack these byte arrays?
-	// TODO: can we use a sync.Pool?
+func PrefixInfoKey(prefix []byte) (k []byte) {
 	k = make([]byte, 2+len(prefix))
-	k[0] = mappingPrefix
+	k[0] = infoPrefix
 	k[1] = parser.Delimiter
 	copy(k[2:], prefix)
 	return k
 }
 
-// TODO: make ids.ID?
-func PrefixInfoKey(rawPrefix []byte) (k []byte) {
-	k = make([]byte, 2+len(rawPrefix))
-	k[0] = infoPrefix
-	k[1] = parser.Delimiter
-	copy(k[2:], rawPrefix)
-	return k
-}
-
-func PrefixValueKey(rawPrefix []byte, key []byte) (k []byte) {
-	prefixN, keyN := len(rawPrefix), len(key)
-	// TODO: can we not introduce an invariant that the delimiter is never
-	// included?
-	pfxDelimExists := bytes.HasSuffix(rawPrefix, []byte{parser.Delimiter})
-
-	n := 2 + prefixN + keyN
-	if !pfxDelimExists {
-		n++
-	}
-
-	k = make([]byte, n)
+// Assumes [prefix] and [key] do not contain delimiter
+func PrefixValueKey(prefix rawPrefix, key []byte) (k []byte) {
+	k = make([]byte, 2+len(prefix)+2+len(key))
 	k[0] = keyPrefix
 	k[1] = parser.Delimiter
-	cur := 2
-
-	copy(k[cur:], rawPrefix)
-	cur += prefixN
-
-	if !pfxDelimExists {
-		k[cur] = parser.Delimiter
-		cur++
-	}
-	if len(key) == 0 {
-		return k
-	}
-
-	copy(k[cur:], key)
+	copy(k[2:], prefix[:])
+	k[2+len(prefix)] = parser.Delimiter
+	copy(k[2+len(prefix)+1:], key)
 	return k
 }
 
@@ -107,28 +75,8 @@ func PrefixBlockKey(blockID ids.ID) (k []byte) {
 	return k
 }
 
-func GetPrefixMapping(db database.KeyValueReader, prefix []byte) ([]byte, bool, error) {
-	k := PrefixMappingKey(prefix)
-	v, err := db.Get(k)
-	if errors.Is(err, database.ErrNotFound) {
-		return nil, false, nil
-	}
-	if err != nil {
-		return nil, false, err
-	}
-	return v, true, err
-}
-
 func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {
-	rawPrefix, exists, err := GetPrefixMapping(db, prefix)
-	if err != nil {
-		return nil, false, err
-	}
-	if !exists {
-		return nil, false, nil
-	}
-
-	k := PrefixInfoKey(rawPrefix)
+	k := PrefixInfoKey(prefix)
 	v, err := db.Get(k)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, false, nil
@@ -142,7 +90,7 @@ func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool
 }
 
 func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bool, error) {
-	rawPrefix, exists, err := GetPrefixMapping(db, prefix)
+	prefixInfo, exists, err := GetPrefixInfo(db, prefix)
 	if err != nil {
 		return nil, false, err
 	}
@@ -150,7 +98,7 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 		return nil, false, nil
 	}
 
-	k := PrefixValueKey(rawPrefix, key)
+	k := PrefixValueKey(prefixInfo.RawPrefix, key)
 	v, err := db.Get(k)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, false, nil
@@ -187,12 +135,12 @@ func GetBlock(db database.KeyValueReader, bid ids.ID) ([]byte, error) {
 
 // DB
 func HasPrefix(db database.KeyValueReader, prefix []byte) (bool, error) {
-	k := PrefixMappingKey(prefix)
+	k := PrefixInfoKey(prefix)
 	return db.Has(k)
 }
 
 func HasPrefixKey(db database.KeyValueReader, prefix []byte, key []byte) (bool, error) {
-	rawPrefix, exists, err := GetPrefixMapping(db, prefix)
+	prefixInfo, exists, err := GetPrefixInfo(db, prefix)
 	if err != nil {
 		return false, err
 	}
@@ -200,21 +148,12 @@ func HasPrefixKey(db database.KeyValueReader, prefix []byte, key []byte) (bool, 
 		return false, nil
 	}
 
-	k := PrefixValueKey(rawPrefix, key)
+	k := PrefixValueKey(prefixInfo.RawPrefix, key)
 	return db.Has(k)
 }
 
 func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo) error {
-	// TODO: handle need to now read on writes
-	rawPrefix, exists, err := GetPrefixMapping(db, prefix)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return errors.New("TODO")
-	}
-
-	k := PrefixInfoKey(rawPrefix)
+	k := PrefixInfoKey(prefix)
 	b, err := Marshal(i)
 	if err != nil {
 		return err
