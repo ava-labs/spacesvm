@@ -25,7 +25,7 @@ func TestPrefixValueKey(t *testing.T) {
 		{
 			rpfx:     ids.ShortID{0x1},
 			key:      []byte("hello"),
-			valueKey: append([]byte{keyPrefix}, []byte("/\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00/hello")...),
+			valueKey: append([]byte{keyPrefix}, []byte("/\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00/hello")...), //nolint:lll
 		},
 	}
 	for i, tv := range tt {
