@@ -30,7 +30,6 @@ linters:
     - exhaustive
     - exportloopref
     - forcetypeassert
-    - gocognit
     - goconst
     - gocritic
     - gofmt
@@ -72,6 +71,7 @@ linters:
     # - exhaustivestruct
     # - forbidigo
     # - funlen
+    # - gocognit
     # - godot
     # - goerr113
     # - gomnd
@@ -84,8 +84,6 @@ linters:
     # - wsl
 
 linters-settings:
-  gocognit:
-    min-complexity: 37
   gocritic:
     disabled-checks:
       - appendAssign

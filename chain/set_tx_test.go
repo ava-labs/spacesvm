@@ -188,7 +188,11 @@ func TestSetTx(t *testing.T) {
 				t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(pub.PublicKey))
 			}
 			// each claim must delete all existing keys with the value key
-			if kvs := Range(db, tp.Prefix, nil, WithPrefix()); len(kvs) > 0 {
+			kvs, err := Range(db, tp.Prefix, nil, WithPrefix())
+			if err != nil {
+				t.Fatalf("#%d: unexpected error when fetching range %v", i, err)
+			}
+			if len(kvs) > 0 {
 				t.Fatalf("#%d: unexpected key-values for the prefix after claim", i)
 			}
 

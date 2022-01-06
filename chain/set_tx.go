@@ -65,7 +65,7 @@ func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	return s.updatePrefix(db, blockTime, i)
 }
 
-func (s *SetTx) updatePrefix(db database.KeyValueWriter, blockTime int64, i *PrefixInfo) error {
+func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInfo) error {
 	timeRemaining := (i.Expiry - i.LastUpdated) * i.Keys
 	if len(s.Value) == 0 {
 		i.Keys--
@@ -80,6 +80,7 @@ func (s *SetTx) updatePrefix(db database.KeyValueWriter, blockTime int64, i *Pre
 	}
 	newTimeRemaining := timeRemaining / i.Keys
 	i.LastUpdated = blockTime
+	lastExpiry := i.Expiry
 	i.Expiry = blockTime + newTimeRemaining
-	return PutPrefixInfo(db, s.Prefix, i)
+	return PutPrefixInfo(db, s.Prefix, i, lastExpiry)
 }

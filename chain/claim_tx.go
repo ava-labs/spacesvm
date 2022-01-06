@@ -24,30 +24,25 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 		return ErrPublicKeyMismatch
 	}
 
-	prevInfo, infoExists, err := GetPrefixInfo(db, c.Prefix)
+	// Prefix keys only exist if they are still valid
+	exists, err := HasPrefix(db, c.Prefix)
 	if err != nil {
 		return err
 	}
-	if infoExists && prevInfo.Expiry >= blockTime {
+	if exists {
 		return ErrPrefixNotExpired
 	}
 
-	// every successful "claim" deletes the existing keys
-	// whether "c.Sender" is same as or different than "prevInfo.Owner"
-	// now write with either prefix expired or new prefix owner
+	// Anything previously at the prefix was previously removed...
 	newInfo := &PrefixInfo{
 		Owner:       c.Sender,
+		Created:     blockTime,
 		LastUpdated: blockTime,
 		Expiry:      blockTime + expiryTime,
 		Keys:        1,
 	}
-	if err := PutPrefixInfo(db, c.Prefix, newInfo); err != nil {
+	if err := PutPrefixInfo(db, c.Prefix, newInfo, -1); err != nil {
 		return err
 	}
-
-	// Remove anything that is stored in value prefix
-	// overwrite even if claimed by the same owner
-	// TODO(patrick-ogrady): free things async for faster block verification loops
-	// e.g., lazily free what is said to be freed in the block?
-	return DeleteAllPrefixKeys(db, c.Prefix)
+	return nil
 }

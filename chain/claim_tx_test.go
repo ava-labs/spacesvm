@@ -67,6 +67,12 @@ func TestClaimTx(t *testing.T) {
 		},
 	}
 	for i, tv := range tt {
+		if i > 0 {
+			// Expire old prefixes between txs
+			if err := ExpireNext(db, tt[i-1].blockTime, tv.blockTime); err != nil {
+				t.Fatalf("#%d: ExpireNext errored %v", i, err)
+			}
+		}
 		err := tv.tx.Execute(db, tv.blockTime)
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
@@ -84,5 +90,20 @@ func TestClaimTx(t *testing.T) {
 		if !bytes.Equal(info.Owner[:], tv.tx.Sender[:]) {
 			t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(pub.PublicKey))
 		}
+	}
+
+	// Cleanup DB after all txs submitted
+	if err := ExpireNext(db, 0, 1000); err != nil {
+		t.Fatal(err)
+	}
+	if err := PruneNext(db, 100); err != nil {
+		t.Fatal(err)
+	}
+	_, exists, err := GetPrefixInfo(db, []byte("foo"))
+	if err != nil {
+		t.Fatalf("failed to get prefix info %v", err)
+	}
+	if exists {
+		t.Fatal("prefix should not exist")
 	}
 }

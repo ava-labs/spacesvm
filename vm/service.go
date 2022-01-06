@@ -171,7 +171,6 @@ type RangeArgs struct {
 
 type RangeReply struct {
 	KeyValues []chain.KeyValue `serialize:"true" json:"keyValues"`
-	Error     error            `serialize:"true" json:"error"`
 }
 
 func (svc *Service) Range(_ *http.Request, args *RangeArgs, reply *RangeReply) (err error) {
@@ -183,7 +182,10 @@ func (svc *Service) Range(_ *http.Request, args *RangeArgs, reply *RangeReply) (
 	if args.Limit > 0 {
 		opts = append(opts, chain.WithRangeLimit(args.Limit))
 	}
-	reply.KeyValues = chain.Range(svc.vm.db, args.Prefix, args.Key, opts...)
-	reply.Error = nil
+	kvs, err := chain.Range(svc.vm.db, args.Prefix, args.Key, opts...)
+	if err != nil {
+		return err
+	}
+	reply.KeyValues = kvs
 	return nil
 }

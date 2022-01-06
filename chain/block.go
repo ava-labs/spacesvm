@@ -150,6 +150,14 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		return nil, nil, err
 	}
 	onAcceptDB := versiondb.New(parentState)
+
+	// Remove all expired prefixes
+	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp); err != nil {
+		return nil, nil, err
+	}
+
+	// Process new transactions
+	log.Debug("build context", "next difficulty", context.NextDifficulty, "next cost", context.NextCost)
 	var surplusDifficulty uint64
 	for _, tx := range b.Txs {
 		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
@@ -159,7 +167,9 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		surplusDifficulty += tx.Difficulty() - context.NextDifficulty
 	}
 	// Ensure enough work is performed to compensate for block production speed
-	if surplusDifficulty < b.Difficulty*b.Cost {
+	requiredSurplus := b.Difficulty * b.Cost
+	if surplusDifficulty < requiredSurplus {
+		log.Debug("insufficient block surplus", "found", surplusDifficulty, "required", requiredSurplus)
 		return nil, nil, ErrInsufficientSurplus
 	}
 	return parent, onAcceptDB, nil
@@ -195,7 +205,6 @@ func (b *StatelessBlock) Accept() error {
 	}
 	b.st = choices.Accepted
 	b.vm.Accepted(b)
-	// TODO: clear expired state (using index from timestamp to prefix)
 	return nil
 }
 
@@ -220,6 +229,15 @@ func (b *StatelessBlock) Height() uint64 { return b.StatefulBlock.Hght }
 
 // implements "snowman.Block"
 func (b *StatelessBlock) Timestamp() time.Time { return b.t }
+
+func (b *StatelessBlock) SetChildrenDB(db database.Database) error {
+	for _, child := range b.children {
+		if err := child.onAcceptDB.SetDatabase(db); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func (b *StatelessBlock) onAccept() (database.Database, error) {
 	if b.st == choices.Accepted || b.Hght == 0 /* genesis */ {

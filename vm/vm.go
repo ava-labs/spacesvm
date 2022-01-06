@@ -33,6 +33,10 @@ const (
 
 	defaultWorkInterval     = 100 * time.Millisecond
 	defaultRegossipInterval = time.Second
+	defaultPruneInterval    = time.Minute
+
+	defaultMinimumDifficulty = 1
+	defaultMinBlockCost      = 1
 
 	mempoolSize = 1024
 )
@@ -48,9 +52,11 @@ type VM struct {
 
 	workInterval     time.Duration
 	regossipInterval time.Duration
-	mempool          *mempool.Mempool
-	appSender        common.AppSender
-	gossipedTxs      *cache.LRU
+	pruneInterval    time.Duration
+
+	mempool     *mempool.Mempool
+	appSender   common.AppSender
+	gossipedTxs *cache.LRU
 	// cache block objects to optimize "getBlock"
 	// only put when a block is accepted
 	// key: block ID, value: *chain.StatelessBlock
@@ -66,7 +72,7 @@ type VM struct {
 	blockBuilder chan struct{}
 
 	preferred    ids.ID
-	lastAccepted ids.ID
+	lastAccepted *chain.StatelessBlock
 
 	minDifficulty uint64
 	minBlockCost  uint64
@@ -74,6 +80,7 @@ type VM struct {
 	stopc         chan struct{}
 	donecRun      chan struct{}
 	donecRegossip chan struct{}
+	donecPrune    chan struct{}
 }
 
 const (
@@ -97,9 +104,13 @@ func (vm *VM) Initialize(
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
 
-	// TODO: make this configurable via genesis
+	// TODO: make this configurable via config
 	vm.workInterval = defaultWorkInterval
 	vm.regossipInterval = defaultRegossipInterval
+	vm.pruneInterval = defaultPruneInterval
+
+	// TODO: make this configurable via genesis
+	vm.minDifficulty, vm.minBlockCost = defaultMinimumDifficulty, defaultMinBlockCost
 
 	vm.mempool = mempool.New(mempoolSize)
 	vm.appSender = appSender
@@ -117,44 +128,48 @@ func (vm *VM) Initialize(
 		log.Error("could not determine if have last accepted")
 		return err
 	}
-	if has {
-		b, err := chain.GetLastAccepted(vm.db)
+	if has { //nolint:nestif
+		blkID, err := chain.GetLastAccepted(vm.db)
 		if err != nil {
 			log.Error("could not get last accepted", "err", err)
 			return err
 		}
 
-		vm.preferred = b
-		vm.lastAccepted = b
-		log.Info("initialized quarkvm from last accepted", "block", b)
-		return nil
-	}
+		blk, err := vm.getBlock(blkID)
+		if err != nil {
+			log.Error("could not load last accepted", "err", err)
+			return err
+		}
 
-	// Load from genesis
-	genesisBlk, err := chain.ParseBlock(
-		genesisBytes,
-		choices.Accepted,
-		vm,
-	)
-	if err != nil {
-		log.Error("unable to init genesis block", "err", err)
-		return err
+		vm.preferred, vm.lastAccepted = blkID, blk
+		log.Info("initialized quarkvm from last accepted", "block", blkID)
+	} else {
+		genesisBlk, err := chain.ParseBlock(
+			genesisBytes,
+			choices.Accepted,
+			vm,
+		)
+		if err != nil {
+			log.Error("unable to init genesis block", "err", err)
+			return err
+		}
+		if err := chain.SetLastAccepted(vm.db, genesisBlk); err != nil {
+			log.Error("could not set genesis as last accepted", "err", err)
+			return err
+		}
+		gBlkID := genesisBlk.ID()
+		vm.preferred, vm.lastAccepted = gBlkID, genesisBlk
+		log.Info("initialized quarkvm from genesis", "block", gBlkID)
 	}
-	if err := chain.SetLastAccepted(vm.db, genesisBlk); err != nil {
-		log.Error("could not set genesis as last accepted", "err", err)
-		return err
-	}
-	gBlkID := genesisBlk.ID()
-	vm.preferred, vm.lastAccepted = gBlkID, gBlkID
-	vm.minDifficulty, vm.minBlockCost = genesisBlk.Difficulty, genesisBlk.Cost
-	log.Info("initialized quarkvm from genesis", "block", gBlkID)
 
 	vm.stopc = make(chan struct{})
 	vm.donecRun = make(chan struct{})
 	vm.donecRegossip = make(chan struct{})
+	vm.donecPrune = make(chan struct{})
 
 	go vm.run()
 	go vm.regossip()
+	go vm.prune()
 	return nil
 }
 
@@ -173,6 +188,7 @@ func (vm *VM) Shutdown() error {
 	close(vm.stopc)
 	<-vm.donecRun
 	<-vm.donecRegossip
+	<-vm.donecPrune
 	if vm.ctx == nil {
 		return nil
 	}
@@ -359,5 +375,5 @@ func (vm *VM) SetPreference(id ids.ID) error {
 // "LastAccepted" implements "snowmanblock.ChainVM"
 // replaces "core.SnowmanVM.LastAccepted"
 func (vm *VM) LastAccepted() (ids.ID, error) {
-	return vm.lastAccepted, nil
+	return vm.lastAccepted.ID(), nil
 }

@@ -38,7 +38,7 @@ func (vm *VM) Rejected(b *chain.StatelessBlock) {
 func (vm *VM) Accepted(b *chain.StatelessBlock) {
 	vm.blocks.Put(b.ID(), b)
 	delete(vm.verifiedBlocks, b.ID())
-	vm.lastAccepted = b.ID()
+	vm.lastAccepted = b
 	log.Debug("accepted block", "id", b.ID())
 }
 
@@ -63,7 +63,8 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		nextCost += uint64(chain.BlockTarget - secondsSinceLast)
 	} else {
 		possibleDiff := uint64(secondsSinceLast - chain.BlockTarget)
-		if possibleDiff < nextCost-vm.minBlockCost {
+		// TODO: clean this up
+		if nextCost >= vm.minBlockCost && possibleDiff < nextCost-vm.minBlockCost {
 			nextCost -= possibleDiff
 		} else {
 			nextCost = vm.minBlockCost
@@ -76,7 +77,7 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		nextDifficulty++
 	} else if recentTxs < chain.TargetTransactions {
 		elapsedWindows := uint64(secondsSinceLast/chain.LookbackWindow) + 1 // account for current window being less
-		if elapsedWindows < nextDifficulty-vm.minDifficulty {
+		if nextDifficulty >= vm.minDifficulty && elapsedWindows < nextDifficulty-vm.minDifficulty {
 			nextDifficulty -= elapsedWindows
 		} else {
 			nextDifficulty = vm.minDifficulty
