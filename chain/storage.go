@@ -96,17 +96,6 @@ func PrefixValueKey(rprefix ids.ShortID, key []byte) (k []byte) {
 	return k
 }
 
-// [expiry/pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
-func specificTimeKey(p byte, t int64, rprefix ids.ShortID) (k []byte) {
-	k = make([]byte, 2+8+1+shortIDLen)
-	k[0] = p
-	k[1] = parser.Delimiter
-	binary.LittleEndian.PutUint64(k[2:], uint64(t))
-	k[2+8] = parser.Delimiter
-	copy(k[2+8+1:], rprefix[:])
-	return k
-}
-
 // [expiry/pruningPrefix] + [delimiter] + [timestamp] + [delimiter]
 func RangeTimeKey(p byte, t int64) (k []byte) {
 	k = make([]byte, 2+8+1)
@@ -125,6 +114,31 @@ func PrefixExpiryKey(expiry int64, rprefix ids.ShortID) (k []byte) {
 // [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
 func PrefixPruningKey(expired int64, rprefix ids.ShortID) (k []byte) {
 	return specificTimeKey(pruningPrefix, expired, rprefix)
+}
+
+const specificTimeKeyLen = 2 + 8 + 1 + shortIDLen
+
+// [expiry/pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
+func specificTimeKey(p byte, t int64, rprefix ids.ShortID) (k []byte) {
+	k = make([]byte, specificTimeKeyLen)
+	k[0] = p
+	k[1] = parser.Delimiter
+	binary.LittleEndian.PutUint64(k[2:], uint64(t))
+	k[2+8] = parser.Delimiter
+	copy(k[2+8+1:], rprefix[:])
+	return k
+}
+
+var ErrInvalidKeyFormat = errors.New("invalid key format")
+
+// extracts expiry/pruning timstamp and raw prefix
+func extractSpecificTimeKey(k []byte) (timestamp int64, rprefix ids.ShortID, err error) {
+	if len(k) != specificTimeKeyLen {
+		return -1, ids.ShortEmpty, ErrInvalidKeyFormat
+	}
+	timestamp = int64(binary.LittleEndian.Uint64(k[2 : 2+8]))
+	rprefix, err = ids.ToShortID(k[2+8+1:])
+	return timestamp, rprefix, err
 }
 
 func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {
@@ -215,8 +229,7 @@ func ExpireNext(db database.Database, parent int64, current int64) (err error) {
 		if err := db.Delete(k); err != nil {
 			return err
 		}
-		expired := int64(binary.LittleEndian.Uint64(curKey[2 : 2+8]))
-		rpfx, err := ids.ToShortID(curKey[2+8+1:])
+		expired, rpfx, err := extractSpecificTimeKey(curKey)
 		if err != nil {
 			return err
 		}
@@ -246,7 +259,7 @@ func PruneNext(db database.Database, limit int) (err error) {
 		if bytes.Compare(curKey, endKey) > 0 { // curKey > endKey; end search
 			break
 		}
-		rpfx, err := ids.ToShortID(curKey[2+8+1:])
+		_, rpfx, err := extractSpecificTimeKey(curKey)
 		if err != nil {
 			return err
 		}

@@ -277,3 +277,22 @@ func TestRange(t *testing.T) {
 		}
 	}
 }
+
+func TestSpecificTimeKey(t *testing.T) {
+	rpfx0 := ids.ShortID{'k'}
+	k := PrefixExpiryKey(100, rpfx0)
+	ts, rpfx, err := extractSpecificTimeKey(k)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ts != 100 {
+		t.Fatalf("unexpected timestamp %d, expected 100", ts)
+	}
+	if rpfx != rpfx0 {
+		t.Fatalf("unexpected rawPrefix %v, expected %v", rpfx, rpfx0)
+	}
+
+	if _, _, err = extractSpecificTimeKey(k[:10]); !errors.Is(err, ErrInvalidKeyFormat) {
+		t.Fatalf("unexpected error %v, expected %v", err, ErrInvalidKeyFormat)
+	}
+}
