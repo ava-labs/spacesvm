@@ -5,6 +5,7 @@ package chain
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	reflect "reflect"
 	"testing"
@@ -114,7 +115,7 @@ func TestPutPrefixInfoAndKey(t *testing.T) {
 	if ok, err := HasPrefixKey(db, pfx, k); ok || err != nil {
 		t.Fatalf("unexpected ok %v, err %v", ok, err)
 	}
-	if err := PutPrefixKey(db, pfx, k, v); err != ErrPrefixMissing {
+	if err := PutPrefixKey(db, pfx, k, v); !errors.Is(err, ErrPrefixMissing) {
 		t.Fatalf("unexpected error %v, expected %v", err, ErrPrefixMissing)
 	}
 
