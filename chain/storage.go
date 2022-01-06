@@ -26,23 +26,19 @@ import (
 // 0x5/ (prefix pruning queue)
 //   -> [raw prefix]
 
-type rawPrefix ids.ShortID
-
 const (
 	infoPrefix  = 0x0
 	keyPrefix   = 0x1
 	txPrefix    = 0x2
 	blockPrefix = 0x3
-
 	// TODO: implement queues
 	// prefixExpiryQueue  = 0x4
 	// prefixPruningQueue = 0x5
+
+	shortIDLen = 20
 )
 
 var lastAccepted = []byte("last_accepted")
-
-// TODO: move to right spot
-var prefixMissing = errors.New("prefix missing")
 
 func PrefixInfoKey(prefix []byte) (k []byte) {
 	k = make([]byte, 2+len(prefix))
@@ -53,13 +49,13 @@ func PrefixInfoKey(prefix []byte) (k []byte) {
 }
 
 // Assumes [prefix] and [key] do not contain delimiter
-func PrefixValueKey(prefix rawPrefix, key []byte) (k []byte) {
-	k = make([]byte, 2+len(prefix)+1+len(key))
+func PrefixValueKey(rprefix ids.ShortID, key []byte) (k []byte) {
+	k = make([]byte, 2+shortIDLen+1+len(key))
 	k[0] = keyPrefix
 	k[1] = parser.Delimiter
-	copy(k[2:], prefix[:])
-	k[2+len(prefix)] = parser.Delimiter
-	copy(k[2+len(prefix)+1:], key)
+	copy(k[2:], rprefix[:])
+	k[2+shortIDLen] = parser.Delimiter
+	copy(k[2+shortIDLen+1:], key)
 	return k
 }
 
@@ -79,18 +75,17 @@ func PrefixBlockKey(blockID ids.ID) (k []byte) {
 	return k
 }
 
-func RawPrefix(prefix []byte, blockTime int64) (rawPrefix, error) {
+func RawPrefix(prefix []byte, blockTime int64) (ids.ShortID, error) {
 	prefixLen := len(prefix)
-	raw := make([]byte, prefixLen+1+binary.MaxVarintLen64)
-	copy(raw, prefix)
-	raw[prefixLen] = parser.Delimiter
-	binary.PutVarint(raw[prefixLen+1:], blockTime)
-	rp, err := ids.ToShortID(raw)
+	r := make([]byte, prefixLen+1+binary.MaxVarintLen64)
+	copy(r, prefix)
+	r[prefixLen] = parser.Delimiter
+	binary.PutVarint(r[prefixLen+1:], blockTime)
+	rprefix, err := ids.ToShortID(r)
 	if err != nil {
-		// TODO: clean up casting
-		return rawPrefix(ids.ShortID{}), err
+		return ids.ShortID{}, err
 	}
-	return rawPrefix(rp), nil
+	return rprefix, nil
 }
 
 func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {
@@ -186,7 +181,7 @@ func PutPrefixKey(db database.Database, prefix []byte, key []byte, value []byte)
 		return err
 	}
 	if !exists {
-		return prefixMissing
+		return ErrPrefixMissing
 	}
 	k := PrefixValueKey(prefixInfo.RawPrefix, key)
 	return db.Put(k, value)
@@ -198,14 +193,14 @@ func DeletePrefixKey(db database.Database, prefix []byte, key []byte) error {
 		return err
 	}
 	if !exists {
-		return prefixMissing
+		return ErrPrefixMissing
 	}
 	k := PrefixValueKey(prefixInfo.RawPrefix, key)
 	return db.Delete(k)
 }
 
-func DeleteAllPrefixKeys(db database.Database, prefix rawPrefix) error {
-	return database.ClearPrefix(db, db, PrefixValueKey(prefix, nil))
+func DeleteAllPrefixKeys(db database.Database, rprefix ids.ShortID) error {
+	return database.ClearPrefix(db, db, PrefixValueKey(rprefix, nil))
 }
 
 func SetTransaction(db database.KeyValueWriter, tx *Transaction) error {
@@ -234,7 +229,7 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 		return nil, err
 	}
 	if !exists {
-		return nil, prefixMissing
+		return nil, ErrPrefixMissing
 	}
 	ret := &Op{key: PrefixValueKey(prefixInfo.RawPrefix, key)}
 	ret.applyOpts(opts)

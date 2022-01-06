@@ -35,6 +35,9 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 
 	// Anything previously at the index was previously removed
 	rawPrefix, err := RawPrefix(c.Prefix, blockTime)
+	if err != nil {
+		return err
+	}
 	newInfo := &PrefixInfo{
 		Owner:       c.Sender,
 		RawPrefix:   rawPrefix,
