@@ -80,6 +80,7 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInf
 	}
 	newTimeRemaining := timeRemaining / i.Keys
 	i.LastUpdated = blockTime
+	lastExpiry := i.Expiry
 	i.Expiry = blockTime + newTimeRemaining
-	return PutPrefixInfo(db, s.Prefix, i)
+	return PutPrefixInfo(db, s.Prefix, i, lastExpiry)
 }

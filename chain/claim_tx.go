@@ -34,19 +34,14 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 	}
 
 	// Anything previously at the prefix was previously removed...
-	rprefix, err := RawPrefix(c.Prefix, blockTime)
-	if err != nil {
-		return err
-	}
 	newInfo := &PrefixInfo{
 		Owner:       c.Sender,
 		Created:     blockTime,
 		LastUpdated: blockTime,
 		Expiry:      blockTime + expiryTime,
 		Keys:        1,
-		RawPrefix:   rprefix,
 	}
-	if err := PutPrefixInfo(db, c.Prefix, newInfo); err != nil {
+	if err := PutPrefixInfo(db, c.Prefix, newInfo, -1); err != nil {
 		return err
 	}
 	return nil

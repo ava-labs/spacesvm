@@ -15,48 +15,36 @@ import (
 )
 
 // TODO: cleanup mapping diagram
-// 0x0/ (singleton prefix info)
+// 0x0/ (block hashes)
+// 0x1/ (tx hashes)
+// 0x2/ (singleton prefix info)
 //   -> [prefix]:[prefix info/raw prefix]
-// 0x1/ (prefix keys)
+// 0x3/ (prefix keys)
 //   -> [raw prefix]
 //     -> [key]
-// 0x2/ (tx hashes)
-// 0x3/ (block hashes)
 // 0x4/ (prefix expiry queue)
 //   -> [raw prefix]
 // 0x5/ (prefix pruning queue)
 //   -> [raw prefix]
 
 const (
-	infoPrefix  = 0x0
-	keyPrefix   = 0x1
-	txPrefix    = 0x2
-	blockPrefix = 0x3
-	// TODO: implement queues
-	// prefixExpiryQueue  = 0x4
-	// prefixPruningQueue = 0x5
+	blockPrefix   = 0x0
+	txPrefix      = 0x1
+	infoPrefix    = 0x2
+	keyPrefix     = 0x3
+	expiryPrefix  = 0x4
+	pruningPrefix = 0x5
 
 	shortIDLen = 20
 )
 
 var lastAccepted = []byte("last_accepted")
 
-func PrefixInfoKey(prefix []byte) (k []byte) {
-	k = make([]byte, 2+len(prefix))
-	k[0] = infoPrefix
+func PrefixBlockKey(blockID ids.ID) (k []byte) {
+	k = make([]byte, 2+len(blockID))
+	k[0] = blockPrefix
 	k[1] = parser.Delimiter
-	copy(k[2:], prefix)
-	return k
-}
-
-// Assumes [prefix] and [key] do not contain delimiter
-func PrefixValueKey(rprefix ids.ShortID, key []byte) (k []byte) {
-	k = make([]byte, 2+shortIDLen+1+len(key))
-	k[0] = keyPrefix
-	k[1] = parser.Delimiter
-	copy(k[2:], rprefix[:])
-	k[2+shortIDLen] = parser.Delimiter
-	copy(k[2+shortIDLen+1:], key)
+	copy(k[2:], blockID[:])
 	return k
 }
 
@@ -68,11 +56,11 @@ func PrefixTxKey(txID ids.ID) (k []byte) {
 	return k
 }
 
-func PrefixBlockKey(blockID ids.ID) (k []byte) {
-	k = make([]byte, 2+len(blockID))
-	k[0] = blockPrefix
+func PrefixInfoKey(prefix []byte) (k []byte) {
+	k = make([]byte, 2+len(prefix))
+	k[0] = infoPrefix
 	k[1] = parser.Delimiter
-	copy(k[2:], blockID[:])
+	copy(k[2:], prefix)
 	return k
 }
 
@@ -88,6 +76,44 @@ func RawPrefix(prefix []byte, blockTime int64) (ids.ShortID, error) {
 		return ids.ShortID{}, err
 	}
 	return rprefix, nil
+}
+
+// Assumes [prefix] and [key] do not contain delimiter
+func PrefixValueKey(rprefix ids.ShortID, key []byte) (k []byte) {
+	k = make([]byte, 2+shortIDLen+1+len(key))
+	k[0] = keyPrefix
+	k[1] = parser.Delimiter
+	copy(k[2:], rprefix[:])
+	k[2+shortIDLen] = parser.Delimiter
+	copy(k[2+shortIDLen+1:], key)
+	return k
+}
+
+func specificTimeKey(p byte, rprefix ids.ShortID, t int64) (k []byte) {
+	k = make([]byte, 2+binary.MaxVarintLen64+1+shortIDLen)
+	k[0] = p
+	k[1] = parser.Delimiter
+	binary.PutVarint(k[2:], t)
+	k[2+binary.MaxVarintLen64] = parser.Delimiter
+	copy(k[2+binary.MaxVarintLen64+1:], rprefix[:])
+	return k
+}
+
+func RangeTimeKey(p byte, t int64) (k []byte) {
+	k = make([]byte, 2+binary.MaxVarintLen64+1)
+	k[0] = p
+	k[1] = parser.Delimiter
+	binary.PutVarint(k[2:], t)
+	k[2+binary.MaxVarintLen64] = parser.Delimiter
+	return k
+}
+
+func PrefixExpiryKey(rprefix ids.ShortID, expiry int64) (k []byte) {
+	return specificTimeKey(expiryPrefix, rprefix, expiry)
+}
+
+func PrefixPruningKey(rprefix ids.ShortID, expired int64) (k []byte) {
+	return specificTimeKey(pruningPrefix, rprefix, expired)
 }
 
 func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {
@@ -149,6 +175,43 @@ func GetBlock(db database.KeyValueReader, bid ids.ID) ([]byte, error) {
 	return db.Get(PrefixBlockKey(bid))
 }
 
+func GetExpired(db database.Database, parent int64, current int64) (pfxs [][]byte, err error) {
+	pfxs = [][]byte{}
+	startKey := RangeTimeKey(expiryPrefix, parent)
+	endKey := RangeTimeKey(expiryPrefix, current)
+	cursor := db.NewIteratorWithStart(startKey)
+	for cursor.Next() {
+		curKey := cursor.Key()
+		if bytes.Compare(startKey, curKey) < -1 { // startKey < curKey; continue search
+			continue
+		}
+		if bytes.Compare(curKey, endKey) > 0 { // curKey > endKey; end search
+			break
+		}
+		pfxs = append(pfxs, cursor.Value())
+	}
+	return pfxs, nil
+}
+
+func GetNextPrunable(db database.Database) (rpfx ids.ShortID, t int64, err error) {
+	startKey := RangeTimeKey(expiryPrefix, 0)
+	cursor := db.NewIteratorWithStart(startKey)
+	for cursor.Next() {
+		curKey := cursor.Key()
+		if bytes.Compare(startKey, curKey) < -1 { // startKey < curKey; continue search
+			continue
+		}
+		// Extract prunable info from key
+		expired, err := binary.ReadVarint(bytes.NewReader(curKey[2 : 2+binary.MaxVarintLen64]))
+		rpfx, err = ids.ToShortID(curKey[2+binary.MaxVarintLen64+1:])
+		if err != nil {
+			return ids.ShortID{}, -1, err
+		}
+		return rpfx, expired, nil
+	}
+	return ids.ShortID{}, -1, nil
+}
+
 // DB
 func HasPrefix(db database.KeyValueReader, prefix []byte) (bool, error) {
 	k := PrefixInfoKey(prefix)
@@ -168,13 +231,52 @@ func HasPrefixKey(db database.KeyValueReader, prefix []byte, key []byte) (bool, 
 	return db.Has(k)
 }
 
-func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo) error {
-	k := PrefixInfoKey(prefix)
+func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo, lastExpiry int64) error {
+	if len(i.RawPrefix) == 0 {
+		rprefix, err := RawPrefix(prefix, i.Created)
+		if err != nil {
+			return err
+		}
+		i.RawPrefix = rprefix
+	}
+	if lastExpiry >= 0 {
+		k := PrefixExpiryKey(i.RawPrefix, lastExpiry)
+		if err := db.Delete(k); err != nil {
+			return err
+		}
+	}
+	k := PrefixExpiryKey(i.RawPrefix, i.Expiry)
+	if err := db.Put(k, prefix); err != nil {
+		return err
+	}
+
+	k = PrefixInfoKey(prefix)
 	b, err := Marshal(i)
 	if err != nil {
 		return err
 	}
 	return db.Put(k, b)
+}
+
+func ExpirePrefix(db database.Database, prefix []byte) error {
+	prefixInfo, exists, err := GetPrefixInfo(db, prefix)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return ErrPrefixMissing
+	}
+
+	k := PrefixInfoKey(prefix)
+	if err := db.Delete(k); err != nil {
+		return err
+	}
+	k = PrefixExpiryKey(prefixInfo.RawPrefix, prefixInfo.Expiry)
+	if err := db.Delete(k); err != nil {
+		return err
+	}
+	k = PrefixPruningKey(prefixInfo.RawPrefix, prefixInfo.Expiry)
+	return db.Put(k, nil)
 }
 
 func PutPrefixKey(db database.Database, prefix []byte, key []byte, value []byte) error {
@@ -201,7 +303,11 @@ func DeletePrefixKey(db database.Database, prefix []byte, key []byte) error {
 	return db.Delete(k)
 }
 
-func DeleteAllPrefixKeys(db database.Database, rprefix ids.ShortID) error {
+func PrunePrefix(db database.Database, rprefix ids.ShortID, expired int64) error {
+	k := PrefixPruningKey(rprefix, expired)
+	if err := db.Delete(k); err != nil {
+		return err
+	}
 	return database.ClearPrefix(db, db, PrefixValueKey(rprefix, nil))
 }
 
