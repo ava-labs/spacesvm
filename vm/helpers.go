@@ -57,6 +57,7 @@ func (vm *VM) DifficultyEstimate() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+	// TODO: make more sophisticated...maybe return cost/difficulty separately?
 	recommended := totalDifficulty/totalBlocks + 1
 	minRequired := vm.minDifficulty + vm.minBlockCost
 	if recommended < minRequired {

@@ -167,7 +167,9 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		surplusDifficulty += tx.Difficulty() - context.NextDifficulty
 	}
 	// Ensure enough work is performed to compensate for block production speed
-	if surplusDifficulty < b.Difficulty*b.Cost {
+	requiredSurplus := b.Difficulty * b.Cost
+	if surplusDifficulty < requiredSurplus {
+		log.Debug("insufficient block surplus", "found", surplusDifficulty, "required", requiredSurplus)
 		return nil, nil, ErrInsufficientSurplus
 	}
 	return parent, onAcceptDB, nil
