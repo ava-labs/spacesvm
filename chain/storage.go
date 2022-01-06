@@ -66,10 +66,10 @@ func PrefixInfoKey(prefix []byte) (k []byte) {
 
 func RawPrefix(prefix []byte, blockTime int64) (ids.ShortID, error) {
 	prefixLen := len(prefix)
-	r := make([]byte, prefixLen+1+binary.MaxVarintLen64)
+	r := make([]byte, prefixLen+1+8)
 	copy(r, prefix)
 	r[prefixLen] = parser.Delimiter
-	binary.PutVarint(r[prefixLen+1:], blockTime)
+	binary.LittleEndian.PutUint64(r[prefixLen+1:], uint64(blockTime))
 	h := hashing.ComputeHash160(r)
 	rprefix, err := ids.ToShortID(h)
 	if err != nil {
@@ -90,21 +90,21 @@ func PrefixValueKey(rprefix ids.ShortID, key []byte) (k []byte) {
 }
 
 func specificTimeKey(p byte, rprefix ids.ShortID, t int64) (k []byte) {
-	k = make([]byte, 2+binary.MaxVarintLen64+1+shortIDLen)
+	k = make([]byte, 2+8+1+shortIDLen)
 	k[0] = p
 	k[1] = parser.Delimiter
-	binary.PutVarint(k[2:], t)
-	k[2+binary.MaxVarintLen64] = parser.Delimiter
-	copy(k[2+binary.MaxVarintLen64+1:], rprefix[:])
+	binary.LittleEndian.PutUint64(k[2:], uint64(t))
+	k[2+8] = parser.Delimiter
+	copy(k[2+8+1:], rprefix[:])
 	return k
 }
 
 func RangeTimeKey(p byte, t int64) (k []byte) {
-	k = make([]byte, 2+binary.MaxVarintLen64+1)
+	k = make([]byte, 2+8+1)
 	k[0] = p
 	k[1] = parser.Delimiter
-	binary.PutVarint(k[2:], t)
-	k[2+binary.MaxVarintLen64] = parser.Delimiter
+	binary.LittleEndian.PutUint64(k[2:], uint64(t))
+	k[2+8] = parser.Delimiter
 	return k
 }
 
@@ -187,20 +187,16 @@ func ExpireNext(db database.Database, parent int64, current int64) (err error) {
 		if bytes.Compare(curKey, endKey) > 0 { // curKey > endKey; end search
 			break
 		}
-		expiry, err := binary.ReadVarint(bytes.NewBuffer(curKey[2 : 2+binary.MaxVarintLen64]))
-		if err != nil {
-			return err
-		}
-		rpfx, err := ids.ToShortID(curKey[2+binary.MaxVarintLen64+1:])
-		if err != nil {
+		if err := db.Delete(cursor.Key()); err != nil {
 			return err
 		}
 		k := PrefixInfoKey(cursor.Value())
 		if err := db.Delete(k); err != nil {
 			return err
 		}
-		k = PrefixExpiryKey(rpfx, expiry)
-		if err := db.Delete(k); err != nil {
+		expiry := int64(binary.LittleEndian.Uint64(curKey[2 : 2+8]))
+		rpfx, err := ids.ToShortID(curKey[2+8+1:])
+		if err != nil {
 			return err
 		}
 		k = PrefixPruningKey(rpfx, expiry)
@@ -220,7 +216,7 @@ func PruneNext(db database.Database, limit int) (err error) {
 		if bytes.Compare(startKey, curKey) < -1 { // startKey < curKey; continue search
 			continue
 		}
-		rpfx, err := ids.ToShortID(curKey[2+binary.MaxVarintLen64+1:])
+		rpfx, err := ids.ToShortID(curKey[2+8+1:])
 		if err != nil {
 			return err
 		}
@@ -272,7 +268,6 @@ func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo, las
 	if err := db.Put(k, prefix); err != nil {
 		return err
 	}
-
 	k = PrefixInfoKey(prefix)
 	b, err := Marshal(i)
 	if err != nil {
