@@ -188,6 +188,7 @@ func (vm *VM) Shutdown() error {
 	close(vm.stopc)
 	<-vm.donecRun
 	<-vm.donecRegossip
+	<-vm.donecPrune
 	if vm.ctx == nil {
 		return nil
 	}
