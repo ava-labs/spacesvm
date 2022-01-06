@@ -98,6 +98,49 @@ func TestPrefixBlockKey(t *testing.T) {
 	}
 }
 
+func TestPutPrefixInfoAndKey(t *testing.T) {
+	t.Parallel()
+
+	db := memdb.New()
+	defer db.Close()
+
+	pfx := []byte("foo")
+	k, v := []byte("k"), []byte("v")
+
+	// expect failures for non-existing prefixInfo
+	if ok, err := HasPrefix(db, pfx); ok || err != nil {
+		t.Fatalf("unexpected ok %v, err %v", ok, err)
+	}
+	if ok, err := HasPrefixKey(db, pfx, k); ok || err != nil {
+		t.Fatalf("unexpected ok %v, err %v", ok, err)
+	}
+	if err := PutPrefixKey(db, pfx, k, v); err != ErrPrefixMissing {
+		t.Fatalf("unexpected error %v, expected %v", err, ErrPrefixMissing)
+	}
+
+	if err := PutPrefixInfo(
+		db,
+		pfx,
+		&PrefixInfo{
+			RawPrefix: ids.ShortID{0x1},
+		},
+		-1,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := PutPrefixKey(db, pfx, k, v); err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
+
+	// expect success for existing prefixInfo
+	if ok, err := HasPrefix(db, pfx); !ok || err != nil {
+		t.Fatalf("unexpected ok %v, err %v", ok, err)
+	}
+	if ok, err := HasPrefixKey(db, pfx, k); !ok || err != nil {
+		t.Fatalf("unexpected ok %v, err %v", ok, err)
+	}
+}
+
 func TestRange(t *testing.T) {
 	t.Parallel()
 
