@@ -25,7 +25,7 @@ func TestPrefixValueKey(t *testing.T) {
 		{
 			pfx:      rawPrefix(ids.ShortID{}),
 			key:      []byte("hello"),
-			valueKey: append([]byte{keyPrefix}, []byte("/foo/hello")...),
+			valueKey: append([]byte{keyPrefix}, []byte("/\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00/hello")...),
 		},
 	}
 	for i, tv := range tt {
@@ -104,10 +104,16 @@ func TestRange(t *testing.T) {
 	db := memdb.New()
 	defer db.Close()
 
+	// Make sure raw prefix can be retrieved
+	prefix := []byte("foo")
+	if err := PutPrefixInfo(db, prefix, &PrefixInfo{}); err != nil {
+		t.Fatal(err)
+	}
+
 	for i := 0; i < 5; i++ {
 		if err := PutPrefixKey(
 			db,
-			[]byte("foo"),
+			prefix,
 			[]byte(fmt.Sprintf("hello%05d", i)),
 			[]byte(fmt.Sprintf("bar%05d", i)),
 		); err != nil {
@@ -122,93 +128,93 @@ func TestRange(t *testing.T) {
 		kvs  []KeyValue
 	}{
 		{ // prefix exists but the key itself does not exist
-			pfx:  []byte("foo/"),
+			pfx:  []byte("foo"),
 			key:  []byte("9"),
 			opts: nil,
 			kvs:  nil,
 		},
 		{ // single key
-			pfx:  []byte("foo/"),
+			pfx:  []byte("foo"),
 			key:  []byte("hello00000"),
 			opts: nil,
 			kvs: []KeyValue{
-				{Key: []byte("foo/hello00000"), Value: []byte("bar00000")},
+				{Key: []byte("hello00000"), Value: []byte("bar00000")},
 			},
 		},
 		{ // prefix query
-			pfx:  []byte("foo/"),
+			pfx:  []byte("foo"),
 			key:  []byte("hello"),
 			opts: []OpOption{WithPrefix()},
 			kvs: []KeyValue{
-				{Key: []byte("foo/hello00000"), Value: []byte("bar00000")},
-				{Key: []byte("foo/hello00001"), Value: []byte("bar00001")},
-				{Key: []byte("foo/hello00002"), Value: []byte("bar00002")},
-				{Key: []byte("foo/hello00003"), Value: []byte("bar00003")},
-				{Key: []byte("foo/hello00004"), Value: []byte("bar00004")},
+				{Key: []byte("hello00000"), Value: []byte("bar00000")},
+				{Key: []byte("hello00001"), Value: []byte("bar00001")},
+				{Key: []byte("hello00002"), Value: []byte("bar00002")},
+				{Key: []byte("hello00003"), Value: []byte("bar00003")},
+				{Key: []byte("hello00004"), Value: []byte("bar00004")},
 			},
 		},
 		{ // prefix query
-			pfx:  []byte("foo/"),
+			pfx:  []byte("foo"),
 			key:  nil,
 			opts: []OpOption{WithPrefix()},
 			kvs: []KeyValue{
-				{Key: []byte("foo/hello00000"), Value: []byte("bar00000")},
-				{Key: []byte("foo/hello00001"), Value: []byte("bar00001")},
-				{Key: []byte("foo/hello00002"), Value: []byte("bar00002")},
-				{Key: []byte("foo/hello00003"), Value: []byte("bar00003")},
-				{Key: []byte("foo/hello00004"), Value: []byte("bar00004")},
+				{Key: []byte("hello00000"), Value: []byte("bar00000")},
+				{Key: []byte("hello00001"), Value: []byte("bar00001")},
+				{Key: []byte("hello00002"), Value: []byte("bar00002")},
+				{Key: []byte("hello00003"), Value: []byte("bar00003")},
+				{Key: []byte("hello00004"), Value: []byte("bar00004")},
 			},
 		},
 		{ // prefix query
-			pfx:  []byte("foo/"),
+			pfx:  []byte("foo"),
 			key:  []byte("x"),
 			opts: []OpOption{WithPrefix()},
 			kvs:  nil,
 		},
 		{ // range query
-			pfx:  []byte("foo/"),
+			pfx:  []byte("foo"),
 			key:  []byte("hello"),
 			opts: []OpOption{WithRangeEnd([]byte("hello00003"))},
 			kvs: []KeyValue{
-				{Key: []byte("foo/hello00000"), Value: []byte("bar00000")},
-				{Key: []byte("foo/hello00001"), Value: []byte("bar00001")},
-				{Key: []byte("foo/hello00002"), Value: []byte("bar00002")},
+				{Key: []byte("hello00000"), Value: []byte("bar00000")},
+				{Key: []byte("hello00001"), Value: []byte("bar00001")},
+				{Key: []byte("hello00002"), Value: []byte("bar00002")},
 			},
 		},
 		{ // range query
-			pfx:  []byte("foo/"),
+			pfx:  []byte("foo"),
 			key:  []byte("hello00001"),
 			opts: []OpOption{WithRangeEnd([]byte("hello00003"))},
 			kvs: []KeyValue{
-				{Key: []byte("foo/hello00001"), Value: []byte("bar00001")},
-				{Key: []byte("foo/hello00002"), Value: []byte("bar00002")},
+				{Key: []byte("hello00001"), Value: []byte("bar00001")},
+				{Key: []byte("hello00002"), Value: []byte("bar00002")},
 			},
 		},
 		{ // range query
-			pfx:  []byte("foo/"),
+			pfx:  []byte("foo"),
 			key:  []byte("hello00003"),
 			opts: []OpOption{WithRangeEnd([]byte("hello00005"))},
 			kvs: []KeyValue{
-				{Key: []byte("foo/hello00003"), Value: []byte("bar00003")},
-				{Key: []byte("foo/hello00004"), Value: []byte("bar00004")},
+				{Key: []byte("hello00003"), Value: []byte("bar00003")},
+				{Key: []byte("hello00004"), Value: []byte("bar00004")},
 			},
 		},
 		{ // range query with limit
-			pfx:  []byte("foo/"),
+			pfx:  []byte("foo"),
 			key:  []byte("hello00003"),
 			opts: []OpOption{WithRangeEnd([]byte("hello00005")), WithRangeLimit(1)},
 			kvs: []KeyValue{
-				{Key: []byte("foo/hello00003"), Value: []byte("bar00003")},
+				{Key: []byte("hello00003"), Value: []byte("bar00003")},
 			},
 		},
 		{ // prefix query with limit
-			pfx:  []byte("foo/"),
+			pfx:  []byte("foo"),
 			key:  []byte("hello"),
 			opts: []OpOption{WithPrefix(), WithRangeLimit(3)},
 			kvs: []KeyValue{
-				{Key: []byte("foo/hello00000"), Value: []byte("bar00000")},
-				{Key: []byte("foo/hello00001"), Value: []byte("bar00001")},
-				{Key: []byte("foo/hello00002"), Value: []byte("bar00002")},
+				{Key: []byte("hello00000"), Value: []byte("bar00000")},
+				{Key: []byte("hello00001"), Value: []byte("bar00001")},
+				{Key: []byte("hello00002"), Value: []byte("bar00002")},
 			},
 		},
 	}
@@ -221,7 +227,7 @@ func TestRange(t *testing.T) {
 			continue
 		}
 		if !reflect.DeepEqual(kvs, tv.kvs) {
-			t.Fatalf("#%d: range response expected %d pair(s), got %v pair(s)", i, len(tv.kvs), len(kvs))
+			t.Fatalf("#%d: range response expected %v pair(s), got %v pair(s)", i, tv.kvs, kvs)
 		}
 	}
 }

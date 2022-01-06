@@ -54,7 +54,7 @@ func PrefixInfoKey(prefix []byte) (k []byte) {
 
 // Assumes [prefix] and [key] do not contain delimiter
 func PrefixValueKey(prefix rawPrefix, key []byte) (k []byte) {
-	k = make([]byte, 2+len(prefix)+2+len(key))
+	k = make([]byte, 2+len(prefix)+1+len(key))
 	k[0] = keyPrefix
 	k[1] = parser.Delimiter
 	copy(k[2:], prefix[:])
@@ -258,16 +258,12 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 		}
 
 		curKey := cursor.Key()
+		formattedKey := curKey[2+len(prefixInfo.RawPrefix)+1:]
 
 		comp := bytes.Compare(startKey, curKey)
 		if comp == 0 { // startKey == curKey
 			kvs = append(kvs, KeyValue{
-				Key: bytes.Replace(
-					curKey,
-					[]byte{keyPrefix, parser.Delimiter},
-					nil,
-					1,
-				),
+				Key:   formattedKey,
 				Value: cursor.Value(),
 			})
 			continue
@@ -285,7 +281,7 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 		}
 
 		kvs = append(kvs, KeyValue{
-			Key:   bytes.Replace(curKey, []byte{keyPrefix, parser.Delimiter}, nil, 1),
+			Key:   formattedKey,
 			Value: cursor.Value(),
 		})
 	}
