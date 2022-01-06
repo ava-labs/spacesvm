@@ -169,6 +169,14 @@ func HasPrefixKey(db database.KeyValueReader, prefix []byte, key []byte) (bool, 
 }
 
 func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo) error {
+	if i.RawPrefix == (ids.ShortID{}) {
+		rprefix, err := RawPrefix(prefix, i.Created)
+		if err != nil {
+			return err
+		}
+		i.RawPrefix = rprefix
+	}
+
 	k := PrefixInfoKey(prefix)
 	b, err := Marshal(i)
 	if err != nil {
@@ -255,7 +263,7 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 		}
 
 		curKey := cursor.Key()
-		formattedKey := curKey[2+len(prefixInfo.RawPrefix)+1:]
+		formattedKey := curKey[2+shortIDLen+1:]
 
 		comp := bytes.Compare(startKey, curKey)
 		if comp == 0 { // startKey == curKey

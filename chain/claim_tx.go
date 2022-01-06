@@ -33,14 +33,10 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 		return ErrPrefixNotExpired
 	}
 
-	// Anything previously at the index was previously removed
-	rawPrefix, err := RawPrefix(c.Prefix, blockTime)
-	if err != nil {
-		return err
-	}
+	// Anything previously at the prefix was previously removed...
 	newInfo := &PrefixInfo{
 		Owner:       c.Sender,
-		RawPrefix:   rawPrefix,
+		Created:     blockTime,
 		LastUpdated: blockTime,
 		Expiry:      blockTime + expiryTime,
 		Keys:        1,

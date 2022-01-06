@@ -10,8 +10,10 @@ import (
 
 type PrefixInfo struct {
 	Owner       [crypto.PublicKeySize]byte `serialize:"true" json:"owner"`
-	RawPrefix   ids.ShortID                `serialize:"true" json:"-"`
+	Created     int64                      `serialize:"true" json:"created"`
 	LastUpdated int64                      `serialize:"true" json:"lastUpdated"`
 	Expiry      int64                      `serialize:"true" json:"expiry"`
 	Keys        int64                      `serialize:"true" json:"keys"` // decays faster the more keys you have
+
+	RawPrefix ids.ShortID `serialize:"true" json:"rawPrefix"`
 }
