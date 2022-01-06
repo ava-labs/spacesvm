@@ -11,6 +11,8 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
+	log "github.com/inconshreveable/log15"
+
 	"github.com/ava-labs/quarkvm/parser"
 )
 
@@ -190,7 +192,8 @@ func ExpireNext(db database.Database, parent int64, current int64) (err error) {
 		if err := db.Delete(cursor.Key()); err != nil {
 			return err
 		}
-		k := PrefixInfoKey(cursor.Value())
+		pfx := cursor.Value()
+		k := PrefixInfoKey(pfx)
 		if err := db.Delete(k); err != nil {
 			return err
 		}
@@ -203,6 +206,7 @@ func ExpireNext(db database.Database, parent int64, current int64) (err error) {
 		if err := db.Put(k, nil); err != nil {
 			return err
 		}
+		log.Debug("prefix expired", "prefix", string(pfx))
 	}
 	return nil
 }
@@ -226,6 +230,7 @@ func PruneNext(db database.Database, limit int) (err error) {
 		if err := database.ClearPrefix(db, db, PrefixValueKey(rpfx, nil)); err != nil {
 			return err
 		}
+		log.Debug("rprefix pruned", "rprefix", rpfx.Hex())
 		removals++
 	}
 	return nil
