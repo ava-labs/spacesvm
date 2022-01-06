@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"math"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
@@ -212,13 +213,17 @@ func ExpireNext(db database.Database, parent int64, current int64) (err error) {
 }
 
 func PruneNext(db database.Database, limit int) (err error) {
-	startKey := RangeTimeKey(expiryPrefix, 0)
+	startKey := RangeTimeKey(pruningPrefix, 0)
+	endKey := RangeTimeKey(pruningPrefix, math.MaxInt64)
 	cursor := db.NewIteratorWithStart(startKey)
 	removals := 0
 	for cursor.Next() && removals < limit {
 		curKey := cursor.Key()
 		if bytes.Compare(startKey, curKey) < -1 { // startKey < curKey; continue search
 			continue
+		}
+		if bytes.Compare(curKey, endKey) > 0 { // curKey > endKey; end search
+			break
 		}
 		rpfx, err := ids.ToShortID(curKey[2+8+1:])
 		if err != nil {
