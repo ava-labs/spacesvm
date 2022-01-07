@@ -31,7 +31,7 @@ type Client interface {
 	// Returns "true" if the block is valid.
 	CheckBlock(blkID ids.ID) (bool, error)
 	// Requests for the estimated difficulty from VM.
-	EstimateDifficulty() (uint64, error)
+	EstimateDifficulty() (uint64, uint64, error)
 	// Issues the transaction and returns the transaction ID.
 	IssueTx(d []byte) (ids.ID, error)
 	// Checks the status of the transaction, and returns "true" if confirmed.
@@ -41,7 +41,9 @@ type Client interface {
 	// Range runs range-query and returns the results.
 	Range(pfx, key []byte, opts ...OpOption) (kvs []chain.KeyValue, err error)
 	// Performs Proof-of-Work (PoW) by enumerating the graffiti.
-	Mine(ctx context.Context, utx chain.UnsignedTransaction, minSurplus int64) (chain.UnsignedTransaction, []uint64, error)
+	Mine(
+		ctx context.Context, utx chain.UnsignedTransaction, difficulty uint64, minSurplus uint64,
+	) (chain.UnsignedTransaction, []uint64, error)
 }
 
 // New creates a new client object.
@@ -112,16 +114,16 @@ func (cli *client) CheckBlock(blkID ids.ID) (bool, error) {
 	return resp.Valid, nil
 }
 
-func (cli *client) EstimateDifficulty() (uint64, error) {
+func (cli *client) EstimateDifficulty() (uint64, uint64, error) {
 	resp := new(vm.DifficultyEstimateReply)
 	if err := cli.req.SendRequest(
 		"difficultyEstimate",
 		&vm.DifficultyEstimateArgs{},
 		resp,
 	); err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	return resp.Difficulty, nil
+	return resp.Difficulty, resp.Cost, nil
 }
 
 func (cli *client) IssueTx(d []byte) (ids.ID, error) {
@@ -196,7 +198,7 @@ done:
 }
 
 func (cli *client) Mine(
-	ctx context.Context, utx chain.UnsignedTransaction, minSurplus int64,
+	ctx context.Context, utx chain.UnsignedTransaction, difficulty uint64, minSurplus uint64,
 ) (chain.UnsignedTransaction, []uint64, error) {
 	solutions := make([]uint64, 0, utx.Units())
 	for ctx.Err() == nil {
@@ -222,14 +224,11 @@ func (cli *client) Mine(
 			}
 			b := chain.HashableBytes(btx, graffiti)
 			d := pow.Difficulty(b)
-			est, err := cli.EstimateDifficulty()
-			if err != nil {
-				return nil, nil, err
-			}
-			if d >= est {
+			if d >= difficulty {
 				solutions = append(solutions, graffiti)
 			}
-			if int64(len(solutions)) == utx.Units()+minSurplus {
+			// TODO: review types
+			if int64(len(solutions)) == utx.Units()+int64(minSurplus) {
 				return utx, solutions, nil
 			}
 			graffiti++

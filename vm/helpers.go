@@ -46,22 +46,26 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 	return foundBlockID, err
 }
 
-func (vm *VM) DifficultyEstimate() (uint64, error) {
+func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
 	totalDifficulty := uint64(0)
+	totalCost := uint64(0)
 	totalBlocks := uint64(0)
 	err := vm.lookback(time.Now().Unix(), vm.preferred, func(b *chain.StatelessBlock) (bool, error) {
 		totalDifficulty += b.Difficulty
+		totalCost += b.Cost
 		totalBlocks++
 		return true, nil
 	})
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	// TODO: make more sophisticated...maybe return cost/difficulty separately?
-	recommended := totalDifficulty/totalBlocks + 1
-	minRequired := vm.minDifficulty + vm.minBlockCost
-	if recommended < minRequired {
-		recommended = minRequired
+	recommendedD := totalDifficulty/totalBlocks + 1
+	if recommendedD < vm.minDifficulty {
+		recommendedD = vm.minDifficulty
 	}
-	return recommended, nil
+	recommendedC := totalCost/totalBlocks + 1
+	if recommendedC < vm.minBlockCost { // TODO: can be less aggressive here
+		recommendedC = vm.minBlockCost
+	}
+	return recommendedD, recommendedC, nil
 }

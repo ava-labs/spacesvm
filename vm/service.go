@@ -116,8 +116,8 @@ func (svc *Service) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, reply 
 type DifficultyEstimateArgs struct{}
 
 type DifficultyEstimateReply struct {
-	Difficulty uint64 `serialize:"true" json:"valid"`
-	// TODO: also add cost here
+	Difficulty uint64 `serialize:"true" json:"difficulty"`
+	Cost       uint64 `serialize:"true" json:"cost"`
 }
 
 func (svc *Service) DifficultyEstimate(
@@ -125,11 +125,12 @@ func (svc *Service) DifficultyEstimate(
 	_ *DifficultyEstimateArgs,
 	reply *DifficultyEstimateReply,
 ) error {
-	diff, err := svc.vm.DifficultyEstimate()
+	diff, cost, err := svc.vm.DifficultyEstimate()
 	if err != nil {
 		return err
 	}
 	reply.Difficulty = diff
+	reply.Cost = cost
 	return nil
 }
 

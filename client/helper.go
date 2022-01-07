@@ -21,13 +21,17 @@ func MineSignIssueTx(
 	cli Client,
 	rtx chain.UnsignedTransaction,
 	priv crypto.PrivateKey,
-	minSurplus int64,
 	opts ...OpOption,
 ) (txID ids.ID, err error) {
 	ret := &Op{}
 	ret.applyOpts(opts)
 
-	utx, solutions, err := cli.Mine(ctx, rtx, minSurplus)
+	diff, cost, err := cli.EstimateDifficulty()
+	if err != nil {
+		return ids.Empty, err
+	}
+
+	utx, solutions, err := cli.Mine(ctx, rtx, diff, cost)
 	if err != nil {
 		return ids.Empty, err
 	}

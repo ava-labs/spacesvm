@@ -340,7 +340,9 @@ func mineAndExpectBlkAccept(
 	toEngine <-chan common.Message,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	utx, solutions, err := cli.Mine(ctx, rtx)
+	diff, cost, err := cli.EstimateDifficulty()
+	gomega.Ω(err).Should(gomega.BeNil())
+	utx, solutions, err := cli.Mine(ctx, rtx, diff, cost)
 	cancel()
 	gomega.Ω(err).Should(gomega.BeNil())
 
