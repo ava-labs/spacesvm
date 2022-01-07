@@ -17,6 +17,6 @@ func FormatPK(pk crypto.PublicKey) ([crypto.SECP256K1RPKLen]byte, error) {
 	if len(pkb) != crypto.SECP256K1RPKLen {
 		return b, ErrInvalidPKLen
 	}
-	copy(b[:], pk.Bytes())
+	copy(b[:], pkb)
 	return b, nil
 }
