@@ -117,6 +117,7 @@ type DifficultyEstimateArgs struct{}
 
 type DifficultyEstimateReply struct {
 	Difficulty uint64 `serialize:"true" json:"valid"`
+	// TODO: also add cost here
 }
 
 func (svc *Service) DifficultyEstimate(

@@ -41,7 +41,7 @@ type Client interface {
 	// Range runs range-query and returns the results.
 	Range(pfx, key []byte, opts ...OpOption) (kvs []chain.KeyValue, err error)
 	// Performs Proof-of-Work (PoW) by enumerating the graffiti.
-	Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, []uint64, error)
+	Mine(ctx context.Context, utx chain.UnsignedTransaction, minSurplus int64) (chain.UnsignedTransaction, []uint64, error)
 }
 
 // New creates a new client object.
@@ -195,7 +195,9 @@ done:
 	return false, ctx.Err()
 }
 
-func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, []uint64, error) {
+func (cli *client) Mine(
+	ctx context.Context, utx chain.UnsignedTransaction, minSurplus int64,
+) (chain.UnsignedTransaction, []uint64, error) {
 	solutions := make([]uint64, 0, utx.Units())
 	for ctx.Err() == nil {
 		cbID, err := cli.Preferred()
@@ -227,7 +229,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 			if d >= est {
 				solutions = append(solutions, graffiti)
 			}
-			if int64(len(solutions)) == utx.Units() {
+			if int64(len(solutions)) == utx.Units()+minSurplus {
 				return utx, solutions, nil
 			}
 			graffiti++

@@ -147,6 +147,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				instances[0].cli,
 				claimTx,
 				priv,
+				1,
 				client.WithPollTx(),
 				client.WithPrefixInfo(pfx),
 			)
@@ -186,6 +187,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				cli,
 				setTx,
 				priv,
+				1,
 				client.WithPollTx(),
 				client.WithPrefixInfo(pfx),
 			)
@@ -235,6 +237,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				cli,
 				setTx,
 				priv,
+				1,
 				client.WithPollTx(),
 				client.WithPrefixInfo(pfx),
 			)
@@ -282,6 +285,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				cli,
 				setTx,
 				priv,
+				1,
 				client.WithPollTx(),
 				client.WithPrefixInfo(pfx),
 			)
