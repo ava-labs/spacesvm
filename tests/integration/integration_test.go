@@ -257,8 +257,9 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		gomega.Ω(err.Error()).Should(gomega.Equal(chain.ErrInvalidBlockID.Error()))
 	})
 
+	var pfx []byte
 	ginkgo.It("Claim/SetTx with valid PoW in a single node", func() {
-		pfx := []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
+		pfx = []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
 		claimTx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
 				Sender: sender,
@@ -299,6 +300,56 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 			gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
+		})
+	})
+
+	ginkgo.It("issue LifelineTx", func() {
+		lifelineTx := &chain.LifelineTx{
+			BaseTx: &chain.BaseTx{
+				Sender: priv.PublicKey().Bytes(),
+				Prefix: pfx,
+			},
+		}
+		ginkgo.By("mine and accept block with a new LifelineTx", func() {
+			mineAndExpectBlkAccept(instances[0].cli, instances[0].vm, lifelineTx, instances[0].toEngine)
+		})
+	})
+
+	ginkgo.It("fail Set/LifelineTx with invalid key", func() {
+		priv2, err := crypto.NewPrivateKey()
+		gomega.Ω(err).Should(gomega.BeNil())
+
+		ginkgo.By("SetTx fails with invalid key", func() {
+			k, v := []byte("avax.kvm"), []byte("hello")
+			setTx := &chain.SetTx{
+				BaseTx: &chain.BaseTx{
+					Sender: priv.PublicKey().Bytes(),
+					Prefix: pfx,
+				},
+				Key:   k,
+				Value: v,
+			}
+			expectIssueTxError(
+				instances[0].cli,
+				setTx,
+				priv2,
+				chain.ErrInvalidSignature,
+			)
+		})
+
+		ginkgo.By("LifelineTx fails with invalid key", func() {
+			lifelineTx := &chain.LifelineTx{
+				BaseTx: &chain.BaseTx{
+					Sender: priv.PublicKey().Bytes(),
+					Prefix: pfx,
+				},
+			}
+			expectIssueTxError(
+				instances[0].cli,
+				lifelineTx,
+				priv2,
+				chain.ErrInvalidSignature,
+			)
 		})
 	})
 
@@ -377,6 +428,33 @@ func mineAndExpectBlkAccept(
 	lastAccepted, err := vm.LastAccepted()
 	gomega.Ω(err).To(gomega.BeNil())
 	gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
+}
+
+func expectIssueTxError(
+	cli client.Client,
+	utx chain.UnsignedTransaction,
+	priv *crypto.PrivateKey,
+	expectedErr error,
+) {
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	mtx, err := cli.Mine(ctx, utx)
+	cancel()
+	gomega.Ω(err).Should(gomega.BeNil())
+
+	b, err := chain.UnsignedBytes(mtx)
+	gomega.Ω(err).Should(gomega.BeNil())
+
+	sig, err := priv.Sign(b)
+	gomega.Ω(err).Should(gomega.BeNil())
+
+	tx := chain.NewTx(mtx, sig)
+	err = tx.Init()
+	gomega.Ω(err).To(gomega.BeNil())
+
+	// or to use VM directly
+	// err = vm.Submit(tx)
+	_, err = cli.IssueTx(tx.Bytes())
+	gomega.Ω(err.Error()).Should(gomega.Equal(expectedErr.Error()))
 }
 
 var _ common.AppSender = &appSender{}
