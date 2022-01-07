@@ -95,3 +95,11 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInf
 	i.Expiry = blockTime + newTimeRemaining
 	return PutPrefixInfo(db, s.Prefix, i, lastExpiry)
 }
+
+func (s *SetTx) Units() int64 {
+	if len(s.Value) == 0 {
+		return 1
+	}
+	u := Units(s.Value)
+	return u/SetValueAmortization + 1
+}
