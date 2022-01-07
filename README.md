@@ -75,3 +75,28 @@ polling transaction "NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw"
 confirmed transaction "NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw"
 prefix pat info &{Owner:0xc00011dd70 LastUpdated:1638591044 Expiry:1638591074 Keys:1}
 ```
+
+# Difficulty Estiamtes
+```bash
+difficulty: 0 avg solution time: 1.74µs
+difficulty: 1 avg solution time: 3.263µs
+difficulty: 2 avg solution time: 7.591µs
+difficulty: 3 avg solution time: 9.47µs
+difficulty: 4 avg solution time: 17.529µs
+difficulty: 5 avg solution time: 30.728µs
+difficulty: 6 avg solution time: 56.324µs
+difficulty: 7 avg solution time: 96.442µs
+difficulty: 8 avg solution time: 191.322µs
+difficulty: 9 avg solution time: 386.001µs
+difficulty: 10 avg solution time: 794.525µs
+difficulty: 11 avg solution time: 1.541153ms
+difficulty: 12 avg solution time: 3.766751ms
+difficulty: 13 avg solution time: 6.686821ms
+difficulty: 14 avg solution time: 11.626156ms
+difficulty: 15 avg solution time: 24.456795ms
+difficulty: 16 avg solution time: 50.756825ms
+difficulty: 17 avg solution time: 108.462722ms
+difficulty: 18 avg solution time: 218.103048ms
+difficulty: 19 avg solution time: 458.385183ms
+difficulty: 20 avg solution time: 863.973251ms
+```
