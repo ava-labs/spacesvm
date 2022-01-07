@@ -91,6 +91,7 @@ func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
 				BlockID: blockID,
 			},
 		},
+		Graffiti: []uint64{0},
 	}
 	if err := tx.Init(); err != nil {
 		t.Fatal(err)
