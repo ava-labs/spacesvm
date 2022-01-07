@@ -8,17 +8,18 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
-	"github.com/ava-labs/quarkvm/crypto"
+	"github.com/ava-labs/avalanchego/utils/crypto"
 )
 
 func TestLifelineTx(t *testing.T) {
 	t.Parallel()
 
-	priv, err := crypto.NewPrivateKey()
+	priv, err := f.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	pub := priv.PublicKey()
+	sender := [crypto.SECP256K1RPKLen]byte{}
+	copy(sender[:], priv.PublicKey().Bytes())
 
 	db := memdb.New()
 	defer db.Close()
@@ -29,17 +30,17 @@ func TestLifelineTx(t *testing.T) {
 		err       error
 	}{
 		{ // invalid when prefix info is missing
-			utx:       &LifelineTx{BaseTx: &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo")}},
+			utx:       &LifelineTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
 			blockTime: 1,
 			err:       ErrPrefixMissing,
 		},
 		{ // successful claim with expiry time "blockTime" + "expiryTime"
-			utx:       &ClaimTx{BaseTx: &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo")}},
+			utx:       &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
 			blockTime: 1,
 			err:       nil,
 		},
 		{ // successful lifeline when prefix info is not missing
-			utx:       &LifelineTx{BaseTx: &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo")}},
+			utx:       &LifelineTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
 			blockTime: 1,
 			err:       nil,
 		},

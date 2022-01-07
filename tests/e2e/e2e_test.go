@@ -12,14 +12,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/crypto"
 	"github.com/ava-labs/quarkvm/tests"
 	"github.com/fatih/color"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
+
+var f *crypto.FactorySECP256K1R
+
+func init() {
+	f = &crypto.FactorySECP256K1R{}
+}
 
 func TestIntegration(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
@@ -54,10 +60,11 @@ func init() {
 }
 
 var (
-	priv        *crypto.PrivateKey
-	clusterInfo tests.ClusterInfo
+	priv   crypto.PrivateKey
+	sender [crypto.SECP256K1RPKLen]byte
 
-	instances []instance
+	clusterInfo tests.ClusterInfo
+	instances   []instance
 )
 
 type instance struct {
@@ -67,8 +74,9 @@ type instance struct {
 
 var _ = ginkgo.BeforeSuite(func() {
 	var err error
-	priv, err = crypto.NewPrivateKey()
+	priv, err = f.NewPrivateKey()
 	gomega.Ω(err).Should(gomega.BeNil())
+	copy(sender[:], priv.PublicKey().Bytes())
 
 	gomega.Ω(clusterInfoPath).ShouldNot(gomega.BeEmpty())
 	clusterInfo, err = tests.LoadClusterInfo(clusterInfoPath)
@@ -127,7 +135,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("mine and issue ClaimTx to the first node", func() {
 			claimTx := &chain.ClaimTx{
 				BaseTx: &chain.BaseTx{
-					Sender: priv.PublicKey().Bytes(),
+					Sender: sender,
 					Prefix: pfx,
 				},
 			}
@@ -150,7 +158,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				pf, err := inst.cli.PrefixInfo(pfx)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Keys).To(gomega.Equal(int64(1)))
-				gomega.Ω(pf.Owner).To(gomega.Equal(priv.PublicKey().Bytes()))
+				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			}
 		})
 
@@ -158,7 +166,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("mine and issue SetTx to a different node (if available)", func() {
 			setTx := &chain.SetTx{
 				BaseTx: &chain.BaseTx{
-					Sender: priv.PublicKey().Bytes(),
+					Sender: sender,
 					Prefix: pfx,
 				},
 				Key:   k,
@@ -189,7 +197,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				pf, err := inst.cli.PrefixInfo(pfx)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Keys).To(gomega.Equal(int64(2)))
-				gomega.Ω(pf.Owner).To(gomega.Equal(priv.PublicKey().Bytes()))
+				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			}
 		})
 

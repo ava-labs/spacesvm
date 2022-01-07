@@ -4,16 +4,20 @@
 package chain
 
 import (
-	"github.com/ava-labs/avalanchego/ids"
+	"bytes"
 
-	"github.com/ava-labs/quarkvm/crypto"
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/crypto"
+
 	"github.com/ava-labs/quarkvm/parser"
 )
 
+var emptyPublicKeyBytes [crypto.SECP256K1RPKLen]byte
+
 type BaseTx struct {
-	Sender   [crypto.PublicKeySize]byte `serialize:"true" json:"sender"`
-	Graffiti uint64                     `serialize:"true" json:"graffiti"`
-	BlockID  ids.ID                     `serialize:"true" json:"blockId"`
+	Sender   [crypto.SECP256K1RPKLen]byte `serialize:"true" json:"sender"`
+	Graffiti uint64                       `serialize:"true" json:"graffiti"`
+	BlockID  ids.ID                       `serialize:"true" json:"blockId"`
 
 	// Prefix is the namespace for the "PrefixInfo"
 	// whose owner can write and read value for the
@@ -35,7 +39,7 @@ func (b *BaseTx) GetBlockID() ids.ID {
 	return b.BlockID
 }
 
-func (b *BaseTx) GetSender() [crypto.PublicKeySize]byte {
+func (b *BaseTx) GetSender() [crypto.SECP256K1RPKLen]byte {
 	return b.Sender
 }
 
@@ -44,8 +48,7 @@ func (b *BaseTx) ExecuteBase() error {
 		return err
 	}
 
-	// "len(b.Sender) == 0" does not check zeroed [32]byte array
-	if crypto.IsEmptyPublicKey(b.Sender[:]) {
+	if bytes.Equal(b.Sender[:], emptyPublicKeyBytes[:]) {
 		return ErrInvalidSender
 	}
 

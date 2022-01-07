@@ -9,25 +9,27 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/quarkvm/crypto"
+	"github.com/ava-labs/avalanchego/utils/crypto"
+
 	"github.com/ava-labs/quarkvm/parser"
 )
 
 func TestBaseTx(t *testing.T) {
 	t.Parallel()
 
-	priv, err := crypto.NewPrivateKey()
+	priv, err := f.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	pub := priv.PublicKey()
+	sender := [crypto.SECP256K1RPKLen]byte{}
+	copy(sender[:], priv.PublicKey().Bytes())
 
 	tt := []struct {
 		tx  *BaseTx
 		err error
 	}{
 		{
-			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo"), BlockID: ids.GenerateTestID()},
+			tx:  &BaseTx{Sender: sender, Prefix: []byte("foo"), BlockID: ids.GenerateTestID()},
 			err: nil,
 		},
 		{
@@ -35,20 +37,20 @@ func TestBaseTx(t *testing.T) {
 			err: ErrInvalidSender,
 		},
 		{
-			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("fo/a")},
+			tx:  &BaseTx{Sender: sender, Prefix: []byte("fo/a")},
 			err: parser.ErrInvalidDelimiter,
 		},
 		{
-			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo/")},
+			tx:  &BaseTx{Sender: sender, Prefix: []byte("foo/")},
 			err: parser.ErrInvalidDelimiter,
 		},
 		{
-			tx:  &BaseTx{Sender: pub.Bytes(), Prefix: []byte("foo")},
+			tx:  &BaseTx{Sender: sender, Prefix: []byte("foo")},
 			err: ErrInvalidBlockID,
 		},
 		{
 			tx: &BaseTx{
-				Sender:  pub.Bytes(),
+				Sender:  sender,
 				BlockID: ids.GenerateTestID(),
 				Prefix:  nil,
 			},
@@ -56,7 +58,7 @@ func TestBaseTx(t *testing.T) {
 		},
 		{
 			tx: &BaseTx{
-				Sender:  pub.Bytes(),
+				Sender:  sender,
 				BlockID: ids.GenerateTestID(),
 				Prefix:  bytes.Repeat([]byte{'a'}, parser.MaxPrefixSize+1),
 			},

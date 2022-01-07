@@ -7,8 +7,7 @@ import (
 	"bytes"
 
 	"github.com/ava-labs/avalanchego/database"
-
-	"github.com/ava-labs/quarkvm/crypto"
+	"github.com/ava-labs/avalanchego/utils/crypto"
 )
 
 var _ UnsignedTransaction = &ClaimTx{}
@@ -19,8 +18,8 @@ type ClaimTx struct {
 
 func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 	// Restrict address prefix to be owned by pk
-	// [32]byte prefix is reserved for pubkey
-	if len(c.Prefix) == crypto.PublicKeySize && !bytes.Equal(c.Sender[:], c.Prefix) {
+	// [33]byte prefix is reserved for pubkey
+	if len(c.Prefix) == crypto.SECP256K1RPKLen && !bytes.Equal(c.Sender[:], c.Prefix) {
 		return ErrPublicKeyMismatch
 	}
 
