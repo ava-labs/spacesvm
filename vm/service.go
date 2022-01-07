@@ -141,11 +141,14 @@ type PrefixInfoReply struct {
 }
 
 func (svc *Service) PrefixInfo(_ *http.Request, args *PrefixInfoArgs, reply *PrefixInfoReply) error {
-	i, _, err := chain.GetPrefixInfo(svc.vm.db, args.Prefix)
+	i, has, err := chain.GetPrefixInfo(svc.vm.db, args.Prefix)
 	if err != nil {
 		return err
 	}
 	reply.Info = i
+	if !has {
+		reply.Info = nil
+	}
 	return nil
 }
 

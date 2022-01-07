@@ -34,7 +34,7 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
-func TestTransactionErrInvalidSignature(t *testing.T) {
+func TestTransactionExecute(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
@@ -45,21 +45,38 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 	}{
 		{
 			createTx: func() *Transaction {
-				return createTestTx(t, ids.ID{0, 1})
+				return createTestClaimTx(t, ids.ID{0, 1}, 1000)
 			},
-			blockTime:  1,
-			ctx:        &Context{RecentBlockIDs: ids.Set{{0, 1}: struct{}{}}},
+			blockTime: 1,
+			ctx: &Context{
+				RecentBlockIDs: ids.Set{{0, 1}: struct{}{}},
+				MinExpiry:      60,
+			},
 			executeErr: nil,
 		},
 		{
 			createTx: func() *Transaction {
-				tx := createTestTx(t, ids.ID{0, 1})
+				tx := createTestClaimTx(t, ids.ID{0, 1}, 100)
 				tx.Signature = []byte("invalid")
 				return tx
 			},
-			blockTime:  1,
-			ctx:        &Context{RecentBlockIDs: ids.Set{{0, 1}: struct{}{}}},
+			blockTime: 1,
+			ctx: &Context{
+				RecentBlockIDs: ids.Set{{0, 1}: struct{}{}},
+				MinExpiry:      60,
+			},
 			executeErr: ErrInvalidSignature,
+		},
+		{
+			createTx: func() *Transaction {
+				return createTestClaimTx(t, ids.ID{0, 1}, 500)
+			},
+			blockTime: 1,
+			ctx: &Context{
+				RecentBlockIDs: ids.Set{{0, 1}: struct{}{}},
+				MinExpiry:      1000,
+			},
+			executeErr: ErrInvalidExpiry,
 		},
 	}
 	for i, tv := range tt {
@@ -71,7 +88,7 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 	}
 }
 
-func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
+func createTestClaimTx(t *testing.T, blockID ids.ID, expiry uint64) *Transaction {
 	t.Helper()
 
 	priv, err := f.NewPrivateKey()
@@ -90,6 +107,7 @@ func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
 				Prefix:  []byte{'a'},
 				BlockID: blockID,
 			},
+			Expiry: expiry,
 		},
 	}
 	if err := tx.Init(); err != nil {

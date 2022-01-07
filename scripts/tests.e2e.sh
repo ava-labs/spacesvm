@@ -58,13 +58,6 @@ go build \
 ./cmd/quarkvm
 find /tmp/avalanchego-v${VERSION}
 
-echo "building quark-cli"
-go build -v -o /tmp/quark-cli ./cmd/quarkcli
-
-echo "creating VM genesis file"
-rm -f /tmp/quarkvm.genesis
-/tmp/quark-cli genesis --genesis-file /tmp/quarkvm.genesis
-
 echo "building runner"
 pushd ./tests/runner
 go build -v -o /tmp/runner .
@@ -76,11 +69,17 @@ go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.0.0-rc2
 ACK_GINKGO_RC=true ginkgo build ./tests/e2e
 ./tests/e2e/e2e.test --help
 
+MIN_EXPIRY=10
+PRUNE_INTERVAL=5
+
 echo "launch local test cluster in the background"
 /tmp/runner \
 --avalanchego-path=/tmp/avalanchego-v${VERSION}/avalanchego \
 --vm-id=tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH \
---vm-genesis-path=/tmp/quarkvm.genesis \
+--min-difficulty 1 \
+--min-block-cost 0 \
+--min-expiry ${MIN_EXPIRY} \
+--prune-interval ${PRUNE_INTERVAL} \
 --output-path=/tmp/avalanchego-v${VERSION}/output.yaml 2> /dev/null &
 PID=${!}
 
@@ -97,7 +96,8 @@ cat /tmp/avalanchego-v${VERSION}/output.yaml
 echo "running e2e tests against the local cluster with shutdown flag '${_SHUTDOWN_FLAG}'"
 ./tests/e2e/e2e.test \
 --ginkgo.v \
---cluster-info-path /tmp/avalanchego-v${VERSION}/output.yaml \
-${_SHUTDOWN_FLAG}
+--min-expiry ${MIN_EXPIRY} \
+--prune-interval ${PRUNE_INTERVAL} \
+--cluster-info-path /tmp/avalanchego-v${VERSION}/output.yaml ${_SHUTDOWN_FLAG}
 
 echo "ALL SUCCESS!"

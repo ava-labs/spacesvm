@@ -14,7 +14,12 @@ var _ UnsignedTransaction = &ClaimTx{}
 
 type ClaimTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
+	// The number of seconds to be added to the current block time
+	// for its prefix expiration.
+	Expiry uint64 `serialize:"true" json:"expiry"`
 }
+
+func (c *ClaimTx) GetExpiry() (uint64, bool) { return c.Expiry, true }
 
 func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 	// Restrict address prefix to be owned by pk
@@ -37,7 +42,7 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 		Owner:       c.Sender,
 		Created:     blockTime,
 		LastUpdated: blockTime,
-		Expiry:      blockTime + expiryTime,
+		Expiry:      blockTime + int64(c.Expiry),
 		Keys:        1,
 	}
 	if err := PutPrefixInfo(db, c.Prefix, newInfo, -1); err != nil {

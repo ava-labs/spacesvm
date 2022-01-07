@@ -21,6 +21,7 @@ func (vm *VM) pruneCall() {
 	vm.ctx.Lock.Lock()
 	defer vm.ctx.Lock.Unlock()
 
+	log.Info("pruning expired prefixes")
 	vdb := versiondb.New(vm.db)
 	defer vdb.Abort()
 	if err := chain.PruneNext(vdb, pruneLimit); err != nil {
@@ -37,7 +38,7 @@ func (vm *VM) pruneCall() {
 }
 
 func (vm *VM) prune() {
-	log.Debug("starting prune loops")
+	log.Info("starting prune loops", "interval", vm.pruneInterval)
 	defer close(vm.donecPrune)
 
 	// should retry less aggressively

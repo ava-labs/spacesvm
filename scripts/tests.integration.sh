@@ -17,6 +17,7 @@ run \
 -- \
 --vms 3 \
 --min-difficulty 1 \
---min-block-cost 0
+--min-block-cost 0 \
+--min-expiry 30
 
 echo "ALL SUCCESS!"

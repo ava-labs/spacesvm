@@ -13,7 +13,12 @@ var _ UnsignedTransaction = &LifelineTx{}
 
 type LifelineTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
+	// The number of seconds to be added to the current block time
+	// for its prefix expiration.
+	Expiry uint64 `serialize:"true" json:"expiry"`
 }
+
+func (l *LifelineTx) GetExpiry() (uint64, bool) { return l.Expiry, true }
 
 func (l *LifelineTx) Execute(db database.Database, blockTime int64) error {
 	curInfo, has, err := GetPrefixInfo(db, l.Prefix)
@@ -30,6 +35,6 @@ func (l *LifelineTx) Execute(db database.Database, blockTime int64) error {
 	}
 	// If you are "in debt", lifeline only adds but doesn't reset to new
 	lastExpiry := curInfo.Expiry
-	curInfo.Expiry += expiryTime / curInfo.Keys
+	curInfo.Expiry += int64(l.Expiry) / curInfo.Keys
 	return PutPrefixInfo(db, l.Prefix, curInfo, lastExpiry)
 }

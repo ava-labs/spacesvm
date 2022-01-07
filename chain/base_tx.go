@@ -43,6 +43,8 @@ func (b *BaseTx) GetSender() [crypto.SECP256K1RPKLen]byte {
 	return b.Sender
 }
 
+func (b *BaseTx) GetExpiry() (uint64, bool) { return 0, false }
+
 func (b *BaseTx) ExecuteBase() error {
 	if err := parser.CheckPrefix(b.Prefix); err != nil {
 		return err

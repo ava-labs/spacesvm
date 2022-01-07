@@ -21,6 +21,7 @@ var (
 	ErrInvalidBlockID    = errors.New("invalid blockID")
 	ErrInvalidDifficulty = errors.New("invalid difficulty")
 	ErrInvalidSignature  = errors.New("invalid signature")
+	ErrInvalidExpiry     = errors.New("invalid expiry")
 	ErrDuplicateTx       = errors.New("duplicate transaction")
 
 	// Execution Correctness

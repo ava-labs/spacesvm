@@ -35,9 +35,6 @@ const (
 	defaultRegossipInterval = time.Second
 	defaultPruneInterval    = time.Minute
 
-	defaultMinimumDifficulty = 1
-	defaultMinBlockCost      = 1
-
 	mempoolSize = 1024
 )
 
@@ -74,8 +71,10 @@ type VM struct {
 	preferred    ids.ID
 	lastAccepted *chain.StatelessBlock
 
+	// to be set via genesis block
 	minDifficulty uint64
 	minBlockCost  uint64
+	minExpiry     uint64
 
 	stopc         chan struct{}
 	donecRun      chan struct{}
@@ -107,10 +106,12 @@ func (vm *VM) Initialize(
 	// TODO: make this configurable via config
 	vm.workInterval = defaultWorkInterval
 	vm.regossipInterval = defaultRegossipInterval
-	vm.pruneInterval = defaultPruneInterval
 
-	// TODO: make this configurable via genesis
-	vm.minDifficulty, vm.minBlockCost = defaultMinimumDifficulty, defaultMinBlockCost
+	// to be updated if set in genesis block
+	vm.minDifficulty = chain.DefaultMinDifficulty
+	vm.minBlockCost = chain.DefaultMinBlockCost
+	vm.minExpiry = chain.DefaultMinExpiryTime
+	vm.pruneInterval = time.Duration(chain.DefaultPruneInterval) * time.Second
 
 	vm.mempool = mempool.New(mempoolSize)
 	vm.appSender = appSender
@@ -157,6 +158,26 @@ func (vm *VM) Initialize(
 			log.Error("could not set genesis as last accepted", "err", err)
 			return err
 		}
+		if len(genesisBlk.ExtraData) > 0 {
+			genesisExtraData := new(chain.Genesis)
+			if _, err := chain.Unmarshal(genesisBlk.ExtraData, genesisExtraData); err != nil {
+				log.Error("could not parse genesis extra data", "err", err)
+				return err
+			}
+			if genesisExtraData.MinBlockCost > 0 {
+				vm.minBlockCost = genesisExtraData.MinBlockCost
+			}
+			if genesisExtraData.MinDifficulty > 0 {
+				vm.minDifficulty = genesisExtraData.MinDifficulty
+			}
+			if genesisExtraData.MinExpiry > 0 {
+				vm.minExpiry = genesisExtraData.MinExpiry
+			}
+			if genesisExtraData.PruneInterval > 0 {
+				vm.pruneInterval = time.Duration(genesisExtraData.PruneInterval) * time.Second
+			}
+		}
+
 		gBlkID := genesisBlk.ID()
 		vm.preferred, vm.lastAccepted = gBlkID, genesisBlk
 		log.Info("initialized quarkvm from genesis", "block", gBlkID)

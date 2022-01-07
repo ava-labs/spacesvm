@@ -44,6 +44,7 @@ var (
 	vms            int
 	minDifficulty  uint64
 	minBlockCost   uint64
+	minExpiry      uint64
 )
 
 func init() {
@@ -62,14 +63,20 @@ func init() {
 	flag.Uint64Var(
 		&minDifficulty,
 		"min-difficulty",
-		chain.MinDifficulty,
+		chain.DefaultMinDifficulty,
 		"minimum difficulty for mining",
 	)
 	flag.Uint64Var(
 		&minBlockCost,
 		"min-block-cost",
-		chain.MinBlockCost,
+		chain.DefaultMinBlockCost,
 		"minimum block cost",
+	)
+	flag.Uint64Var(
+		&minExpiry,
+		"min-expiry",
+		chain.DefaultMinExpiryTime,
+		"minimum number of seconds to expire prefix since its block time",
 	)
 }
 
@@ -102,10 +109,19 @@ var _ = ginkgo.BeforeSuite(func() {
 	// create embedded VMs
 	instances = make([]instance, vms)
 
+	g := chain.Genesis{
+		MinDifficulty: minDifficulty,
+		MinBlockCost:  minBlockCost,
+		MinExpiry:     minExpiry,
+	}
+	extraData, err := chain.Marshal(g)
+	gomega.Ω(err).Should(gomega.BeNil())
+
 	blk := &chain.StatefulBlock{
 		Tmstmp:     time.Now().Unix(),
 		Difficulty: minDifficulty,
 		Cost:       minBlockCost,
+		ExtraData:  extraData,
 	}
 	genesisBytes, err = chain.Marshal(blk)
 	gomega.Ω(err).Should(gomega.BeNil())
@@ -199,7 +215,16 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			},
 		}
 
-		ginkgo.By("mine and issue ClaimTx", func() {
+		ginkgo.By("mine and issue ClaimTx with invalid expiry", func() {
+			claimTx.Expiry = minExpiry - 10
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.MineSignIssueTx(ctx, instances[0].cli, claimTx, priv)
+			cancel()
+			gomega.Ω(err).Should(gomega.MatchError(chain.ErrInvalidExpiry.Error()))
+		})
+
+		ginkgo.By("mine and issue ClaimTx with valid expiry", func() {
+			claimTx.Expiry = minExpiry + 10
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 			_, err := client.MineSignIssueTx(ctx, instances[0].cli, claimTx, priv)
 			cancel()
@@ -235,12 +260,13 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		})
 	})
 
-	ginkgo.It("fail ClaimTx with no block ID", func() {
+	ginkgo.It("fail ClaimTx with no PoW mining thus no block ID", func() {
 		utx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
 				Sender: sender,
 				Prefix: []byte("foo"),
 			},
+			Expiry: minExpiry + 10,
 		}
 
 		b, err := chain.UnsignedBytes(utx)
@@ -265,6 +291,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 				Sender: sender,
 				Prefix: pfx,
 			},
+			Expiry: minExpiry + 10,
 		}
 
 		ginkgo.By("mine and accept block with the first ClaimTx", func() {
@@ -306,24 +333,35 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	ginkgo.It("issue LifelineTx", func() {
 		lifelineTx := &chain.LifelineTx{
 			BaseTx: &chain.BaseTx{
-				Sender: priv.PublicKey().Bytes(),
+				Sender: sender,
 				Prefix: pfx,
 			},
+			Expiry: minExpiry + 10,
 		}
+		ginkgo.By("mine and issue LifelineTx with invalid expiry", func() {
+			lifelineTx.Expiry = minExpiry - 10
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.MineSignIssueTx(ctx, instances[0].cli, lifelineTx, priv)
+			cancel()
+			gomega.Ω(err).Should(gomega.MatchError(chain.ErrInvalidExpiry.Error()))
+		})
 		ginkgo.By("mine and accept block with a new LifelineTx", func() {
+			lifelineTx.Expiry = minExpiry + 10
 			mineAndExpectBlkAccept(instances[0].cli, instances[0].vm, lifelineTx, instances[0].toEngine)
 		})
 	})
 
 	ginkgo.It("fail Set/LifelineTx with invalid key", func() {
-		priv2, err := crypto.NewPrivateKey()
+		priv2, err := f.NewPrivateKey()
+		gomega.Ω(err).Should(gomega.BeNil())
+		sender2, err := chain.FormatPK(priv2.PublicKey())
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		ginkgo.By("SetTx fails with invalid key", func() {
 			k, v := []byte("avax.kvm"), []byte("hello")
 			setTx := &chain.SetTx{
 				BaseTx: &chain.BaseTx{
-					Sender: priv.PublicKey().Bytes(),
+					Sender: sender2,
 					Prefix: pfx,
 				},
 				Key:   k,
@@ -333,22 +371,23 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 				instances[0].cli,
 				setTx,
 				priv2,
-				chain.ErrInvalidSignature,
+				chain.ErrUnauthorized,
 			)
 		})
 
 		ginkgo.By("LifelineTx fails with invalid key", func() {
 			lifelineTx := &chain.LifelineTx{
 				BaseTx: &chain.BaseTx{
-					Sender: priv.PublicKey().Bytes(),
+					Sender: sender2,
 					Prefix: pfx,
 				},
+				Expiry: minExpiry + 10,
 			}
 			expectIssueTxError(
 				instances[0].cli,
 				lifelineTx,
 				priv2,
-				chain.ErrInvalidSignature,
+				chain.ErrUnauthorized,
 			)
 		})
 	})
@@ -360,6 +399,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 				Sender: sender,
 				Prefix: pfx,
 			},
+			Expiry: minExpiry + 10,
 		}
 
 		ginkgo.By("mine and issue ClaimTx", func() {
@@ -433,7 +473,7 @@ func mineAndExpectBlkAccept(
 func expectIssueTxError(
 	cli client.Client,
 	utx chain.UnsignedTransaction,
-	priv *crypto.PrivateKey,
+	priv crypto.PrivateKey,
 	expectedErr error,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)

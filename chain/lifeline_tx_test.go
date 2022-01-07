@@ -22,11 +22,14 @@ func TestLifelineTx(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	priv2, err := crypto.NewPrivateKey()
+	priv2, err := f.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	pub2 := priv2.PublicKey()
+	sender2, err := FormatPK(priv2.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	db := memdb.New()
 	defer db.Close()
@@ -52,7 +55,7 @@ func TestLifelineTx(t *testing.T) {
 			err:       nil,
 		},
 		{ // invalid when lifelined by a different owner
-			utx:       &LifelineTx{BaseTx: &BaseTx{Sender: pub2.Bytes(), Prefix: []byte("foo")}},
+			utx:       &LifelineTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
 			blockTime: 1,
 			err:       ErrUnauthorized,
 		},

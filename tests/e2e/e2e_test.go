@@ -35,6 +35,8 @@ func TestIntegration(t *testing.T) {
 var (
 	requestTimeout  time.Duration
 	clusterInfoPath string
+	minExpiry       uint64
+	pruneInterval   uint64
 	shutdown        bool
 )
 
@@ -51,6 +53,18 @@ func init() {
 		"",
 		"cluster info YAML file path (as defined in 'tests/cluster_info.go')",
 	)
+	flag.Uint64Var(
+		&minExpiry,
+		"min-expiry",
+		chain.DefaultMinExpiryTime,
+		"minimum number of seconds to expire prefix since its block time (must be set via genesis)",
+	)
+	flag.Uint64Var(
+		&pruneInterval,
+		"prune-interval",
+		chain.DefaultPruneInterval,
+		"prune interval in seconds",
+	)
 	flag.BoolVar(
 		&shutdown,
 		"shutdown",
@@ -65,7 +79,13 @@ var (
 
 	clusterInfo tests.ClusterInfo
 	instances   []instance
+	cur         int // index of current client
 )
+
+func next() {
+	cur++
+	cur %= len(instances)
+}
 
 type instance struct {
 	uri string
@@ -131,19 +151,46 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		}
 	})
 
+	priv2, err := f.NewPrivateKey()
+	gomega.Ω(err).Should(gomega.BeNil())
+	sender2, err := chain.FormatPK(priv2.PublicKey())
+	gomega.Ω(err).Should(gomega.BeNil())
+
 	pfx := []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
-	ginkgo.It("Claim/SetTx with valid PoW in a single node", func() {
-		ginkgo.By("mine and issue ClaimTx to the first node", func() {
+	ginkgo.It("fail ClaimTx with invalid signature", func() {
+		claimTx := &chain.ClaimTx{
+			BaseTx: &chain.BaseTx{
+				Sender: sender2,
+				Prefix: pfx,
+			},
+			Expiry: minExpiry + 10,
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+		_, err = client.MineSignIssueTx(
+			ctx,
+			instances[cur].cli,
+			claimTx,
+			priv,
+			client.WithPollTx(),
+		)
+		cancel()
+		gomega.Ω(err).Should(gomega.MatchError(chain.ErrInvalidSignature.Error()))
+		next()
+	})
+
+	ginkgo.It("Claim/SetTx with valid PoW", func() {
+		ginkgo.By("mine and issue ClaimTx", func() {
 			claimTx := &chain.ClaimTx{
 				BaseTx: &chain.BaseTx{
 					Sender: sender,
 					Prefix: pfx,
 				},
+				Expiry: minExpiry,
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 			_, err := client.MineSignIssueTx(
 				ctx,
-				instances[0].cli,
+				instances[cur].cli,
 				claimTx,
 				priv,
 				client.WithPollTx(),
@@ -151,6 +198,19 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
+			next()
+
+			ctx, cancel = context.WithTimeout(context.Background(), requestTimeout)
+			_, err = client.MineSignIssueTx(
+				ctx,
+				instances[cur].cli,
+				claimTx,
+				priv,
+				client.WithPollTx(),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.MatchError(chain.ErrPrefixNotExpired.Error()))
+			next()
 		})
 
 		ginkgo.By("check prefix to check if ClaimTx has been accepted from all nodes", func() {
@@ -173,16 +233,10 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				Key:   k,
 				Value: v,
 			}
-
-			cli := instances[0].cli
-			if len(instances) > 1 {
-				cli = instances[1].cli
-			}
-
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 			_, err := client.MineSignIssueTx(
 				ctx,
-				cli,
+				instances[cur].cli,
 				setTx,
 				priv,
 				client.WithPollTx(),
@@ -190,6 +244,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
+			next()
 		})
 
 		ginkgo.By("check prefix to check if SetTx has been accepted from all nodes", func() {
@@ -210,6 +265,201 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 				gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
 			}
+		})
+
+		ginkgo.By("can claim the same prefix after expiration", func() {
+			// wait enough for vm expire next to trigger prune
+			waitDur := time.Duration(minExpiry)*time.Second + time.Minute
+			color.Blue("waiting %v to reach expiry with some buffer", waitDur)
+			time.Sleep(waitDur)
+
+			// trigger block creation to call "ExpireNext"
+			claimTx := &chain.ClaimTx{
+				BaseTx: &chain.BaseTx{
+					Sender: sender,
+					Prefix: []byte(fmt.Sprintf("otherpfx%d", time.Now().UnixNano())),
+				},
+				Expiry: minExpiry,
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.MineSignIssueTx(
+				ctx,
+				instances[cur].cli,
+				claimTx,
+				priv,
+				client.WithPollTx(),
+				client.WithPrefixInfo(pfx),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.BeNil())
+			next()
+
+			// add default prune interval plus expiry for some buffer
+			waitDur = time.Duration(3*pruneInterval) * time.Second
+			color.Blue("waiting %v for pruning routine", waitDur)
+			time.Sleep(waitDur)
+
+			// prefix should've been deleted
+			pf, err := instances[cur].cli.PrefixInfo(pfx)
+			gomega.Ω(pf).Should(gomega.BeNil())
+			gomega.Ω(err).Should(gomega.BeNil())
+			next()
+		})
+	})
+
+	ginkgo.It("fail SetTx with invalid signature", func() {
+		setTx := &chain.SetTx{
+			BaseTx: &chain.BaseTx{
+				Sender: sender2,
+				Prefix: pfx,
+			},
+			Key:   []byte("k"),
+			Value: []byte("v"),
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+		_, err = client.MineSignIssueTx(
+			ctx,
+			instances[cur].cli,
+			setTx,
+			priv,
+			client.WithPollTx(),
+		)
+		cancel()
+		gomega.Ω(err).Should(gomega.MatchError(chain.ErrInvalidSignature.Error()))
+		next()
+	})
+})
+
+var _ = ginkgo.Describe("[Claim/LifelineTx]", func() {
+	pfx := []byte(fmt.Sprintf("claimlifelinetx%10d", time.Now().UnixNano()))
+	ginkgo.It("fail ClaimTx with invalid expiry", func() {
+		claimTx := &chain.ClaimTx{
+			BaseTx: &chain.BaseTx{
+				Sender: sender,
+				Prefix: pfx,
+			},
+			Expiry: minExpiry - 10,
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+		_, err := client.MineSignIssueTx(
+			ctx,
+			instances[cur].cli,
+			claimTx,
+			priv,
+			client.WithPollTx(),
+		)
+		cancel()
+		gomega.Ω(err).Should(gomega.MatchError(chain.ErrInvalidExpiry.Error()))
+		next()
+	})
+
+	ginkgo.It("ClaimTx", func() {
+		claimTx := &chain.ClaimTx{
+			BaseTx: &chain.BaseTx{
+				Sender: sender,
+				Prefix: pfx,
+			},
+		}
+		ginkgo.By("success with valid expiry", func() {
+			claimTx.Expiry = minExpiry + 10
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.MineSignIssueTx(
+				ctx,
+				instances[cur].cli,
+				claimTx,
+				priv,
+				client.WithPollTx(),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.BeNil())
+			next()
+		})
+
+		ginkgo.By("once tx is confirmed, prefix info should be persisted", func() {
+			pf, err := instances[cur].cli.PrefixInfo(pfx)
+			gomega.Ω(err).Should(gomega.BeNil())
+			gomega.Ω(pf.Keys).To(gomega.Equal(int64(1)))
+			gomega.Ω(pf.Owner).To(gomega.Equal(sender))
+			next()
+		})
+
+		ginkgo.By("fail when prefix is not expired yet", func() {
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.MineSignIssueTx(
+				ctx,
+				instances[cur].cli,
+				claimTx,
+				priv,
+				client.WithPollTx(),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.MatchError(chain.ErrPrefixNotExpired.Error()))
+			next()
+		})
+
+		lifelineTx := &chain.LifelineTx{
+			BaseTx: &chain.BaseTx{
+				Sender: sender,
+				Prefix: pfx,
+			},
+			Expiry: minExpiry + 10,
+		}
+		ginkgo.By("extend prefix lease with LifelineTx before expiration", func() {
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.MineSignIssueTx(
+				ctx,
+				instances[cur].cli,
+				lifelineTx,
+				priv,
+				client.WithPollTx(),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.BeNil())
+			next()
+		})
+
+		ginkgo.By("once tx is confirmed, prefix info should be persisted", func() {
+			pf, err := instances[cur].cli.PrefixInfo(pfx)
+			gomega.Ω(err).Should(gomega.BeNil())
+			gomega.Ω(pf.Keys).To(gomega.Equal(int64(1)))
+			gomega.Ω(pf.Owner).To(gomega.Equal(sender))
+			next()
+		})
+
+		ginkgo.By("once prefix is expired, prefix info should be nil", func() {
+			// wait enough for vm expire next to trigger prune
+			waitDur := time.Duration(2*lifelineTx.Expiry)*time.Second + time.Minute
+			color.Blue("waiting %v to reach expiry with some buffer", waitDur)
+			time.Sleep(waitDur)
+
+			// trigger some block creation which calls "ExpireNext"
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.MineSignIssueTx(
+				ctx,
+				instances[cur].cli,
+				&chain.ClaimTx{
+					BaseTx: &chain.BaseTx{
+						Sender: sender,
+						Prefix: []byte(fmt.Sprintf("%d", time.Now().UnixNano())),
+					},
+					Expiry: minExpiry,
+				},
+				priv,
+				client.WithPollTx(),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.BeNil())
+			next()
+
+			// add default prune interval plus expiry for some buffer
+			waitDur = time.Duration(3*pruneInterval) * time.Second
+			color.Blue("waiting %v for pruning routine", waitDur)
+			time.Sleep(waitDur)
+
+			pf, err := instances[cur].cli.PrefixInfo(pfx)
+			gomega.Ω(pf).Should(gomega.BeNil())
+			gomega.Ω(err).Should(gomega.BeNil())
+			next()
 		})
 	})
 })

@@ -99,6 +99,9 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 	if !pk.Verify(t.unsignedBytes, t.Signature) {
 		return ErrInvalidSignature
 	}
+	if exp, ok := t.UnsignedTransaction.GetExpiry(); ok && exp < context.MinExpiry {
+		return ErrInvalidExpiry
+	}
 	if err := t.UnsignedTransaction.Execute(db, blockTime); err != nil {
 		return err
 	}

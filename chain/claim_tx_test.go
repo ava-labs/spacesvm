@@ -42,32 +42,50 @@ func TestClaimTx(t *testing.T) {
 		err       error
 	}{
 		{ // invalid claim, [32]byte prefix is reserved for pubkey
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: bytes.Repeat([]byte{'a'}, crypto.SECP256K1RPKLen)}},
+			tx: &ClaimTx{
+				BaseTx: &BaseTx{Sender: sender, Prefix: bytes.Repeat([]byte{'a'}, crypto.SECP256K1RPKLen)},
+				Expiry: DefaultMinExpiryTime,
+			},
 			blockTime: 1,
 			err:       ErrPublicKeyMismatch,
 		},
 		{ // successful claim with expiry time "blockTime" + "expiryTime"
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
+			tx: &ClaimTx{
+				BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")},
+				Expiry: DefaultMinExpiryTime,
+			},
 			blockTime: 1,
 			err:       nil,
 		},
 		{ // invalid claim due to expiration
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
+			tx: &ClaimTx{
+				BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")},
+				Expiry: DefaultMinExpiryTime,
+			},
 			blockTime: 1,
 			err:       ErrPrefixNotExpired,
 		},
 		{ // successful new claim
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
+			tx: &ClaimTx{
+				BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")},
+				Expiry: DefaultMinExpiryTime,
+			},
 			blockTime: 100,
 			err:       nil,
 		},
 		{ // successful new claim by different owner
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
+			tx: &ClaimTx{
+				BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")},
+				Expiry: DefaultMinExpiryTime,
+			},
 			blockTime: 150,
 			err:       nil,
 		},
 		{ // invalid claim due to expiration by different owner
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
+			tx: &ClaimTx{
+				BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")},
+				Expiry: DefaultMinExpiryTime,
+			},
 			blockTime: 177,
 			err:       ErrPrefixNotExpired,
 		},

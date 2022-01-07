@@ -25,6 +25,7 @@ import (
 	avago_constants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
+	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/tests"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -36,6 +37,10 @@ func runFunc(cmd *cobra.Command, args []string) error {
 		"quarkvm",
 		vmID,
 		vmGenesisPath,
+		minDifficulty,
+		minBlockCost,
+		minExpiry,
+		pruneInterval,
 		outputPath,
 	)
 }
@@ -45,8 +50,22 @@ func run(
 	vmName string,
 	vmID string,
 	vmGenesisPath string,
+	minDifficulty uint64,
+	minBlockCost uint64,
+	minExpiry uint64,
+	pruneInterval uint64,
 	outputPath string) (err error) {
-	lc := newLocalNetwork(avalancheGoBinPath, vmName, vmID, vmGenesisPath, outputPath)
+	lc := newLocalNetwork(
+		avalancheGoBinPath,
+		vmName,
+		vmID,
+		vmGenesisPath,
+		minDifficulty,
+		minBlockCost,
+		minExpiry,
+		pruneInterval,
+		outputPath,
+	)
 
 	go lc.start()
 	select {
@@ -74,11 +93,11 @@ type localNetwork struct {
 
 	cfg network.Config
 
-	binPath       string
-	vmName        string
-	vmID          string
-	vmGenesisPath string
-	outputPath    string
+	binPath    string
+	vmName     string
+	vmID       string
+	vmGenesis  []byte
+	outputPath string
 
 	nw network.Network
 
@@ -102,11 +121,17 @@ type localNetwork struct {
 	errc  chan error
 }
 
+const fsModeWrite = 0o600
+
 func newLocalNetwork(
 	avalancheGoBinPath string,
 	vmName string,
 	vmID string,
 	vmGenesisPath string,
+	minDifficulty uint64,
+	minBlockCost uint64,
+	minExpiry uint64,
+	pruneInterval uint64,
 	outputPath string,
 ) *localNetwork {
 	lcfg, err := logging.DefaultConfig()
@@ -162,6 +187,32 @@ func newLocalNetwork(
 		}
 	}
 
+	g := chain.Genesis{
+		MinDifficulty: minDifficulty,
+		MinBlockCost:  minBlockCost,
+		MinExpiry:     minExpiry,
+		PruneInterval: pruneInterval,
+	}
+	extraData, err := chain.Marshal(g)
+	if err != nil {
+		panic(err)
+	}
+	// Note: genesis block must have the min difficulty and block cost or else
+	// the execution context logic may over/underflow
+	blk := &chain.StatefulBlock{
+		Tmstmp:     time.Now().Unix(),
+		Difficulty: minDifficulty,
+		Cost:       minBlockCost,
+		ExtraData:  extraData,
+	}
+	vmGenesis, err := chain.Marshal(blk)
+	if err != nil {
+		panic(err)
+	}
+	if err := os.WriteFile(vmGenesisPath, vmGenesis, fsModeWrite); err != nil {
+		panic(err)
+	}
+
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 	return &localNetwork{
@@ -170,11 +221,11 @@ func newLocalNetwork(
 
 		cfg: cfg,
 
-		binPath:       avalancheGoBinPath,
-		vmName:        vmName,
-		vmID:          vmID,
-		vmGenesisPath: vmGenesisPath,
-		outputPath:    outputPath,
+		binPath:    avalancheGoBinPath,
+		vmName:     vmName,
+		vmID:       vmID,
+		vmGenesis:  vmGenesis,
+		outputPath: outputPath,
 
 		nodeNames: nodeNames,
 		nodeIDs:   make(map[string]string),
@@ -491,11 +542,6 @@ func (lc *localNetwork) addSubnetValidators() error {
 }
 
 func (lc *localNetwork) createBlockchain() error {
-	vmGenesis, err := ioutil.ReadFile(lc.vmGenesisPath)
-	if err != nil {
-		return fmt.Errorf("failed to read genesis file (%s): %w", lc.vmGenesisPath, err)
-	}
-
 	color.Blue("creating blockchain with vm name %q and ID %q...", lc.vmName, lc.vmID)
 	for name, cli := range lc.apiClis {
 		blkChainTxID, err := cli.PChainAPI().CreateBlockchain(
@@ -506,7 +552,7 @@ func (lc *localNetwork) createBlockchain() error {
 			lc.vmID,                       // vmID
 			[]string{},                    // fxIDs
 			lc.vmName,                     // name
-			vmGenesis,                     // genesisData
+			lc.vmGenesis,                  // genesisData
 		)
 		if err != nil {
 			return fmt.Errorf("failed to create blockchain: %w in %q", err, name)

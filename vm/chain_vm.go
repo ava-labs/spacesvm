@@ -89,5 +89,6 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		RecentTxIDs:    recentTxIDs,
 		NextCost:       nextCost,
 		NextDifficulty: nextDifficulty,
+		MinExpiry:      vm.minExpiry,
 	}, nil
 }

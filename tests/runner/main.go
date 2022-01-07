@@ -6,8 +6,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
+	"github.com/ava-labs/quarkvm/chain"
 	"github.com/spf13/cobra"
 )
 
@@ -26,12 +28,24 @@ var (
 	avalancheGoBinPath string
 	vmID               string
 	vmGenesisPath      string
+	minDifficulty      uint64
+	minBlockCost       uint64
+	minExpiry          uint64
+	pruneInterval      uint64
 	outputPath         string
 )
 
 const defaultVMID = "tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH"
 
 func init() {
+	f, err := ioutil.TempFile(os.TempDir(), "testrunnergenesis")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "runner failed create temp file %v\n", err)
+		os.Exit(1)
+	}
+	genesisPath := f.Name()
+	f.Close()
+
 	rootCmd.PersistentFlags().StringVar(
 		&avalancheGoBinPath,
 		"avalanchego-path",
@@ -47,8 +61,32 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(
 		&vmGenesisPath,
 		"vm-genesis-path",
-		"",
+		genesisPath,
 		"VM genesis file path",
+	)
+	rootCmd.PersistentFlags().Uint64Var(
+		&minDifficulty,
+		"min-difficulty",
+		chain.DefaultMinDifficulty,
+		"minimum difficulty for mining",
+	)
+	rootCmd.PersistentFlags().Uint64Var(
+		&minBlockCost,
+		"min-block-cost",
+		chain.DefaultMinBlockCost,
+		"minimum block cost",
+	)
+	rootCmd.PersistentFlags().Uint64Var(
+		&minExpiry,
+		"min-expiry",
+		chain.DefaultMinExpiryTime,
+		"minimum number of seconds to expire prefix since its block time",
+	)
+	rootCmd.PersistentFlags().Uint64Var(
+		&pruneInterval,
+		"prune-interval",
+		chain.DefaultPruneInterval,
+		"prune interval in seconds",
 	)
 	rootCmd.PersistentFlags().StringVar(
 		&outputPath,

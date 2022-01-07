@@ -13,9 +13,11 @@ const (
 	LookbackWindow     = 10
 	BlockTarget        = 1
 	TargetTransactions = 10 * LookbackWindow / BlockTarget // TODO: can be higher on real network
-	MinDifficulty      = 1                                 // TODO: set much higher on real network
-	MinBlockCost       = 0                                 // in units of tx surplus
-	expiryTime         = 30                                // TODO: set much longer on real network
+
+	DefaultMinDifficulty = 1 // TODO: set much higher on real network
+	DefaultMinBlockCost  = 0 // in units of tx surplus
+	DefaultMinExpiryTime = 30
+	DefaultPruneInterval = 60
 )
 
 type Context struct {
@@ -24,4 +26,5 @@ type Context struct {
 
 	NextCost       uint64
 	NextDifficulty uint64
+	MinExpiry      uint64
 }

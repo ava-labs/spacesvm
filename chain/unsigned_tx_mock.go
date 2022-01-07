@@ -79,11 +79,26 @@ func (mr *MockUnsignedTransactionMockRecorder) GetBlockID() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockID", reflect.TypeOf((*MockUnsignedTransaction)(nil).GetBlockID))
 }
 
+// GetExpiry mocks base method.
+func (m *MockUnsignedTransaction) GetExpiry() (uint64, bool) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetExpiry")
+	ret0, _ := ret[0].(uint64)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// GetExpiry indicates an expected call of GetExpiry.
+func (mr *MockUnsignedTransactionMockRecorder) GetExpiry() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExpiry", reflect.TypeOf((*MockUnsignedTransaction)(nil).GetExpiry))
+}
+
 // GetSender mocks base method.
-func (m *MockUnsignedTransaction) GetSender() [32]byte {
+func (m *MockUnsignedTransaction) GetSender() [33]byte {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSender")
-	ret0, _ := ret[0].([32]byte)
+	ret0, _ := ret[0].([33]byte)
 	return ret0
 }
 

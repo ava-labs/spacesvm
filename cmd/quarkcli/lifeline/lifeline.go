@@ -31,6 +31,7 @@ var (
 	endpoint       string
 	requestTimeout time.Duration
 	prefixInfo     bool
+	expiry         uint64
 )
 
 // NewCommand implements "quark-cli" command.
@@ -90,11 +91,21 @@ COMMENT
 		true,
 		"'true' to print out the prefix owner information",
 	)
+	cmd.PersistentFlags().Uint64Var(
+		&expiry,
+		"expiry",
+		chain.DefaultMinExpiryTime,
+		"number of seconds to expire prefix since its block time",
+	)
 	return cmd
 }
 
 func lifelineFunc(cmd *cobra.Command, args []string) error {
 	priv, err := create.LoadPK(privateKeyFile)
+	if err != nil {
+		return err
+	}
+	pk, err := chain.FormatPK(priv.PublicKey())
 	if err != nil {
 		return err
 	}
@@ -109,9 +120,10 @@ func lifelineFunc(cmd *cobra.Command, args []string) error {
 
 	utx := &chain.LifelineTx{
 		BaseTx: &chain.BaseTx{
-			Sender: priv.PublicKey().Bytes(),
+			Sender: pk,
 			Prefix: pfx,
 		},
+		Expiry: expiry,
 	}
 
 	opts := []client.OpOption{client.WithPollTx()}
