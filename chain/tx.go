@@ -139,6 +139,13 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 	if err := t.UnsignedTransaction.ExecuteBase(); err != nil {
 		return err
 	}
+	// TODO: shouldn't need to cast for these 2
+	if int64(len(t.Graffiti)) < t.Units() {
+		return ErrInvalidDifficulty
+	}
+	if t.Work(context.NextDifficulty) < uint64(t.Units()) {
+		return ErrInvalidDifficulty
+	}
 	if !context.RecentBlockIDs.Contains(t.GetBlockID()) {
 		// Hash must be recent to be any good
 		// Should not happen beause of mempool cleanup
@@ -150,14 +157,6 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 		// NOTE: We only need to keep cached tx hashes around as long as the
 		// block hash referenced in the tx is valid
 		return ErrDuplicateTx
-	}
-	// TODO: probably want to move this further up to avoid unnecessary complex checking
-	if int64(len(t.Graffiti)) < t.Units() {
-		return ErrInvalidDifficulty
-	}
-	// TODO: shouldn't need to cast
-	if t.Work(context.NextDifficulty) < uint64(t.Units()) {
-		return ErrInvalidDifficulty
 	}
 	sender := t.GetSender()
 	pk, err := f.ToPublicKey(sender[:])

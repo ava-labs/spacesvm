@@ -50,18 +50,6 @@ func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	if i.Expiry < blockTime {
 		return ErrPrefixExpired
 	}
-	// If we are trying to delete a key, make sure it previously exists.
-	if len(s.Value) > 0 {
-		return s.updatePrefix(db, blockTime, i)
-	}
-	has, err = HasPrefixKey(db, s.Prefix, s.Key)
-	if err != nil {
-		return err
-	}
-	// Cannot delete non-existent key
-	if !has {
-		return ErrKeyMissing
-	}
 	return s.updatePrefix(db, blockTime, i)
 }
 
@@ -72,7 +60,7 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInf
 	}
 
 	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
-	if len(s.Value) == 0 {
+	if len(s.Value) == 0 { //nolint:nestif
 		if !exists {
 			return ErrKeyMissing
 		}
