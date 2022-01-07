@@ -4,6 +4,8 @@
 package chain
 
 import (
+	"encoding/binary"
+
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"golang.org/x/crypto/sha3"
@@ -13,19 +15,21 @@ import (
 
 type Transaction struct {
 	UnsignedTransaction `serialize:"true" json:"unsignedTransaction"`
-	Signature           []byte `serialize:"true" json:"signature"`
+	Graffiti            []uint64 `serialize:"true" json:"graffiti"`
+	Signature           []byte   `serialize:"true" json:"signature"`
 
 	unsignedBytes []byte
 	bytes         []byte
 	id            ids.ID
 	size          uint64
-	difficulty    uint64
+	difficulty    []uint64
 }
 
-func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
+func NewTx(utx UnsignedTransaction, sig []byte, grf []uint64) *Transaction {
 	return &Transaction{
 		UnsignedTransaction: utx,
 		Signature:           sig,
+		Graffiti:            grf,
 	}
 }
 
@@ -37,13 +41,25 @@ func UnsignedBytes(utx UnsignedTransaction) ([]byte, error) {
 	return b, nil
 }
 
+func hashableBytes(utx []byte, g uint64) []byte {
+	unsignedLen := len(utx)
+	b := make([]byte, unsignedLen+8)
+	copy(b, utx)
+	binary.LittleEndian.PutUint64(b[unsignedLen:], g)
+	return b
+}
+
 func (t *Transaction) Init() error {
 	utx, err := UnsignedBytes(t.UnsignedTransaction)
 	if err != nil {
 		return err
 	}
 	t.unsignedBytes = utx
-	t.difficulty = pow.Difficulty(utx)
+	t.difficulty = make([]uint64, len(t.Graffiti))
+	for i, g := range t.Graffiti {
+		b := hashableBytes(t.unsignedBytes, g)
+		t.difficulty[i] = pow.Difficulty(b)
+	}
 
 	stx, err := Marshal(t)
 	if err != nil {
@@ -70,7 +86,26 @@ func (t *Transaction) Size() uint64 { return t.size }
 
 func (t *Transaction) ID() ids.ID { return t.id }
 
-func (t *Transaction) Difficulty() uint64 { return t.difficulty }
+func (t *Transaction) MinDifficulty() uint64 {
+	min := uint64(0)
+	set := false
+	for _, d := range t.difficulty {
+		if d < min || !set {
+			min = d
+		}
+	}
+	return min
+}
+
+func (t *Transaction) Work(minDifficuty uint64) uint64 {
+	w := uint64(0)
+	for _, d := range t.difficulty {
+		if d >= minDifficuty {
+			w++
+		}
+	}
+	return w
+}
 
 func (t *Transaction) Execute(db database.Database, blockTime int64, context *Context) error {
 	if err := t.UnsignedTransaction.ExecuteBase(); err != nil {
@@ -88,7 +123,12 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 		// block hash referenced in the tx is valid
 		return ErrDuplicateTx
 	}
-	if t.Difficulty() < context.NextDifficulty {
+	// TODO: probably want to move this further up to avoid unnecessary complex checking
+	if int64(len(t.Graffiti)) < t.Units() {
+		return ErrInvalidDifficulty
+	}
+	// TODO: shouldn't need to cast
+	if t.Work(context.NextDifficulty) < uint64(t.Units()) {
 		return ErrInvalidDifficulty
 	}
 	sender := t.GetSender()

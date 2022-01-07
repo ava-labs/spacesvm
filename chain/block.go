@@ -160,18 +160,19 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 
 	// Process new transactions
 	log.Debug("build context", "next difficulty", context.NextDifficulty, "next cost", context.NextCost)
-	var surplusDifficulty uint64
+	var surplusWork uint64
 	for _, tx := range b.Txs {
 		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
 			log.Debug("failed tx verification", "err", err)
 			return nil, nil, err
 		}
-		surplusDifficulty += tx.Difficulty() - context.NextDifficulty
+		// In [tx.Execute], we verify that work > units so this will never underflow
+		surplusWork += tx.Work(context.NextDifficulty) - uint64(tx.Units())
 	}
 	// Ensure enough work is performed to compensate for block production speed
 	requiredSurplus := b.Difficulty * b.Cost
-	if surplusDifficulty < requiredSurplus {
-		log.Debug("insufficient block surplus", "found", surplusDifficulty, "required", requiredSurplus)
+	if surplusWork < requiredSurplus {
+		log.Debug("insufficient block surplus", "found", surplusWork, "required", requiredSurplus)
 		return nil, nil, ErrInsufficientSurplus
 	}
 	return parent, onAcceptDB, nil

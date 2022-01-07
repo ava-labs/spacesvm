@@ -15,9 +15,8 @@ import (
 var emptyPublicKeyBytes [crypto.SECP256K1RPKLen]byte
 
 type BaseTx struct {
-	Sender   [crypto.SECP256K1RPKLen]byte `serialize:"true" json:"sender"`
-	Graffiti uint64                       `serialize:"true" json:"graffiti"`
-	BlockID  ids.ID                       `serialize:"true" json:"blockId"`
+	Sender  [crypto.SECP256K1RPKLen]byte `serialize:"true" json:"sender"`
+	BlockID ids.ID                       `serialize:"true" json:"blockId"`
 
 	// Prefix is the namespace for the "PrefixInfo"
 	// whose owner can write and read value for the
@@ -29,10 +28,6 @@ type BaseTx struct {
 
 func (b *BaseTx) SetBlockID(blockID ids.ID) {
 	b.BlockID = blockID
-}
-
-func (b *BaseTx) SetGraffiti(graffiti uint64) {
-	b.Graffiti = graffiti
 }
 
 func (b *BaseTx) GetBlockID() ids.ID {
