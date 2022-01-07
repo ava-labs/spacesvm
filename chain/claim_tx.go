@@ -38,7 +38,7 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 		Created:     blockTime,
 		LastUpdated: blockTime,
 		Expiry:      blockTime + expiryTime,
-		Keys:        1,
+		Units:       1,
 	}
 	if err := PutPrefixInfo(db, c.Prefix, newInfo, -1); err != nil {
 		return err

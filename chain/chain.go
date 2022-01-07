@@ -9,7 +9,10 @@ import (
 
 // TODO: load from genesis
 const (
-	MaxValueLength     = 256
+	SetValueAmortization = 10            // how much set is discounted for required units of work
+	ValueUnitLength      = 256           // 256B
+	MaxValueLength       = 1 << 10 * 128 // 128KB
+
 	LookbackWindow     = 10
 	BlockTarget        = 1
 	TargetTransactions = 10 * LookbackWindow / BlockTarget // TODO: can be higher on real network

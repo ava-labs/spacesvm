@@ -22,8 +22,8 @@ func (l *LifelineTx) Execute(db database.Database, blockTime int64) error {
 	if !has {
 		return ErrPrefixMissing
 	}
-	// If you are "in debt", lifeline only adds but doesn't reset to new
+	// Lifeline spread across all units
 	lastExpiry := i.Expiry
-	i.Expiry += expiryTime / i.Keys
+	i.Expiry += expiryTime / i.Units
 	return PutPrefixInfo(db, l.Prefix, i, lastExpiry)
 }

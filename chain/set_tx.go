@@ -66,19 +66,30 @@ func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 }
 
 func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInfo) error {
-	timeRemaining := (i.Expiry - i.LastUpdated) * i.Keys
+	v, exists, err := GetValue(db, s.Prefix, s.Key)
+	if err != nil {
+		return err
+	}
+
+	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
 	if len(s.Value) == 0 {
-		i.Keys--
+		if !exists {
+			return ErrKeyMissing
+		}
+		i.Units -= Units(v)
 		if err := DeletePrefixKey(db, s.Prefix, s.Key); err != nil {
 			return err
 		}
 	} else {
-		i.Keys++
+		if exists {
+			i.Units -= Units(v)
+		}
+		i.Units += Units(s.Value)
 		if err := PutPrefixKey(db, s.Prefix, s.Key, s.Value); err != nil {
 			return err
 		}
 	}
-	newTimeRemaining := timeRemaining / i.Keys
+	newTimeRemaining := timeRemaining / i.Units
 	i.LastUpdated = blockTime
 	lastExpiry := i.Expiry
 	i.Expiry = blockTime + newTimeRemaining
