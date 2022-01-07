@@ -86,23 +86,19 @@ func (th *internalTxHeap) Has(id ids.ID) bool {
 }
 
 type Mempool struct {
-	mu       sync.RWMutex
-	maxSize  int
-	txToBlk  map[ids.ID]ids.ID
-	blkToTxs map[ids.ID]ids.Set // from blockhash to txs
-	maxHeap  *internalTxHeap
-	minHeap  *internalTxHeap
+	mu      sync.RWMutex
+	maxSize int
+	maxHeap *internalTxHeap
+	minHeap *internalTxHeap
 }
 
 // New creates a new [Mempool]. [maxSize] must be > 0 or else the
 // implementation may panic.
 func New(maxSize int) *Mempool {
 	return &Mempool{
-		maxSize:  maxSize,
-		txToBlk:  make(map[ids.ID]ids.ID),
-		blkToTxs: make(map[ids.ID]ids.Set),
-		maxHeap:  newInternalTxHeap(maxSize, false),
-		minHeap:  newInternalTxHeap(maxSize, true),
+		maxSize: maxSize,
+		maxHeap: newInternalTxHeap(maxSize, false),
+		minHeap: newInternalTxHeap(maxSize, true),
 	}
 }
 
@@ -112,15 +108,6 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 	if th.Has(txID) {
 		return false
 	}
-
-	blkID := tx.GetBlockID()
-	th.txToBlk[txID] = blkID
-	if ts, ok := th.blkToTxs[blkID]; !ok {
-		th.blkToTxs[blkID] = ids.Set{txID: struct{}{}}
-	} else {
-		ts.Add(txID)
-	}
-
 	// Optimistically add tx to mempool
 	difficulty := tx.Difficulty()
 	oldLen := th.Len()
@@ -192,13 +179,6 @@ func (th *Mempool) Remove(id ids.ID) *chain.Transaction { // O(N)
 	}
 	heap.Remove(th.maxHeap, maxEntry.index) // O(N)
 
-	blkID, ok := th.txToBlk[id]
-	if !ok {
-		return nil
-	}
-	delete(th.txToBlk, id)
-	delete(th.blkToTxs[blkID], id)
-
 	minEntry, ok := th.minHeap.Get(id) // O(1)
 	if !ok {
 		// This should never happen, as that would mean the heaps are out of
@@ -211,14 +191,14 @@ func (th *Mempool) Remove(id ids.ID) *chain.Transaction { // O(N)
 // Prune removes all transactions that are not found in "validHashes".
 func (th *Mempool) Prune(validHashes ids.Set) {
 	th.mu.RLock()
-	toRemove := ids.NewSet(10)
-	for blkID, set := range th.blkToTxs {
-		if !validHashes.Contains(blkID) {
-			toRemove.Union(set)
+	toRemove := []ids.ID{}
+	for _, txE := range th.maxHeap.items { // O(N)
+		if !validHashes.Contains(txE.tx.GetBlockID()) {
+			toRemove = append(toRemove, txE.id)
 		}
 	}
 	th.mu.RUnlock()
-	for txID := range toRemove {
+	for _, txID := range toRemove { // O(N*K)
 		th.Remove(txID)
 	}
 }
