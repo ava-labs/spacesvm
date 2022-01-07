@@ -12,42 +12,50 @@ KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin)
 
 At its core, the Avalanche protocol still maintains the immutable ordered sequence of states in a fully permissionless settings. And KVVM defines the rules and data structures to store key-value pairs.
 
-## Build the `quarkvm` plugin for AvalancheGo
+## Run `quarkvm` with local network
+
+[`scripts/tests.e2e.sh`](scripts/tests.e2e.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego) to set up a local network, creates `quarkvm` genesis file, and run e2e tests.
+
+See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made:
 
 ```bash
+# to run full e2e tests and shut down cluster afterwards
 cd ${HOME}/go/src/github.com/ava-labs/quarkvm
-./scripts/build.sh
+./scripts/tests.e2e.sh 1.7.3
 
-> Building quarkvm in /Users/patrickogrady/go/src/github.com/ava-labs/avalanchego/build/plugins/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH
+# to run full e2e tests and keep the cluster alive
+cd ${HOME}/go/src/github.com/ava-labs/quarkvm
+SHUTDOWN=false ./scripts/tests.e2e.sh 1.7.3
 ```
 
-## Generate a Gensis File
-
 ```bash
-./build/quark-cli genesis
+# inspect cluster endpoints when ready
+cat /tmp/avalanchego-v1.7.3/output.yaml
+<<COMMENT
+endpoint: /ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM
+logsDir: ...
+pid: 12811
+uris:
+- http://localhost:56239
+- http://localhost:56251
+- http://localhost:56253
+- http://localhost:56255
+- http://localhost:56257
+COMMENT
 
-> created genesis and saved to /Users/patrickogrady/code/quarkvm/genesis.json
-```
+# ping the local cluster
+curl -X POST --data '{
+    "jsonrpc": "2.0",
+    "method": "quarkvm.ping",
+    "params":{},
+    "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:56239/ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM
+<<COMMENT
+{"jsonrpc":"2.0","result":{"success":true},"id":1}
+COMMENT
 
-## Clone ava-sim (separate folder)
-
-```bash
-git clone https://github.com/ava-labs/ava-sim.git
-./scripts/build.sh
-```
-
-## Start ava-sim
-
-```bash
-./scripts/run.sh /Users/patrickogrady/go/src/github.com/ava-labs/avalanchego/build/plugins/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH /Users/patrickogrady/code/quarkvm/genesis.json
-
->>>>>>
-Custom VM endpoints now accessible at:
-NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg: http://127.0.0.1:9650/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa
-NodeID-MFrZFVCXPv5iCn6M9K6XduxGTYp891xXZ: http://127.0.0.1:9652/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa
-NodeID-NFBbbJ4qCmNaCzeW7sxErhvWqvEQMnYcN: http://127.0.0.1:9654/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa
-NodeID-GWPcbFJZFfZreETSoWjPimr846mXEKCtu: http://127.0.0.1:9656/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa
-NodeID-P7oB2McjBGgW2NXXWVYjV8JEDFoW9xDE5: http://127.0.0.1:9658/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa
+# to terminate the cluster
+kill 12811
 ```
 
 ## Claim a Prefix (work done automatically)
@@ -56,11 +64,11 @@ NodeID-P7oB2McjBGgW2NXXWVYjV8JEDFoW9xDE5: http://127.0.0.1:9658/ext/bc/Bbx6eyUCS
 ./build/quark-cli \
 --private-key-file .quark-cli-pk \
 --url http://127.0.0.1:9650 \
---endpoint /ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa  \
+--endpoint /ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM  \
 claim pat
 
 >>>>>
-creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/Bbx6eyUCSzoQLzBbM9gnLDdA9HeuiobqQS53iEthvQzeVqbwa"
+creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM"
 Submitting tx NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw with BlockID (zgvHpznxkG7xAh2qgsQFVkrioB4ENdKYfum6KWe6rZGiuzdPf): &{0xc00011a0c8 [175 87 123 222 38 232 10 27 198 13 215 107 60 56 102 21 11 12 195 39 191 122 160 156 155 11 183 164 202 22 22 76 231 28 232 58 18 187 198 249 170 168 232 227 43 85 90 54 94 76 49 184 59 9 194 205 222 162 20 67 208 185 115 12] 0}
 issued transaction NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw (success true)
 polling transaction "NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw"
