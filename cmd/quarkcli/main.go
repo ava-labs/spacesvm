@@ -15,6 +15,7 @@ import (
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/delete"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/genesis"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/get"
+	"github.com/ava-labs/quarkvm/cmd/quarkcli/lifeline"
 	"github.com/ava-labs/quarkvm/cmd/quarkcli/set"
 )
 
@@ -35,6 +36,7 @@ func init() {
 		set.NewCommand(),
 		delete.NewCommand(),
 		claim.NewCommand(),
+		lifeline.NewCommand(),
 		get.NewCommand(),
 	)
 }

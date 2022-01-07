@@ -1,7 +1,8 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package claim
+// Package lifeline implements "lifeline" commands.
+package lifeline
 
 import (
 	"bytes"
@@ -32,40 +33,32 @@ var (
 	prefixInfo     bool
 )
 
-// NewCommand implements "quark-cli claim" command.
+// NewCommand implements "quark-cli" command.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "claim [options] <prefix>",
-		Short: "Claims the given prefix",
+		Use:   "lifeline [options] <prefix>",
+		Short: "Lifelines the given prefix",
 		Long: `
 Claims the given prefix by issuing claim transaction
 with the prefix information.
-
 # Issues "ClaimTx" for the ownership of "hello.avax".
 # "hello.avax" is the prefix (or namespace)
 $ quark-cli claim hello.avax
 <<COMMENT
 success
 COMMENT
-
-# The existing prefix can be overwritten by a different owner.
-# Once claimed, all existing key-value pairs are deleted.
-$ quark-cli claim hello.avax --private-key-file=.different-key
+# The prefix can be lifelined to renew its expiration.
+$ quark-cli lifeline hello.avax
 <<COMMENT
 success
 COMMENT
-
-# The prefix can be claimed if and only if
-# the previous prefix (owner) info has not been expired.
-# Even if the prefix is claimed by the same owner,
-# all underlying key-values are deleted.
-$ quark-cli claim hello.avax
+# The existing prefix cannot be renewed by a different owner.
+$ quark-cli lifeline hello.avax --private-key-file=.different-key
 <<COMMENT
-success
+error
 COMMENT
-
 `,
-		RunE: claimFunc,
+		RunE: lifelineFunc,
 	}
 	cmd.PersistentFlags().StringVar(
 		&privateKeyFile,
@@ -100,17 +93,13 @@ COMMENT
 	return cmd
 }
 
-func claimFunc(cmd *cobra.Command, args []string) error {
+func lifelineFunc(cmd *cobra.Command, args []string) error {
 	priv, err := create.LoadPK(privateKeyFile)
 	if err != nil {
 		return err
 	}
-	pk, err := chain.FormatPK(priv.PublicKey())
-	if err != nil {
-		return err
-	}
 
-	pfx := getClaimOp(args)
+	pfx := getLifelineOp(args)
 
 	if !strings.HasPrefix(endpoint, "/") {
 		endpoint = "/" + endpoint
@@ -118,9 +107,9 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	color.Blue("creating requester with URL %s and endpoint %q for prefix %q", url, endpoint, pfx)
 	cli := client.New(url, endpoint, requestTimeout)
 
-	utx := &chain.ClaimTx{
+	utx := &chain.LifelineTx{
 		BaseTx: &chain.BaseTx{
-			Sender: pk,
+			Sender: priv.PublicKey().Bytes(),
 			Prefix: pfx,
 		},
 	}
@@ -135,9 +124,9 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	return err
 }
 
-func getClaimOp(args []string) (pfx []byte) {
+func getLifelineOp(args []string) (pfx []byte) {
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
+		fmt.Fprintf(os.Stderr, "expected 1 arguments, got %d\n", len(args))
 		os.Exit(128)
 	}
 
