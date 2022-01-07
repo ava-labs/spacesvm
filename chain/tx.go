@@ -6,7 +6,7 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/hashing"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/ava-labs/quarkvm/crypto"
 	"github.com/ava-labs/quarkvm/pow"
@@ -52,7 +52,8 @@ func (t *Transaction) Init() error {
 	}
 	t.bytes = stx
 
-	id, err := ids.ToID(hashing.ComputeHash256(t.bytes))
+	h := sha3.Sum256(t.bytes)
+	id, err := ids.ToID(h[:])
 	if err != nil {
 		return err
 	}
