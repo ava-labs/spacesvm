@@ -247,7 +247,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				color.Blue("checking prefix on %q", inst.uri)
 				pf, err := inst.cli.PrefixInfo(pfx)
 				gomega.Ω(err).To(gomega.BeNil())
-				gomega.Ω(pf.Units).To(gomega.Equal(int64(2)))
+				gomega.Ω(pf.Units).To(gomega.Equal(int64(22)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			}
 		})
@@ -258,7 +258,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				kvs, err := inst.cli.Range(pfx, k)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
-				gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
+				gomega.Ω(kvs[0].Value).To(gomega.Equal(v2))
 			}
 		})
 
@@ -294,7 +294,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				color.Blue("checking prefix on %q", inst.uri)
 				pf, err := inst.cli.PrefixInfo(pfx)
 				gomega.Ω(err).To(gomega.BeNil())
-				gomega.Ω(pf.Units).To(gomega.Equal(int64(2)))
+				gomega.Ω(pf.Units).To(gomega.Equal(int64(1)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			}
 		})
@@ -304,8 +304,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				color.Blue("checking SetTx with Range on %q", inst.uri)
 				kvs, err := inst.cli.Range(pfx, k)
 				gomega.Ω(err).To(gomega.BeNil())
-				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
-				gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
+				gomega.Ω(len(kvs)).To(gomega.Equal(0))
 			}
 		})
 	})
