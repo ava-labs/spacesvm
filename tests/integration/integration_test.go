@@ -274,7 +274,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			pf, err := instances[0].cli.PrefixInfo(pfx)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(pf.Keys).To(gomega.Equal(int64(1)))
-			gomega.Ω(pf.Owner).To(gomega.Equal(priv.PublicKey().Bytes()))
+			gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 		})
 
 		k, v := []byte("avax.kvm"), []byte("hello")
