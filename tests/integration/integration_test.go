@@ -243,6 +243,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			},
 		}
 
+		// TODO: sign minetx
 		b, err := chain.UnsignedBytes(utx)
 		gomega.Ω(err).Should(gomega.BeNil())
 
@@ -342,6 +343,7 @@ func mineAndExpectBlkAccept(
 	cancel()
 	gomega.Ω(err).Should(gomega.BeNil())
 
+	// TODO: sign minetx
 	b, err := chain.UnsignedBytes(mtx)
 	gomega.Ω(err).Should(gomega.BeNil())
 

@@ -19,19 +19,20 @@ import (
 func MineSignIssueTx(
 	ctx context.Context,
 	cli Client,
-	utx chain.UnsignedTransaction,
+	rtx chain.UnsignedTransaction,
 	priv crypto.PrivateKey,
 	opts ...OpOption,
 ) (txID ids.ID, err error) {
 	ret := &Op{}
 	ret.applyOpts(opts)
 
-	mtx, err := cli.Mine(ctx, utx)
+	utx, solutions, err := cli.Mine(ctx, rtx)
 	if err != nil {
 		return ids.Empty, err
 	}
 
-	b, err := chain.UnsignedBytes(mtx)
+	mtx := chain.NewMinedTx(utx, solutions)
+	b, err := chain.MinedBytes(mtx)
 	if err != nil {
 		return ids.Empty, err
 	}

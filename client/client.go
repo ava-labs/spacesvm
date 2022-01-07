@@ -41,7 +41,7 @@ type Client interface {
 	// Range runs range-query and returns the results.
 	Range(pfx, key []byte, opts ...OpOption) (kvs []chain.KeyValue, err error)
 	// Performs Proof-of-Work (PoW) by enumerating the graffiti.
-	Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error)
+	Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, []uint64, error)
 }
 
 // New creates a new client object.
@@ -195,11 +195,12 @@ done:
 	return false, ctx.Err()
 }
 
-func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error) {
+func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, []uint64, error) {
+	solutions := make([]uint64, 0, utx.Units())
 	for ctx.Err() == nil {
 		cbID, err := cli.Preferred()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		utx.SetBlockID(cbID)
 
@@ -207,30 +208,33 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 		for ctx.Err() == nil {
 			valid, err := cli.CheckBlock(cbID)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if !valid {
 				color.Yellow("%v is no longer a valid block id", cbID)
 				break
 			}
-			utx.SetGraffiti(graffiti)
-			b, err := chain.UnsignedBytes(utx)
+			btx, err := chain.UnsignedBytes(utx)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
+			b := chain.HashableBytes(btx, graffiti)
 			d := pow.Difficulty(b)
 			est, err := cli.EstimateDifficulty()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if d >= est {
-				return utx, nil
+				solutions = append(solutions, graffiti)
+			}
+			if int64(len(solutions)) == utx.Units() {
+				return utx, solutions, nil
 			}
 			graffiti++
 		}
 		// Get new block hash if no longer valid
 	}
-	return nil, ctx.Err()
+	return nil, nil, ctx.Err()
 }
 
 type Op struct {
