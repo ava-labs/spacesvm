@@ -10,24 +10,30 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/quarkvm/crypto"
+
 	"github.com/ava-labs/quarkvm/parser"
 )
 
 func TestSetTx(t *testing.T) {
 	t.Parallel()
 
-	priv, err := crypto.NewPrivateKey()
+	priv, err := f.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	pub := priv.PublicKey()
+	sender, err := FormatPK(priv.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	priv2, err := crypto.NewPrivateKey()
+	priv2, err := f.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	pub2 := priv2.PublicKey()
+	sender2, err := FormatPK(priv2.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	db := memdb.New()
 	defer db.Close()
@@ -40,7 +46,7 @@ func TestSetTx(t *testing.T) {
 		{ // write with no previous claim should fail
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Sender:  pub.Bytes(),
+					Sender:  sender,
 					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
@@ -53,7 +59,7 @@ func TestSetTx(t *testing.T) {
 		{ // successful claim
 			utx: &ClaimTx{
 				BaseTx: &BaseTx{
-					Sender: pub.Bytes(),
+					Sender: sender,
 					Prefix: []byte("foo"),
 				},
 			},
@@ -63,7 +69,7 @@ func TestSetTx(t *testing.T) {
 		{ // write
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Sender:  pub.Bytes(),
+					Sender:  sender,
 					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
@@ -76,7 +82,7 @@ func TestSetTx(t *testing.T) {
 		{ // empty value to delete by prefix
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Sender:  pub.Bytes(),
+					Sender:  sender,
 					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
@@ -88,7 +94,7 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Sender:  pub.Bytes(),
+					Sender:  sender,
 					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
@@ -100,7 +106,7 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Sender:  pub2.Bytes(),
+					Sender:  sender2,
 					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
@@ -122,7 +128,7 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Sender: pub.Bytes(),
+					Sender: sender,
 					Prefix: []byte("foo"),
 				},
 			},
@@ -155,7 +161,7 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Sender:  pub.Bytes(),
+					Sender:  sender,
 					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
 				},
@@ -185,7 +191,7 @@ func TestSetTx(t *testing.T) {
 				t.Fatalf("#%d: failed to find prefix info", i)
 			}
 			if !bytes.Equal(info.Owner[:], tp.Sender[:]) {
-				t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(pub.PublicKey))
+				t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(sender[:]))
 			}
 			// each claim must delete all existing keys with the value key
 			kvs, err := Range(db, tp.Prefix, nil, WithPrefix())

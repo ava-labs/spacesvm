@@ -5,15 +5,15 @@ package chain
 
 import (
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/quarkvm/crypto"
+	"github.com/ava-labs/avalanchego/utils/crypto"
 )
 
 type PrefixInfo struct {
-	Owner       [crypto.PublicKeySize]byte `serialize:"true" json:"owner"`
-	Created     int64                      `serialize:"true" json:"created"`
-	LastUpdated int64                      `serialize:"true" json:"lastUpdated"`
-	Expiry      int64                      `serialize:"true" json:"expiry"`
-	Keys        int64                      `serialize:"true" json:"keys"` // decays faster the more keys you have
+	Owner       [crypto.SECP256K1RPKLen]byte `serialize:"true" json:"owner"`
+	Created     int64                        `serialize:"true" json:"created"`
+	LastUpdated int64                        `serialize:"true" json:"lastUpdated"`
+	Expiry      int64                        `serialize:"true" json:"expiry"`
+	Keys        int64                        `serialize:"true" json:"keys"` // decays faster the more keys you have
 
 	RawPrefix ids.ShortID `serialize:"true" json:"rawPrefix"`
 }

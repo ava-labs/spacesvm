@@ -5,11 +5,13 @@ package client
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/crypto"
+	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/fatih/color"
+
+	"github.com/ava-labs/quarkvm/chain"
 )
 
 // Mines against the unsigned transaction first.
@@ -18,7 +20,7 @@ func MineSignIssueTx(
 	ctx context.Context,
 	cli Client,
 	utx chain.UnsignedTransaction,
-	priv *crypto.PrivateKey,
+	priv crypto.PrivateKey,
 	opts ...OpOption,
 ) (txID ids.ID, err error) {
 	ret := &Op{}
@@ -33,7 +35,11 @@ func MineSignIssueTx(
 	if err != nil {
 		return ids.Empty, err
 	}
-	sig, err := priv.Sign(b)
+	parsedPriv, ok := priv.(*crypto.PrivateKeySECP256K1R)
+	if !ok {
+		return ids.Empty, errors.New("incorrect key type")
+	}
+	sig, err := parsedPriv.Sign(b)
 	if err != nil {
 		return ids.Empty, err
 	}

@@ -10,7 +10,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/quarkvm/crypto"
 )
 
 func TestTransaction(t *testing.T) {
@@ -75,7 +74,11 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
 	t.Helper()
 
-	priv, err := crypto.NewPrivateKey()
+	priv, err := f.NewPrivateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sender, err := FormatPK(priv.PublicKey())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +86,7 @@ func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
 	tx := &Transaction{
 		UnsignedTransaction: &ClaimTx{
 			BaseTx: &BaseTx{
-				Sender:  priv.PublicKey().Bytes(),
+				Sender:  sender,
 				Prefix:  []byte{'a'},
 				BlockID: blockID,
 			},

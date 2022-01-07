@@ -8,7 +8,6 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/ava-labs/quarkvm/crypto"
 	"github.com/ava-labs/quarkvm/pow"
 )
 
@@ -92,7 +91,12 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 	if t.Difficulty() < context.NextDifficulty {
 		return ErrInvalidDifficulty
 	}
-	if !crypto.Verify(t.GetSender(), t.unsignedBytes, t.Signature) {
+	sender := t.GetSender()
+	pk, err := f.ToPublicKey(sender[:])
+	if err != nil {
+		return err
+	}
+	if !pk.Verify(t.unsignedBytes, t.Signature) {
 		return ErrInvalidSignature
 	}
 	if err := t.UnsignedTransaction.Execute(db, blockTime); err != nil {

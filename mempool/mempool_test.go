@@ -18,7 +18,7 @@ func TestMempool(t *testing.T) {
 			Signature: bytes.Repeat([]byte{'a'}, i*10),
 			UnsignedTransaction: &chain.ClaimTx{
 				BaseTx: &chain.BaseTx{
-					Prefix: bytes.Repeat([]byte{'b'}, i*10),
+					Prefix: bytes.Repeat([]byte{'k'}, i*10),
 				},
 			},
 		}
@@ -27,8 +27,8 @@ func TestMempool(t *testing.T) {
 		}
 		txm.Add(tx)
 	}
-	if _, diff := txm.PeekMax(); diff != 7 {
-		t.Fatalf("difficulty expected 7, got %d", diff)
+	if _, diff := txm.PeekMax(); diff != 5 {
+		t.Fatalf("difficulty expected 5, got %d", diff)
 	}
 	if _, diff := txm.PeekMin(); diff != 0 {
 		t.Fatalf("difficulty expected 0, got %d", diff)

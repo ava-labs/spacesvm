@@ -17,15 +17,22 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/utils/crypto"
 	avago_version "github.com/ava-labs/avalanchego/version"
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/crypto"
-	"github.com/ava-labs/quarkvm/vm"
 	"github.com/fatih/color"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+
+	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/quarkvm/client"
+	"github.com/ava-labs/quarkvm/vm"
 )
+
+var f *crypto.FactorySECP256K1R
+
+func init() {
+	f = &crypto.FactorySECP256K1R{}
+}
 
 func TestIntegration(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
@@ -67,7 +74,8 @@ func init() {
 }
 
 var (
-	priv *crypto.PrivateKey
+	priv   crypto.PrivateKey
+	sender [crypto.SECP256K1RPKLen]byte
 
 	// when used with embedded VMs
 	genesisBytes []byte
@@ -86,7 +94,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Ω(vms).Should(gomega.BeNumerically(">", 1))
 
 	var err error
-	priv, err = crypto.NewPrivateKey()
+	priv, err = f.NewPrivateKey()
+	gomega.Ω(err).Should(gomega.BeNil())
+	sender, err = chain.FormatPK(priv.PublicKey())
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	// create embedded VMs
@@ -184,7 +194,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		pfx := []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
 		claimTx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
-				Sender: priv.PublicKey().Bytes(),
+				Sender: sender,
 				Prefix: pfx,
 			},
 		}
@@ -228,7 +238,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	ginkgo.It("fail ClaimTx with no block ID", func() {
 		utx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
-				Sender: priv.PublicKey().Bytes(),
+				Sender: sender,
 				Prefix: []byte("foo"),
 			},
 		}
@@ -251,7 +261,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		pfx := []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
 		claimTx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
-				Sender: priv.PublicKey().Bytes(),
+				Sender: sender,
 				Prefix: pfx,
 			},
 		}
@@ -264,13 +274,13 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			pf, err := instances[0].cli.PrefixInfo(pfx)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(pf.Keys).To(gomega.Equal(int64(1)))
-			gomega.Ω(pf.Owner).To(gomega.Equal(priv.PublicKey().Bytes()))
+			gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 		})
 
 		k, v := []byte("avax.kvm"), []byte("hello")
 		setTx := &chain.SetTx{
 			BaseTx: &chain.BaseTx{
-				Sender: priv.PublicKey().Bytes(),
+				Sender: sender,
 				Prefix: pfx,
 			},
 			Key:   k,
@@ -296,7 +306,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		pfx := []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
 		claimTx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
-				Sender: priv.PublicKey().Bytes(),
+				Sender: sender,
 				Prefix: pfx,
 			},
 		}
