@@ -101,5 +101,5 @@ func (s *SetTx) Units() int64 {
 		return 1
 	}
 	u := Units(s.Value)
-	return u/SetValueAmortization + 1
+	return u/SetValueDiscount + 1
 }
