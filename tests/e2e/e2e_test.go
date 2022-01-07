@@ -76,7 +76,8 @@ var _ = ginkgo.BeforeSuite(func() {
 	var err error
 	priv, err = f.NewPrivateKey()
 	gomega.Ω(err).Should(gomega.BeNil())
-	copy(sender[:], priv.PublicKey().Bytes())
+	sender, err = chain.FormatPK(priv.PublicKey())
+	gomega.Ω(err).Should(gomega.BeNil())
 
 	gomega.Ω(clusterInfoPath).ShouldNot(gomega.BeEmpty())
 	clusterInfo, err = tests.LoadClusterInfo(clusterInfoPath)

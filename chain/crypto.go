@@ -10,3 +10,13 @@ var f *crypto.FactorySECP256K1R
 func init() {
 	f = &crypto.FactorySECP256K1R{}
 }
+
+func FormatPK(pk crypto.PublicKey) ([crypto.SECP256K1RPKLen]byte, error) {
+	b := [crypto.SECP256K1RPKLen]byte{}
+	pkb := pk.Bytes()
+	if len(pkb) != crypto.SECP256K1RPKLen {
+		return b, ErrInvalidPKLen
+	}
+	copy(b[:], pk.Bytes())
+	return b, nil
+}

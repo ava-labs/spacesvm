@@ -96,7 +96,8 @@ var _ = ginkgo.BeforeSuite(func() {
 	var err error
 	priv, err = f.NewPrivateKey()
 	gomega.Ω(err).Should(gomega.BeNil())
-	copy(sender[:], priv.PublicKey().Bytes())
+	sender, err = chain.FormatPK(priv.PublicKey())
+	gomega.Ω(err).Should(gomega.BeNil())
 
 	// create embedded VMs
 	instances = make([]instance, vms)
@@ -235,8 +236,6 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	})
 
 	ginkgo.It("fail ClaimTx with no block ID", func() {
-		sender := [crypto.SECP256K1RPKLen]byte{}
-		copy(sender[:], priv.PublicKey().Bytes())
 		utx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
 				Sender: sender,

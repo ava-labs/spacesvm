@@ -10,7 +10,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto"
 )
 
 func TestTransaction(t *testing.T) {
@@ -79,8 +78,10 @@ func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sender := [crypto.SECP256K1RPKLen]byte{}
-	copy(sender[:], priv.PublicKey().Bytes())
+	sender, err := FormatPK(priv.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	tx := &Transaction{
 		UnsignedTransaction: &ClaimTx{

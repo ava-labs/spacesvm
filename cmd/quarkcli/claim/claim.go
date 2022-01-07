@@ -106,6 +106,10 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	pk, err := chain.FormatPK(priv.PublicKey())
+	if err != nil {
+		return err
+	}
 
 	pfx := getClaimOp(args)
 
@@ -117,7 +121,7 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 
 	utx := &chain.ClaimTx{
 		BaseTx: &chain.BaseTx{
-			Sender: priv.PublicKey().Bytes(),
+			Sender: pk,
 			Prefix: pfx,
 		},
 	}

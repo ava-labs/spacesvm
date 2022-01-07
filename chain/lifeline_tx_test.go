@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
-	"github.com/ava-labs/avalanchego/utils/crypto"
 )
 
 func TestLifelineTx(t *testing.T) {
@@ -18,8 +17,10 @@ func TestLifelineTx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sender := [crypto.SECP256K1RPKLen]byte{}
-	copy(sender[:], priv.PublicKey().Bytes())
+	sender, err := FormatPK(priv.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	db := memdb.New()
 	defer db.Close()

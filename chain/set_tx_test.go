@@ -10,7 +10,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto"
 
 	"github.com/ava-labs/quarkvm/parser"
 )
@@ -22,15 +21,19 @@ func TestSetTx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sender := [crypto.SECP256K1RPKLen]byte{}
-	copy(sender[:], priv.PublicKey().Bytes())
+	sender, err := FormatPK(priv.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	priv2, err := f.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	sender2 := [crypto.SECP256K1RPKLen]byte{}
-	copy(sender2[:], priv2.PublicKey().Bytes())
+	sender2, err := FormatPK(priv2.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	db := memdb.New()
 	defer db.Close()

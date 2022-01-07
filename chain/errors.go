@@ -31,4 +31,7 @@ var (
 	ErrPrefixNotExpired  = errors.New("prefix not expired")
 	ErrPrefixMissing     = errors.New("prefix missing")
 	ErrUnauthorized      = errors.New("sender is not authorized")
+
+	// Crypto
+	ErrInvalidPKLen = errors.New("invalid public key length")
 )

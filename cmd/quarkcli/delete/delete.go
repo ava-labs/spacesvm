@@ -126,6 +126,10 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	pk, err := chain.FormatPK(priv.PublicKey())
+	if err != nil {
+		return err
+	}
 
 	pfx, key := getDeleteOp(args)
 
@@ -134,7 +138,7 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 
 	utx := &chain.SetTx{
 		BaseTx: &chain.BaseTx{
-			Sender: priv.PublicKey().Bytes(),
+			Sender: pk,
 			Prefix: pfx,
 		},
 		Key:   key,
