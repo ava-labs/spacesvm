@@ -3,6 +3,9 @@ set -e
 
 # e.g.,
 # ./scripts/tests.e2e.sh 1.7.3
+#
+# to keep the cluster alive
+# SHUTDOWN=false ./scripts/tests.e2e.sh 1.7.3
 if ! [[ "$0" =~ scripts/tests.e2e.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -13,6 +16,13 @@ if [[ -z "${VERSION}" ]]; then
   echo "Missing version argument!"
   echo "Usage: ${0} [VERSION]" >> /dev/stderr
   exit 255
+fi
+
+SHUTDOWN=${SHUTDOWN:-true}
+if [[ ${SHUTDOWN} == true ]]; then
+  _SHUTDOWN_FLAG="--shutdown"
+else
+  _SHUTDOWN_FLAG=""
 fi
 
 # download avalanchego
@@ -84,10 +94,10 @@ done
 echo "found it!"
 cat /tmp/avalanchego-v${VERSION}/output.yaml
 
-echo "running e2e tests against the local cluster with --shutdown"
+echo "running e2e tests against the local cluster with shutdown flag '${_SHUTDOWN_FLAG}'"
 ./tests/e2e/e2e.test \
 --ginkgo.v \
 --cluster-info-path /tmp/avalanchego-v${VERSION}/output.yaml \
---shutdown
+${_SHUTDOWN_FLAG}
 
 echo "ALL SUCCESS!"
