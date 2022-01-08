@@ -168,6 +168,18 @@ func TestSetTx(t *testing.T) {
 				Key: []byte("bar"),
 			},
 			blockTime: 100,
+			err:       ErrKeyMissing,
+		},
+		{
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					Sender:  sender,
+					Prefix:  []byte("foo"),
+					BlockID: ids.GenerateTestID(),
+				},
+				Key: []byte("bar"),
+			},
+			blockTime: ExpiryTime * 2,
 			err:       ErrPrefixMissing,
 		},
 	}

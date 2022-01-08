@@ -58,17 +58,17 @@ func TestClaimTx(t *testing.T) {
 		},
 		{ // successful new claim
 			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
-			blockTime: ExpiryTime + 1,
+			blockTime: ExpiryTime * 2,
 			err:       nil,
 		},
 		{ // successful new claim by different owner
 			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
-			blockTime: ExpiryTime*2 + 2,
+			blockTime: ExpiryTime * 4,
 			err:       nil,
 		},
 		{ // invalid claim due to expiration by different owner
 			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
-			blockTime: ExpiryTime*2 + 3,
+			blockTime: ExpiryTime*4 + 3,
 			err:       ErrPrefixNotExpired,
 		},
 	}

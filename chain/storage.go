@@ -75,7 +75,7 @@ func RawPrefix(prefix []byte, blockTime uint64) (ids.ShortID, error) {
 	r := make([]byte, prefixLen+1+8)
 	copy(r, prefix)
 	r[prefixLen] = parser.Delimiter
-	binary.LittleEndian.PutUint64(r[prefixLen+1:], blockTime)
+	binary.BigEndian.PutUint64(r[prefixLen+1:], blockTime)
 	h := hashing.ComputeHash160(r)
 	rprefix, err := ids.ToShortID(h)
 	if err != nil {
@@ -101,7 +101,7 @@ func RangeTimeKey(p byte, t uint64) (k []byte) {
 	k = make([]byte, 2+8+1)
 	k[0] = p
 	k[1] = parser.Delimiter
-	binary.LittleEndian.PutUint64(k[2:], t)
+	binary.BigEndian.PutUint64(k[2:], t)
 	k[2+8] = parser.Delimiter
 	return k
 }
@@ -123,7 +123,7 @@ func specificTimeKey(p byte, t uint64, rprefix ids.ShortID) (k []byte) {
 	k = make([]byte, specificTimeKeyLen)
 	k[0] = p
 	k[1] = parser.Delimiter
-	binary.LittleEndian.PutUint64(k[2:], t)
+	binary.BigEndian.PutUint64(k[2:], t)
 	k[2+8] = parser.Delimiter
 	copy(k[2+8+1:], rprefix[:])
 	return k
@@ -136,7 +136,7 @@ func extractSpecificTimeKey(k []byte) (timestamp uint64, rprefix ids.ShortID, er
 	if len(k) != specificTimeKeyLen {
 		return 0, ids.ShortEmpty, ErrInvalidKeyFormat
 	}
-	timestamp = binary.LittleEndian.Uint64(k[2 : 2+8])
+	timestamp = binary.BigEndian.Uint64(k[2 : 2+8])
 	rprefix, err = ids.ToShortID(k[2+8+1:])
 	return timestamp, rprefix, err
 }
