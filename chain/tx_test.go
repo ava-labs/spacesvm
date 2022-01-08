@@ -18,11 +18,9 @@ func TestTransaction(t *testing.T) {
 	found := ids.NewSet(3)
 	for i := range []int{0, 1, 2} {
 		tx := &Transaction{
-			MinedTransaction: &MinedTransaction{
-				UnsignedTransaction: &ClaimTx{
-					BaseTx: &BaseTx{
-						Prefix: bytes.Repeat([]byte{'b'}, i*10),
-					},
+			UnsignedTransaction: &ClaimTx{
+				BaseTx: &BaseTx{
+					Prefix: bytes.Repeat([]byte{'b'}, i*10),
 				},
 			},
 		}
@@ -86,22 +84,19 @@ func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
 	}
 
 	tx := &Transaction{
-		MinedTransaction: &MinedTransaction{
-			UnsignedTransaction: &ClaimTx{
-				BaseTx: &BaseTx{
-					Sender:  sender,
-					Prefix:  []byte{'a'},
-					BlockID: blockID,
-				},
+		UnsignedTransaction: &ClaimTx{
+			BaseTx: &BaseTx{
+				Sender:  sender,
+				Prefix:  []byte{'a'},
+				BlockID: blockID,
 			},
-			Graffiti: []uint64{0},
 		},
 	}
 	if err := tx.Init(); err != nil {
 		t.Fatal(err)
 	}
 
-	tx.Signature, err = priv.Sign(tx.MinedBytes())
+	tx.Signature, err = priv.Sign(tx.UnsignedBytes())
 	if err != nil {
 		t.Fatal(err)
 	}

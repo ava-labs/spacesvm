@@ -40,7 +40,7 @@ func TestSetTx(t *testing.T) {
 
 	tt := []struct {
 		utx       UnsignedTransaction
-		blockTime int64
+		blockTime uint64
 		err       error
 	}{
 		{ // write with no previous claim should fail
@@ -153,7 +153,7 @@ func TestSetTx(t *testing.T) {
 					BlockID: ids.GenerateTestID(),
 				},
 				Key:   []byte("bar"),
-				Value: bytes.Repeat([]byte{'b'}, MaxValueLength+1),
+				Value: bytes.Repeat([]byte{'b'}, MaxValueSize+1),
 			},
 			blockTime: 1,
 			err:       ErrValueTooBig,

@@ -9,16 +9,16 @@ import (
 
 // TODO: load from genesis
 const (
-	SetValueDiscount = 10            // how much set is discounted for required units of work
-	ValueUnitLength  = 256           // 256B
-	MaxValueLength   = 1 << 10 * 128 // 128KB
+	ExpiryTime    = 60 * 60 * 24 * 30 // 30 Days
+	ValueUnitSize = 256               // 256B
+	MaxValueSize  = 1 << 10 * 128     // 128KB
 
-	LookbackWindow     = 10
-	BlockTarget        = 1
+	LookbackWindow     = 60
+	BlockTarget        = 60
 	TargetTransactions = 10 * LookbackWindow / BlockTarget // TODO: can be higher on real network
-	MinDifficulty      = 1                                 // TODO: set much higher on real network
-	MinBlockCost       = 0                                 // in units of tx surplus
-	expiryTime         = 30                                // TODO: set much longer on real network
+
+	MinDifficulty = 10 // each unit of difficulty is ~1ms and the base tx overhead is 10 units
+	MinBlockCost  = 0  // in units
 )
 
 type Context struct {

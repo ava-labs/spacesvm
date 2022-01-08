@@ -4,8 +4,6 @@
 package chain
 
 import (
-	"math/big"
-
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"golang.org/x/crypto/sha3"
@@ -104,7 +102,7 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 	if !pk.Verify(t.unsignedBytes, t.Signature) {
 		return ErrInvalidSignature
 	}
-	if err := t.UnsignedTransaction.Execute(db, blockTime); err != nil {
+	if err := t.UnsignedTransaction.Execute(db, uint64(blockTime)); err != nil {
 		return err
 	}
 	return SetTransaction(db, t)

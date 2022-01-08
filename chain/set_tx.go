@@ -21,16 +21,14 @@ type SetTx struct {
 	// If non-empty, the transaction writes the key-value pair to the storage.
 	// If empty, the transaction deletes the value for the "prefix/key".
 	Value []byte `serialize:"true" json:"value"`
-
-	// TODO: support range deletes?
 }
 
-func (s *SetTx) Execute(db database.Database, blockTime int64) error {
+func (s *SetTx) Execute(db database.Database, blockTime uint64) error {
 	// assume prefix is already validated via "BaseTx"
 	if err := parser.CheckKey(s.Key); err != nil {
 		return err
 	}
-	if len(s.Value) > MaxValueLength {
+	if len(s.Value) > MaxValueSize {
 		return ErrValueTooBig
 	}
 
@@ -53,13 +51,13 @@ func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	return s.updatePrefix(db, blockTime, i)
 }
 
-func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInfo) error {
+func (s *SetTx) updatePrefix(db database.Database, blockTime uint64, i *PrefixInfo) error {
 	v, exists, err := GetValue(db, s.Prefix, s.Key)
 	if err != nil {
 		return err
 	}
 
-	timeRemaining := (i.Expiry - i.LastUpdated) * int64(i.Units)
+	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
 	if len(s.Value) == 0 { //nolint:nestif
 		if !exists {
 			return ErrKeyMissing
@@ -77,7 +75,7 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInf
 			return err
 		}
 	}
-	newTimeRemaining := timeRemaining / int64(i.Units)
+	newTimeRemaining := timeRemaining / i.Units
 	i.LastUpdated = blockTime
 	lastExpiry := i.Expiry
 	i.Expiry = blockTime + newTimeRemaining
@@ -85,7 +83,7 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInf
 }
 
 func lengthOverhead(b []byte) uint64 {
-	return uint64(len(b)/ValueUnitLength + 1)
+	return uint64(len(b)/ValueUnitSize + 1)
 }
 
 func (s *SetTx) Units() uint64 {

@@ -70,12 +70,12 @@ func PrefixInfoKey(prefix []byte) (k []byte) {
 	return k
 }
 
-func RawPrefix(prefix []byte, blockTime int64) (ids.ShortID, error) {
+func RawPrefix(prefix []byte, blockTime uint64) (ids.ShortID, error) {
 	prefixLen := len(prefix)
 	r := make([]byte, prefixLen+1+8)
 	copy(r, prefix)
 	r[prefixLen] = parser.Delimiter
-	binary.LittleEndian.PutUint64(r[prefixLen+1:], uint64(blockTime))
+	binary.LittleEndian.PutUint64(r[prefixLen+1:], blockTime)
 	h := hashing.ComputeHash160(r)
 	rprefix, err := ids.ToShortID(h)
 	if err != nil {
@@ -97,33 +97,33 @@ func PrefixValueKey(rprefix ids.ShortID, key []byte) (k []byte) {
 }
 
 // [expiry/pruningPrefix] + [delimiter] + [timestamp] + [delimiter]
-func RangeTimeKey(p byte, t int64) (k []byte) {
+func RangeTimeKey(p byte, t uint64) (k []byte) {
 	k = make([]byte, 2+8+1)
 	k[0] = p
 	k[1] = parser.Delimiter
-	binary.LittleEndian.PutUint64(k[2:], uint64(t))
+	binary.LittleEndian.PutUint64(k[2:], t)
 	k[2+8] = parser.Delimiter
 	return k
 }
 
 // [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
-func PrefixExpiryKey(expiry int64, rprefix ids.ShortID) (k []byte) {
+func PrefixExpiryKey(expiry uint64, rprefix ids.ShortID) (k []byte) {
 	return specificTimeKey(expiryPrefix, expiry, rprefix)
 }
 
 // [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
-func PrefixPruningKey(expired int64, rprefix ids.ShortID) (k []byte) {
+func PrefixPruningKey(expired uint64, rprefix ids.ShortID) (k []byte) {
 	return specificTimeKey(pruningPrefix, expired, rprefix)
 }
 
 const specificTimeKeyLen = 2 + 8 + 1 + shortIDLen
 
 // [expiry/pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
-func specificTimeKey(p byte, t int64, rprefix ids.ShortID) (k []byte) {
+func specificTimeKey(p byte, t uint64, rprefix ids.ShortID) (k []byte) {
 	k = make([]byte, specificTimeKeyLen)
 	k[0] = p
 	k[1] = parser.Delimiter
-	binary.LittleEndian.PutUint64(k[2:], uint64(t))
+	binary.LittleEndian.PutUint64(k[2:], t)
 	k[2+8] = parser.Delimiter
 	copy(k[2+8+1:], rprefix[:])
 	return k
@@ -132,11 +132,11 @@ func specificTimeKey(p byte, t int64, rprefix ids.ShortID) (k []byte) {
 var ErrInvalidKeyFormat = errors.New("invalid key format")
 
 // extracts expiry/pruning timstamp and raw prefix
-func extractSpecificTimeKey(k []byte) (timestamp int64, rprefix ids.ShortID, err error) {
+func extractSpecificTimeKey(k []byte) (timestamp uint64, rprefix ids.ShortID, err error) {
 	if len(k) != specificTimeKeyLen {
-		return -1, ids.ShortEmpty, ErrInvalidKeyFormat
+		return 0, ids.ShortEmpty, ErrInvalidKeyFormat
 	}
-	timestamp = int64(binary.LittleEndian.Uint64(k[2 : 2+8]))
+	timestamp = uint64(binary.LittleEndian.Uint64(k[2 : 2+8]))
 	rprefix, err = ids.ToShortID(k[2+8+1:])
 	return timestamp, rprefix, err
 }
@@ -204,7 +204,7 @@ func GetBlock(db database.KeyValueReader, bid ids.ID) ([]byte, error) {
 
 // ExpireNext queries "expiryPrefix" key space to find expiring keys,
 // deletes their prefixInfos, and schedules its key pruning with its raw prefix.
-func ExpireNext(db database.Database, parent int64, current int64) (err error) {
+func ExpireNext(db database.Database, parent uint64, current uint64) (err error) {
 	startKey := RangeTimeKey(expiryPrefix, parent)
 	endKey := RangeTimeKey(expiryPrefix, current)
 	cursor := db.NewIteratorWithStart(startKey)
@@ -297,7 +297,7 @@ func HasPrefixKey(db database.KeyValueReader, prefix []byte, key []byte) (bool, 
 	return db.Has(k)
 }
 
-func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo, lastExpiry int64) error {
+func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo, lastExpiry uint64) error {
 	if i.RawPrefix == ids.ShortEmpty {
 		rprefix, err := RawPrefix(prefix, i.Created)
 		if err != nil {
@@ -305,7 +305,7 @@ func PutPrefixInfo(db database.KeyValueWriter, prefix []byte, i *PrefixInfo, las
 		}
 		i.RawPrefix = rprefix
 	}
-	if lastExpiry >= 0 {
+	if lastExpiry > 0 {
 		// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
 		k := PrefixExpiryKey(lastExpiry, i.RawPrefix)
 		if err := db.Delete(k); err != nil {

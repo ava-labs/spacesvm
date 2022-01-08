@@ -125,7 +125,7 @@ func TestPutPrefixInfoAndKey(t *testing.T) {
 		&PrefixInfo{
 			RawPrefix: ids.ShortID{0x1},
 		},
-		-1,
+		0,
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestRange(t *testing.T) {
 	pfx := []byte("foo")
 	if err := PutPrefixInfo(db, pfx, &PrefixInfo{
 		RawPrefix: ids.ShortID{0x1},
-	}, -1); err != nil {
+	}, 0); err != nil {
 		t.Fatal(err)
 	}
 

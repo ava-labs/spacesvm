@@ -38,7 +38,7 @@ func TestClaimTx(t *testing.T) {
 
 	tt := []struct {
 		tx        *ClaimTx
-		blockTime int64
+		blockTime uint64
 		err       error
 	}{
 		{ // invalid claim, [32]byte prefix is reserved for pubkey
