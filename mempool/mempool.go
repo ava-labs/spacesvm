@@ -109,7 +109,7 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 		return false
 	}
 	// Optimistically add tx to mempool
-	difficulty := tx.MinDifficulty()
+	difficulty := tx.Difficulty()
 	oldLen := th.Len()
 
 	th.mu.Lock()

@@ -16,13 +16,10 @@ func TestMempool(t *testing.T) {
 	for _, i := range []int{1, 2, 3} { // difficulty 2, 3, 0
 		tx := &chain.Transaction{
 			Signature: bytes.Repeat([]byte{'a'}, i*10),
-			MinedTransaction: &chain.MinedTransaction{
-				UnsignedTransaction: &chain.ClaimTx{
-					BaseTx: &chain.BaseTx{
-						Prefix: bytes.Repeat([]byte{'k'}, i*10),
-					},
+			UnsignedTransaction: &chain.ClaimTx{
+				BaseTx: &chain.BaseTx{
+					Prefix: bytes.Repeat([]byte{'k'}, i*10),
 				},
-				Graffiti: []uint64{0},
 			},
 		}
 		if err := tx.Init(); err != nil {
@@ -30,7 +27,7 @@ func TestMempool(t *testing.T) {
 		}
 		txm.Add(tx)
 	}
-	if _, diff := txm.PeekMax(); diff != 4 {
+	if _, diff := txm.PeekMax(); diff != 3 {
 		t.Fatalf("difficulty expected 4, got %d", diff)
 	}
 	if _, diff := txm.PeekMin(); diff != 0 {
