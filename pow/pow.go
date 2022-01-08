@@ -10,12 +10,12 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-const (
-	maxDifficulty = 256
+var (
+	MaxDifficulty, _ = new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
 )
 
-func Difficulty(b []byte) uint64 {
+func Difficulty(b []byte) *big.Int {
 	h := sha3.Sum256(b)
-	n := new(big.Int).SetBytes(h[:])
-	return uint64(maxDifficulty - n.BitLen())
+	v := new(big.Int).SetBytes(h[:])
+	return new(big.Int).Sub(MaxDifficulty, v)
 }
