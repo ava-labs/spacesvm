@@ -53,22 +53,22 @@ func TestClaimTx(t *testing.T) {
 		},
 		{ // invalid claim due to expiration
 			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
-			blockTime: 1,
+			blockTime: 100,
 			err:       ErrPrefixNotExpired,
 		},
 		{ // successful new claim
 			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
-			blockTime: 100,
+			blockTime: ExpiryTime + 1,
 			err:       nil,
 		},
 		{ // successful new claim by different owner
 			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
-			blockTime: 150,
+			blockTime: ExpiryTime*2 + 2,
 			err:       nil,
 		},
 		{ // invalid claim due to expiration by different owner
 			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
-			blockTime: 177,
+			blockTime: ExpiryTime*2 + 3,
 			err:       ErrPrefixNotExpired,
 		},
 	}
@@ -99,7 +99,7 @@ func TestClaimTx(t *testing.T) {
 	}
 
 	// Cleanup DB after all txs submitted
-	if err := ExpireNext(db, 0, 1000); err != nil {
+	if err := ExpireNext(db, 0, ExpiryTime*10); err != nil {
 		t.Fatal(err)
 	}
 	if err := PruneNext(db, 100); err != nil {
