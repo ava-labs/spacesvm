@@ -25,6 +25,8 @@ func Difficulty(b []byte) uint64 {
 	return r.Uint64()
 }
 
+// ExpectedHashes provides an estimate of the number of hashes that must be
+// computed for a given difficulty.
 func ExpectedHashes(difficulty uint64) uint64 {
 	// 256-240 = 16
 	b := new(big.Int).Exp(big.NewInt(2), big.NewInt(16), nil)
