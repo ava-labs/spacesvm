@@ -11,7 +11,7 @@ import (
 const (
 	ExpiryTime    = 60 * 60 * 24 * 30 // 30 Days
 	ValueUnitSize = 256               // 256B
-	MaxValueSize  = 1 << 10 * 128     // 128KB
+	MaxValueSize  = 1 << 10 * 128     // 128KB (500 Units)
 	BaseTxUnits   = 10
 
 	LookbackWindow = 60                                               // 60 Seconds
