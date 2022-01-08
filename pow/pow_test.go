@@ -9,6 +9,7 @@ import (
 )
 
 func benchmarkDifficulty(b *testing.B, d uint64) {
+	b.Helper()
 	for n := 0; n < b.N; n++ {
 		for i := uint64(0); ; i++ {
 			b := [16]byte{}
