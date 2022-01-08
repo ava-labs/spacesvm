@@ -89,10 +89,19 @@ echo "wait until local cluster is ready from PID ${PID}"
 while [[ ! -s /tmp/avalanchego-v${VERSION}/output.yaml ]]
   do
   echo "waiting for /tmp/avalanchego-v${VERSION}/output.yaml creation"
-  sleep 3
+  sleep 5
+  # wait up to 5-minute
+  ((c++)) && ((c==60)) && break
 done
-echo "found it!"
-cat /tmp/avalanchego-v${VERSION}/output.yaml
+
+if [[ -f "/tmp/avalanchego-v${VERSION}/output.yaml" ]]; then
+  echo "cluster is ready!"
+  cat /tmp/avalanchego-v${VERSION}/output.yaml
+else
+  echo "cluster is not ready in time... terminating ${PID}"
+  kill ${PID}
+  exit 255
+fi
 
 echo "running e2e tests against the local cluster with shutdown flag '${_SHUTDOWN_FLAG}'"
 ./tests/e2e/e2e.test \
