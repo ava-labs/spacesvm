@@ -27,5 +27,3 @@ func (l *LifelineTx) Execute(db database.Database, blockTime int64) error {
 	i.Expiry += expiryTime / i.Units
 	return PutPrefixInfo(db, l.Prefix, i, lastExpiry)
 }
-
-func (l *LifelineTx) Units() int64 { return 1 }

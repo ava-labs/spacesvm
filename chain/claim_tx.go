@@ -45,5 +45,3 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 	}
 	return nil
 }
-
-func (c *ClaimTx) Units() int64 { return 1 }

@@ -21,7 +21,7 @@ type Transaction struct {
 	bytes         []byte
 	id            ids.ID
 	size          uint64
-	difficulty    *big.Int
+	difficulty    uint64
 }
 
 func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
@@ -72,18 +72,16 @@ func (t *Transaction) Size() uint64 { return t.size }
 
 func (t *Transaction) ID() ids.ID { return t.id }
 
-func (t *Transaction) DifficultyPerUnit() *big.Int {
-	// TODO: have difficulty scale non-linearly with tx size (ex: have a shared
-	// base fee and then an additional charge that is smaller) -> make units
-	// based on 10 and have each lenght be 1 additional
-	return new(big.Int).Div(t.difficulty, new(big.Int).SetInt64(t.Units()))
+// Difficulty per unit of work done by tx
+func (t *Transaction) Difficulty() uint64 {
+	return t.difficulty / t.Units()
 }
 
 func (t *Transaction) Execute(db database.Database, blockTime int64, context *Context) error {
 	if err := t.UnsignedTransaction.ExecuteBase(); err != nil {
 		return err
 	}
-	if t.DifficultyPerUnit().Cmp(new(big.Int).SetUint64(context.NextDifficulty)) < 0 {
+	if t.Difficulty() < context.NextDifficulty {
 		return ErrInvalidDifficulty
 	}
 	if !context.RecentBlockIDs.Contains(t.GetBlockID()) {

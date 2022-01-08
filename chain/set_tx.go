@@ -59,35 +59,37 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInf
 		return err
 	}
 
-	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
+	timeRemaining := (i.Expiry - i.LastUpdated) * int64(i.Units)
 	if len(s.Value) == 0 { //nolint:nestif
 		if !exists {
 			return ErrKeyMissing
 		}
-		i.Units -= Units(v)
+		i.Units -= lengthOverhead(v)
 		if err := DeletePrefixKey(db, s.Prefix, s.Key); err != nil {
 			return err
 		}
 	} else {
 		if exists {
-			i.Units -= Units(v)
+			i.Units -= lengthOverhead(v)
 		}
-		i.Units += Units(s.Value)
+		i.Units += lengthOverhead(s.Value)
 		if err := PutPrefixKey(db, s.Prefix, s.Key, s.Value); err != nil {
 			return err
 		}
 	}
-	newTimeRemaining := timeRemaining / i.Units
+	newTimeRemaining := timeRemaining / int64(i.Units)
 	i.LastUpdated = blockTime
 	lastExpiry := i.Expiry
 	i.Expiry = blockTime + newTimeRemaining
 	return PutPrefixInfo(db, s.Prefix, i, lastExpiry)
 }
 
-func (s *SetTx) Units() int64 {
-	if len(s.Value) == 0 {
-		return 1
-	}
-	u := Units(s.Value)
-	return u/SetValueDiscount + 1
+func lengthOverhead(b []byte) uint64 {
+	return uint64(len(b)/ValueUnitLength + 1)
+}
+
+func (s *SetTx) Units() uint64 {
+	// We subtract by 1 because we don't want to charge extra for someone setting
+	// a key with a value of len < ValueUnitLength
+	return s.BaseTx.Units() + lengthOverhead(s.Value) - 1
 }

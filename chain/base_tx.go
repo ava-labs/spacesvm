@@ -57,3 +57,7 @@ func (b *BaseTx) ExecuteBase() error {
 	}
 	return nil
 }
+
+func (b *BaseTx) Units() uint64 {
+	return 10
+}

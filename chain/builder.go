@@ -47,7 +47,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		next, diff := mempool.PopMax()
 		if diff < b.Difficulty {
 			mempool.Add(next)
-			log.Debug("skipping tx: too low difficulty", "block diff", b.Difficulty, "tx min diff", next.DifficultyPerUnit())
+			log.Debug("skipping tx: too low difficulty", "block diff", b.Difficulty, "tx min diff", next.Difficulty())
 			break
 		}
 		// Verify that changes pass

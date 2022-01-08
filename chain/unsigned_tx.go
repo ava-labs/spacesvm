@@ -13,7 +13,7 @@ type UnsignedTransaction interface {
 	SetBlockID(block ids.ID)
 	GetSender() [crypto.SECP256K1RPKLen]byte
 	GetBlockID() ids.ID
-	Units() int64
+	Units() uint64 // number of units to mine tx
 
 	ExecuteBase() error
 	Execute(database.Database, int64) error
