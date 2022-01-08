@@ -13,12 +13,12 @@ const (
 	ValueUnitSize = 256               // 256B
 	MaxValueSize  = 1 << 10 * 128     // 128KB
 
-	LookbackWindow     = 60
-	BlockTarget        = 60
-	TargetTransactions = 10 * LookbackWindow / BlockTarget // TODO: can be higher on real network
+	LookbackWindow     = 60                                 // 60 Seconds
+	BlockTarget        = 60                                 // 60 Blocks per Lookback Window
+	TargetTransactions = 512 * LookbackWindow / BlockTarget // 512 Transactions Per Block
 
-	MinDifficulty = 10 // each unit of difficulty is ~1ms and the base tx overhead is 10 units
-	MinBlockCost  = 0  // in units
+	MinDifficulty = 10 // ~10ms per unit (100 ms for claim)
+	MinBlockCost  = 1  // Minimum Unit Overhead
 )
 
 type Context struct {
