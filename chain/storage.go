@@ -136,7 +136,7 @@ func extractSpecificTimeKey(k []byte) (timestamp uint64, rprefix ids.ShortID, er
 	if len(k) != specificTimeKeyLen {
 		return 0, ids.ShortEmpty, ErrInvalidKeyFormat
 	}
-	timestamp = uint64(binary.LittleEndian.Uint64(k[2 : 2+8]))
+	timestamp = binary.LittleEndian.Uint64(k[2 : 2+8])
 	rprefix, err = ids.ToShortID(k[2+8+1:])
 	return timestamp, rprefix, err
 }

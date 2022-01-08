@@ -7,4 +7,7 @@ import (
 	"errors"
 )
 
-var ErrNoPendingTx = errors.New("no pending tx")
+var (
+	ErrNoPendingTx    = errors.New("no pending tx")
+	ErrUnexpectedType = errors.New("unexpected type")
+)

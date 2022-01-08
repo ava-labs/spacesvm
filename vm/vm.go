@@ -328,7 +328,10 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 	if err != nil {
 		return []error{err}
 	}
-	sblk := blk.(*chain.StatelessBlock)
+	sblk, ok := blk.(*chain.StatelessBlock)
+	if !ok {
+		return []error{ErrUnexpectedType}
+	}
 	now := time.Now().Unix()
 	ctx, err := vm.ExecutionContext(now, sblk)
 	if err != nil {
