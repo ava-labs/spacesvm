@@ -25,6 +25,7 @@ const (
 type Context struct {
 	RecentBlockIDs ids.Set
 	RecentTxIDs    ids.Set
+	RecentUnits    uint64
 
 	NextCost       uint64
 	NextDifficulty uint64

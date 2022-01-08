@@ -338,7 +338,7 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 	}
 	sblk, ok := blk.(*chain.StatelessBlock)
 	if !ok {
-		return []error{ErrUnexpectedType}
+		return []error{fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", blk)}
 	}
 	now := time.Now().Unix()
 	ctx, err := vm.ExecutionContext(now, sblk)

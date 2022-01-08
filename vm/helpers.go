@@ -4,6 +4,7 @@
 package vm
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -47,29 +48,22 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 }
 
 func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
-	var (
-		totalDifficulty uint64
-		totalCost       uint64
-		totalBlocks     int
-		totalTxs        int
-	)
-	err := vm.lookback(time.Now().Unix(), vm.preferred, func(b *chain.StatelessBlock) (bool, error) {
-		totalDifficulty += b.Difficulty
-		totalCost += b.Cost
-		totalBlocks++
-		totalTxs += len(b.Txs)
-		return true, nil
-	})
+	prnt, err := vm.GetBlock(vm.preferred)
 	if err != nil {
 		return 0, 0, err
 	}
-	recommendedD := totalDifficulty / uint64(totalBlocks)
-	if recommendedD < vm.minDifficulty {
-		recommendedD = vm.minDifficulty
+	parent, ok := prnt.(*chain.StatelessBlock)
+	if !ok {
+		return 0, 0, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", prnt)
 	}
-	recommendedC := totalCost / uint64(totalTxs)
-	if recommendedC < vm.minBlockCost {
-		recommendedC = vm.minBlockCost
+	ctx, err := vm.ExecutionContext(time.Now().Unix(), parent)
+	if err != nil {
+		return 0, 0, err
 	}
-	return recommendedD, recommendedC, nil
+	recentTxs := ctx.RecentTxIDs.Len()
+	recommendedC := vm.minBlockCost
+	if recentTxs > 0 {
+		recommendedC = ctx.NextCost / uint64(recentTxs)
+	}
+	return ctx.NextDifficulty, recommendedC, nil
 }

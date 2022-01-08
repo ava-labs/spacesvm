@@ -89,6 +89,8 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 	return &chain.Context{
 		RecentBlockIDs: recentBlockIDs,
 		RecentTxIDs:    recentTxIDs,
+		RecentUnits:    recentUnits,
+
 		NextCost:       nextCost,
 		NextDifficulty: nextDifficulty,
 	}, nil
