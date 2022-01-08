@@ -328,13 +328,19 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 	if err != nil {
 		return []error{err}
 	}
+	sblk := blk.(*chain.StatelessBlock)
 	now := time.Now().Unix()
-	ctx, err := vm.ExecutionContext(now, blk.(*chain.StatelessBlock))
+	ctx, err := vm.ExecutionContext(now, sblk)
 	if err != nil {
 		return []error{err}
 	}
 	vdb := versiondb.New(vm.db)
 	defer vdb.Close() // TODO: need to do everywhere?
+
+	// Expire outdated prefixes before checking submission validity
+	if err := chain.ExpireNext(vdb, sblk.Tmstmp, now); err != nil {
+		return []error{err}
+	}
 
 	for _, tx := range txs {
 		if serr := vm.submit(tx, vdb, now, ctx); serr != nil {
