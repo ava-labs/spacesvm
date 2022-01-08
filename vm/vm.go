@@ -33,7 +33,10 @@ const (
 
 	defaultWorkInterval     = 100 * time.Millisecond
 	defaultRegossipInterval = time.Second
-	defaultPruneInterval    = time.Minute
+
+	defaultPruneLimit        = 128
+	defaultPruneInterval     = time.Minute
+	defaultFullPruneInterval = time.Second
 
 	defaultMinimumDifficulty = 1
 	defaultMinBlockCost      = 1
@@ -52,7 +55,10 @@ type VM struct {
 
 	workInterval     time.Duration
 	regossipInterval time.Duration
-	pruneInterval    time.Duration
+
+	pruneLimit        int
+	pruneInterval     time.Duration
+	fullPruneInterval time.Duration
 
 	mempool     *mempool.Mempool
 	appSender   common.AppSender
@@ -107,7 +113,9 @@ func (vm *VM) Initialize(
 	// TODO: make this configurable via config
 	vm.workInterval = defaultWorkInterval
 	vm.regossipInterval = defaultRegossipInterval
+	vm.pruneLimit = defaultPruneLimit
 	vm.pruneInterval = defaultPruneInterval
+	vm.fullPruneInterval = defaultFullPruneInterval
 
 	// TODO: make this configurable via genesis
 	vm.minDifficulty, vm.minBlockCost = defaultMinimumDifficulty, defaultMinBlockCost

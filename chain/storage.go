@@ -142,7 +142,6 @@ func extractSpecificTimeKey(k []byte) (timestamp uint64, rprefix ids.ShortID, er
 }
 
 func GetPrefixInfo(db database.KeyValueReader, prefix []byte) (*PrefixInfo, bool, error) {
-	// TODO: add caching (will need some expiry when keys cleared)
 	// [infoPrefix] + [delimiter] + [prefix]
 	k := PrefixInfoKey(prefix)
 	v, err := db.Get(k)
@@ -246,12 +245,11 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64) (err error)
 
 // PruneNext queries the keys that are currently marked with "pruningPrefix",
 // and clears them from the database.
-func PruneNext(db database.Database, limit int) (err error) {
+func PruneNext(db database.Database, limit int) (removals int, err error) {
 	startKey := RangeTimeKey(pruningPrefix, 0)
 	endKey := RangeTimeKey(pruningPrefix, math.MaxInt64)
 	cursor := db.NewIteratorWithStart(startKey)
-	removals := 0
-	for cursor.Next() && removals < limit {
+	for cursor.Next() && removals <= limit {
 		// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
 		curKey := cursor.Key()
 		if bytes.Compare(startKey, curKey) < -1 { // startKey < curKey; continue search
@@ -262,19 +260,19 @@ func PruneNext(db database.Database, limit int) (err error) {
 		}
 		_, rpfx, err := extractSpecificTimeKey(curKey)
 		if err != nil {
-			return err
+			return removals, err
 		}
 		if err := db.Delete(curKey); err != nil {
-			return err
+			return removals, err
 		}
 		// [keyPrefix] + [delimiter] + [rawPrefix] + [delimiter] + [key]
 		if err := database.ClearPrefix(db, db, PrefixValueKey(rpfx, nil)); err != nil {
-			return err
+			return removals, err
 		}
 		log.Debug("rprefix pruned", "rprefix", rpfx.Hex())
 		removals++
 	}
-	return nil
+	return removals, nil
 }
 
 // DB

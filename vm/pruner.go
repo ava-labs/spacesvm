@@ -12,28 +12,26 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 )
 
-const (
-	pruneLimit = 128
-)
-
-func (vm *VM) pruneCall() {
+func (vm *VM) pruneCall() bool {
 	// Lock to prevent concurrent modification of state
 	vm.ctx.Lock.Lock()
 	defer vm.ctx.Lock.Unlock()
 
 	vdb := versiondb.New(vm.db)
 	defer vdb.Abort()
-	if err := chain.PruneNext(vdb, pruneLimit); err != nil {
+	removals, err := chain.PruneNext(vdb, vm.pruneLimit)
+	if err != nil {
 		log.Warn("unable to prune next range", "error", err)
-		return
+		return false
 	}
 	if err := vdb.Commit(); err != nil {
 		log.Warn("unable to commit pruning work", "error", err)
-		return
+		return false
 	}
 	if err := vm.lastAccepted.SetChildrenDB(vm.db); err != nil {
 		log.Error("unable to update child databases of last accepted block", "error", err)
 	}
+	return removals == vm.pruneLimit
 }
 
 func (vm *VM) prune() {
@@ -50,7 +48,10 @@ func (vm *VM) prune() {
 		case <-vm.stopc:
 			return
 		}
-		t.Reset(vm.pruneInterval)
-		vm.pruneCall()
+		if vm.pruneCall() {
+			t.Reset(vm.fullPruneInterval)
+		} else {
+			t.Reset(vm.pruneInterval)
+		}
 	}
 }

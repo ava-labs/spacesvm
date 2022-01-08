@@ -59,5 +59,5 @@ func (b *BaseTx) ExecuteBase() error {
 }
 
 func (b *BaseTx) Units() uint64 {
-	return 10
+	return BaseTxUnits
 }

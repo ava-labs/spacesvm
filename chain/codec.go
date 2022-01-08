@@ -14,8 +14,8 @@ const (
 	// codecVersion is the current default codec version
 	codecVersion = 0
 
-	// TODO: what should this be?
-	maxSize = 8 * units.MiB
+	// maxSize is 1MB to support large blocks (~9 large key settings)
+	maxSize = 1 * units.MiB
 )
 
 var codecManager codec.Manager

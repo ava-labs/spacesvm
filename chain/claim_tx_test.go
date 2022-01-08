@@ -102,8 +102,12 @@ func TestClaimTx(t *testing.T) {
 	if err := ExpireNext(db, 0, ExpiryTime*10); err != nil {
 		t.Fatal(err)
 	}
-	if err := PruneNext(db, 100); err != nil {
+	pruned, err := PruneNext(db, 100)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if pruned != 3 {
+		t.Fatalf("expected to prune 3 but got %d", pruned)
 	}
 	_, exists, err := GetPrefixInfo(db, []byte("foo"))
 	if err != nil {
