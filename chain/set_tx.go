@@ -87,7 +87,7 @@ func lengthOverhead(b []byte) uint64 {
 }
 
 func (s *SetTx) Units() uint64 {
-	// We subtract by 1 because we don't want to charge extra for someone setting
-	// a key with a value of len < ValueUnitLength
-	return s.BaseTx.Units() + lengthOverhead(s.Value) - 1
+	// We don't subtract by 1 here because we want to charge extra for any
+	// value-based interaction (even if it is small).
+	return s.BaseTx.Units() + lengthOverhead(s.Value)
 }
