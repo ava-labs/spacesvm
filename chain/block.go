@@ -5,6 +5,7 @@ package chain
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/ava-labs/avalanchego/database"
@@ -24,7 +25,7 @@ type StatefulBlock struct {
 	Prnt       ids.ID         `serialize:"true" json:"parent"`
 	Tmstmp     int64          `serialize:"true" json:"timestamp"`
 	Hght       uint64         `serialize:"true" json:"height"`
-	Difficulty uint64         `serialize:"true" json:"difficulty"`
+	Difficulty uint64         `serialize:"true" json:"difficulty"` // difficulty per unit
 	Cost       uint64         `serialize:"true" json:"cost"`
 	Txs        []*Transaction `serialize:"true" json:"txs"`
 }
@@ -160,18 +161,18 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 
 	// Process new transactions
 	log.Debug("build context", "next difficulty", context.NextDifficulty, "next cost", context.NextCost)
-	var surplusWork uint64
+	surplusWork := big.NewInt(0)
 	for _, tx := range b.Txs {
 		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
 			log.Debug("failed tx verification", "err", err)
 			return nil, nil, err
 		}
-		// In [tx.Execute], we verify that work > units so this will never underflow
-		surplusWork += tx.Work(context.NextDifficulty) - uint64(tx.Units())
+		surplusDifficulty := new(big.Int).Sub(tx.DifficultyPerUnit(), new(big.Int).SetUint64(context.NextDifficulty))
+		surplusWork = new(big.Int).Add(surplusWork, new(big.Int).Mul(surplusDifficulty, new(big.Int).SetInt64(tx.Units())))
 	}
 	// Ensure enough work is performed to compensate for block production speed
 	requiredSurplus := b.Difficulty * b.Cost
-	if surplusWork < requiredSurplus {
+	if surplusWork.Cmp(new(big.Int).SetUint64(requiredSurplus)) < 0 {
 		log.Debug("insufficient block surplus", "found", surplusWork, "required", requiredSurplus)
 		return nil, nil, ErrInsufficientSurplus
 	}
