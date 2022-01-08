@@ -6,6 +6,7 @@ package client
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto"
@@ -31,13 +32,12 @@ func MineSignIssueTx(
 		return ids.Empty, err
 	}
 
-	utx, solutions, err := cli.Mine(ctx, rtx, diff, cost)
+	utx, err := cli.Mine(ctx, rtx, diff, cost)
 	if err != nil {
 		return ids.Empty, err
 	}
 
-	mtx := chain.NewMinedTx(utx, solutions)
-	b, err := chain.MinedBytes(mtx)
+	b, err := chain.UnsignedBytes(utx)
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -50,12 +50,12 @@ func MineSignIssueTx(
 		return ids.Empty, err
 	}
 
-	tx := chain.NewTx(mtx, sig)
+	tx := chain.NewTx(utx, sig)
 	if err := tx.Init(); err != nil {
 		return ids.Empty, err
 	}
 
-	color.Yellow("issuing tx %s with block ID %s", tx.ID(), mtx.GetBlockID())
+	color.Yellow("issuing tx (units: %d) %s with block ID %s", tx.ID(), tx.Units(), utx.GetBlockID())
 	txID, err = cli.IssueTx(tx.Bytes())
 	if err != nil {
 		return ids.Empty, err
@@ -80,7 +80,11 @@ func MineSignIssueTx(
 			color.Red("cannot get prefix info %v", err)
 			return ids.Empty, err
 		}
-		color.Blue("prefix %q info %+v", ret.prefixInfo, info)
+		expiry := time.Unix(int64(info.Expiry), 0)
+		color.Blue(
+			"prefix %q: units=%d expiry=%v (%v remaining)",
+			ret.prefixInfo, info.Units, expiry, time.Until(expiry),
+		)
 	}
 
 	return txID, nil

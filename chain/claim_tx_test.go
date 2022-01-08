@@ -38,7 +38,7 @@ func TestClaimTx(t *testing.T) {
 
 	tt := []struct {
 		tx        *ClaimTx
-		blockTime uint64
+		blockTime int64
 		err       error
 	}{
 		{ // invalid claim, [32]byte prefix is reserved for pubkey
@@ -79,7 +79,7 @@ func TestClaimTx(t *testing.T) {
 				t.Fatalf("#%d: ExpireNext errored %v", i, err)
 			}
 		}
-		err := tv.tx.Execute(db, tv.blockTime)
+		err := tv.tx.Execute(db, uint64(tv.blockTime))
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
 		}

@@ -236,22 +236,20 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	})
 
 	ginkgo.It("fail ClaimTx with no block ID", func() {
-		mtx := &chain.MinedTransaction{
-			UnsignedTransaction: &chain.ClaimTx{
-				BaseTx: &chain.BaseTx{
-					Sender: sender,
-					Prefix: []byte("foo"),
-				},
+		utx := &chain.ClaimTx{
+			BaseTx: &chain.BaseTx{
+				Sender: sender,
+				Prefix: []byte("foo"),
 			},
 		}
 
-		b, err := chain.MinedBytes(mtx)
+		b, err := chain.UnsignedBytes(utx)
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		sig, err := priv.Sign(b)
 		gomega.Ω(err).Should(gomega.BeNil())
 
-		tx := chain.NewTx(mtx, sig)
+		tx := chain.NewTx(utx, sig)
 		err = tx.Init()
 		gomega.Ω(err).Should(gomega.BeNil())
 
@@ -342,21 +340,17 @@ func mineAndExpectBlkAccept(
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 	diff, cost, err := cli.EstimateDifficulty()
 	gomega.Ω(err).Should(gomega.BeNil())
-	utx, solutions, err := cli.Mine(ctx, rtx, diff, cost)
+	utx, err := cli.Mine(ctx, rtx, diff, cost)
 	cancel()
 	gomega.Ω(err).Should(gomega.BeNil())
 
-	mtx := &chain.MinedTransaction{
-		UnsignedTransaction: utx,
-		Graffiti:            solutions,
-	}
-	b, err := chain.MinedBytes(mtx)
+	b, err := chain.UnsignedBytes(utx)
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	sig, err := priv.Sign(b)
 	gomega.Ω(err).Should(gomega.BeNil())
 
-	tx := chain.NewTx(mtx, sig)
+	tx := chain.NewTx(utx, sig)
 	err = tx.Init()
 	gomega.Ω(err).To(gomega.BeNil())
 

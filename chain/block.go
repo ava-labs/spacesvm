@@ -153,7 +153,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	onAcceptDB := versiondb.New(parentState)
 
 	// Remove all expired prefixes
-	if err := ExpireNext(onAcceptDB, uint64(parent.Tmstmp), uint64(b.Tmstmp)); err != nil {
+	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp); err != nil {
 		return nil, nil, err
 	}
 

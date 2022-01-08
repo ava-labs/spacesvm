@@ -204,7 +204,8 @@ func GetBlock(db database.KeyValueReader, bid ids.ID) ([]byte, error) {
 
 // ExpireNext queries "expiryPrefix" key space to find expiring keys,
 // deletes their prefixInfos, and schedules its key pruning with its raw prefix.
-func ExpireNext(db database.Database, parent uint64, current uint64) (err error) {
+func ExpireNext(db database.Database, rparent int64, rcurrent int64) (err error) {
+	parent, current := uint64(rparent), uint64(rcurrent)
 	startKey := RangeTimeKey(expiryPrefix, parent)
 	endKey := RangeTimeKey(expiryPrefix, current)
 	cursor := db.NewIteratorWithStart(startKey)

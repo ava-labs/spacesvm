@@ -11,6 +11,7 @@ import (
 
 type UnsignedTransaction interface {
 	SetBlockID(block ids.ID)
+	SetGraffiti(graffiti uint64)
 	GetSender() [crypto.SECP256K1RPKLen]byte
 	GetBlockID() ids.ID
 	Units() uint64 // number of units to mine tx

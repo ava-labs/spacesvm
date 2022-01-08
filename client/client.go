@@ -43,7 +43,7 @@ type Client interface {
 	// Performs Proof-of-Work (PoW) by enumerating the graffiti.
 	Mine(
 		ctx context.Context, utx chain.UnsignedTransaction, difficulty uint64, minSurplus uint64,
-	) (chain.UnsignedTransaction, []uint64, error)
+	) (chain.UnsignedTransaction, error)
 }
 
 // New creates a new client object.
@@ -199,43 +199,40 @@ done:
 
 func (cli *client) Mine(
 	ctx context.Context, utx chain.UnsignedTransaction, difficulty uint64, minSurplus uint64,
-) (chain.UnsignedTransaction, []uint64, error) {
-	solutions := make([]uint64, 0, utx.Units())
+) (chain.UnsignedTransaction, error) {
 	for ctx.Err() == nil {
+		// TODO: only query this periodically
 		cbID, err := cli.Preferred()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		utx.SetBlockID(cbID)
 
 		graffiti := uint64(0)
 		for ctx.Err() == nil {
+			// TODO: only query periodically
 			valid, err := cli.CheckBlock(cbID)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			if !valid {
 				color.Yellow("%v is no longer a valid block id", cbID)
 				break
 			}
-			btx, err := chain.UnsignedBytes(utx)
+			utx.SetGraffiti(graffiti)
+			b, err := chain.UnsignedBytes(utx)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
-			b := chain.HashableBytes(btx, graffiti)
 			d := pow.Difficulty(b)
 			if d >= difficulty {
-				solutions = append(solutions, graffiti)
-			}
-			// TODO: review types
-			if int64(len(solutions)) == utx.Units()+int64(minSurplus) {
-				return utx, solutions, nil
+				return utx, nil
 			}
 			graffiti++
 		}
-		// Get new block hash if no longer valid
+		// TODO: get new block hash if no longer valid
 	}
-	return nil, nil, ctx.Err()
+	return nil, ctx.Err()
 }
 
 type Op struct {
