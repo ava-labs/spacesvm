@@ -6,17 +6,23 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/codec/linearcodec"
+	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 )
 
-// codecVersion is the current default codec version
-const codecVersion = 0
+const (
+	// codecVersion is the current default codec version
+	codecVersion = 0
+
+	// TODO: what should this be?
+	maxSize = 8 * units.MiB
+)
 
 var codecManager codec.Manager
 
 func init() {
 	c := linearcodec.NewDefault()
-	codecManager = codec.NewDefaultManager()
+	codecManager = codec.NewManager(maxSize)
 	errs := wrappers.Errs{}
 	errs.Add(
 		c.RegisterType(&BaseTx{}),
