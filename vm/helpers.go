@@ -47,24 +47,28 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 }
 
 func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
-	totalDifficulty := uint64(0)
-	totalCost := uint64(0)
-	totalBlocks := uint64(0)
+	var (
+		totalDifficulty uint64
+		totalCost       uint64
+		totalBlocks     int
+		totalTxs        int
+	)
 	err := vm.lookback(time.Now().Unix(), vm.preferred, func(b *chain.StatelessBlock) (bool, error) {
 		totalDifficulty += b.Difficulty
 		totalCost += b.Cost
 		totalBlocks++
+		totalTxs += len(b.Txs)
 		return true, nil
 	})
 	if err != nil {
 		return 0, 0, err
 	}
-	recommendedD := totalDifficulty/totalBlocks + 1
+	recommendedD := totalDifficulty / uint64(totalBlocks)
 	if recommendedD < vm.minDifficulty {
 		recommendedD = vm.minDifficulty
 	}
-	recommendedC := totalCost/totalBlocks + 1
-	if recommendedC < vm.minBlockCost { // TODO: can be less aggressive here
+	recommendedC := totalCost / uint64(totalTxs)
+	if recommendedC < vm.minBlockCost {
 		recommendedC = vm.minBlockCost
 	}
 	return recommendedD, recommendedC, nil

@@ -38,12 +38,12 @@ func UnsignedBytes(utx UnsignedTransaction) ([]byte, error) {
 }
 
 func (t *Transaction) Init() error {
-	utx, err := UnsignedBytes(t.UnsignedTransaction)
+	utx, diff, err := CalcDifficulty(t.UnsignedTransaction)
 	if err != nil {
 		return err
 	}
 	t.unsignedBytes = utx
-	t.difficulty = pow.Difficulty(utx)
+	t.difficulty = diff
 
 	stx, err := Marshal(t)
 	if err != nil {
@@ -71,8 +71,15 @@ func (t *Transaction) Size() uint64 { return t.size }
 func (t *Transaction) ID() ids.ID { return t.id }
 
 // Difficulty per unit of work done by tx
-func (t *Transaction) Difficulty() uint64 {
-	return t.difficulty / t.Units()
+func (t *Transaction) Difficulty() uint64 { return t.difficulty }
+
+// Used during mining
+func CalcDifficulty(utx UnsignedTransaction) ([]byte, uint64, error) {
+	b, err := UnsignedBytes(utx)
+	if err != nil {
+		return nil, 0, err
+	}
+	return b, pow.Difficulty(b) / utx.Units(), nil
 }
 
 func (t *Transaction) Execute(db database.Database, blockTime int64, context *Context) error {

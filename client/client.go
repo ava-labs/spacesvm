@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/rpc"
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/parser"
-	"github.com/ava-labs/quarkvm/pow"
 	"github.com/ava-labs/quarkvm/vm"
 	"github.com/fatih/color"
 )
@@ -220,12 +219,11 @@ func (cli *client) Mine(
 				break
 			}
 			utx.SetGraffiti(graffiti)
-			b, err := chain.UnsignedBytes(utx)
+			_, utxd, err := chain.CalcDifficulty(utx)
 			if err != nil {
 				return nil, err
 			}
-			d := pow.Difficulty(b)
-			if d >= difficulty {
+			if utxd >= difficulty && (utxd-difficulty)*utx.Units() > minSurplus {
 				return utx, nil
 			}
 			graffiti++
