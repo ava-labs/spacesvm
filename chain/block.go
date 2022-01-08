@@ -130,6 +130,9 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		return nil, nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", prnt)
 	}
 
+	if b.Hght > 0 && len(b.ExtraData) > 0 {
+		return nil, nil, ErrInvalidExtraData
+	}
 	if len(b.Txs) == 0 {
 		return nil, nil, ErrNoTxs
 	}

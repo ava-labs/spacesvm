@@ -36,6 +36,7 @@ func TestBlock(t *testing.T) {
 					&Context{NextDifficulty: 1, NextCost: 1},
 					nil,
 					0,
+					nil,
 				)
 				return blk
 			},
@@ -57,6 +58,7 @@ func TestBlock(t *testing.T) {
 					&Context{NextDifficulty: 1, NextCost: 1},
 					nil,
 					1,
+					nil,
 				)
 				return blk
 			},
@@ -78,6 +80,7 @@ func TestBlock(t *testing.T) {
 					&Context{NextDifficulty: 1, NextCost: 1},
 					nil,
 					1,
+					nil,
 				)
 				return blk
 			},
@@ -99,6 +102,7 @@ func TestBlock(t *testing.T) {
 					&Context{NextDifficulty: 1, NextCost: 1},
 					&Context{NextDifficulty: 1, NextCost: 1},
 					1,
+					nil,
 				)
 				return blk
 			},
@@ -120,6 +124,7 @@ func TestBlock(t *testing.T) {
 					&Context{NextDifficulty: 1, NextCost: 1},
 					&Context{NextDifficulty: 1, NextCost: 1000},
 					1,
+					nil,
 				)
 				return blk
 			},
@@ -141,10 +146,33 @@ func TestBlock(t *testing.T) {
 					&Context{NextDifficulty: 1, NextCost: 1},
 					&Context{NextDifficulty: 1000, NextCost: 1},
 					1,
+					nil,
 				)
 				return blk
 			},
 			expectedVerifyErr: ErrInvalidDifficulty,
+		},
+		{
+			createBlk: func() *StatelessBlock {
+				blk := createTestBlk(
+					t,
+					&StatelessBlock{
+						StatefulBlock: &StatefulBlock{
+							Tmstmp: 1,
+							Prnt:   ids.GenerateTestID(),
+							Hght:   1, Difficulty: 1, Cost: 1,
+						},
+						st: choices.Accepted,
+					},
+					2,
+					&Context{NextDifficulty: 1, NextCost: 1000},
+					nil,
+					1,
+					[]byte("a"),
+				)
+				return blk
+			},
+			expectedVerifyErr: ErrInvalidExtraData,
 		},
 	}
 	for i, tv := range tt {
@@ -163,6 +191,7 @@ func createTestBlk(
 	blkCtx *Context,
 	execCtx *Context,
 	txsN int,
+	extraData []byte,
 ) *StatelessBlock {
 	t.Helper()
 
@@ -189,6 +218,7 @@ func createTestBlk(
 	for i := 0; i < txsN; i++ {
 		blk.StatefulBlock.Txs[i] = createTestClaimTx(t, blk.id, 100)
 	}
+	blk.StatefulBlock.ExtraData = extraData
 	if execCtx != nil {
 		execCtx.RecentBlockIDs.Add(parentBlk.ID(), blk.id)
 		vm.EXPECT().ExecutionContext(blkTmpstp, parentBlk).Return(execCtx, nil)

@@ -13,6 +13,7 @@ var (
 	ErrTimestampTooLate       = errors.New("block timestamp too late")
 	ErrNoTxs                  = errors.New("no transactions")
 	ErrInvalidCost            = errors.New("invalid block cost")
+	ErrInvalidExtraData       = errors.New("invalid block extra data")
 	ErrInsufficientSurplus    = errors.New("insufficient surplus difficulty")
 	ErrParentBlockNotVerified = errors.New("parent block not verified or accepted")
 
