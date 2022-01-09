@@ -31,7 +31,7 @@ import (
 const (
 	Name = "quarkvm"
 
-	defaultWorkInterval     = 100 * time.Millisecond
+	defaultBuildInterval    = time.Second
 	defaultRegossipInterval = time.Second
 
 	defaultPruneLimit        = 128
@@ -53,7 +53,7 @@ type VM struct {
 	ctx *snow.Context
 	db  database.Database
 
-	workInterval     time.Duration
+	buildInterval    time.Duration
 	regossipInterval time.Duration
 
 	pruneLimit        int
@@ -84,7 +84,7 @@ type VM struct {
 	minBlockCost  uint64
 
 	stopc         chan struct{}
-	donecRun      chan struct{}
+	donecBuild    chan struct{}
 	donecRegossip chan struct{}
 	donecPrune    chan struct{}
 }
@@ -111,7 +111,7 @@ func (vm *VM) Initialize(
 	vm.db = dbManager.Current().Database
 
 	// TODO: make this configurable via config
-	vm.workInterval = defaultWorkInterval
+	vm.buildInterval = defaultBuildInterval
 	vm.regossipInterval = defaultRegossipInterval
 	vm.pruneLimit = defaultPruneLimit
 	vm.pruneInterval = defaultPruneInterval
@@ -171,11 +171,11 @@ func (vm *VM) Initialize(
 	}
 
 	vm.stopc = make(chan struct{})
-	vm.donecRun = make(chan struct{})
+	vm.donecBuild = make(chan struct{})
 	vm.donecRegossip = make(chan struct{})
 	vm.donecPrune = make(chan struct{})
 
-	go vm.run()
+	go vm.build()
 	go vm.regossip()
 	go vm.prune()
 	return nil
@@ -194,7 +194,7 @@ func (vm *VM) Bootstrapped() error {
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Shutdown() error {
 	close(vm.stopc)
-	<-vm.donecRun
+	<-vm.donecBuild
 	<-vm.donecRegossip
 	<-vm.donecPrune
 	if vm.ctx == nil {
@@ -347,39 +347,48 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 		return []error{err}
 	}
 	vdb := versiondb.New(vm.db)
-	defer vdb.Close() // TODO: need to do everywhere?
 
 	// Expire outdated prefixes before checking submission validity
 	if err := chain.ExpireNext(vdb, sblk.Tmstmp, now); err != nil {
 		return []error{err}
 	}
 
+	added := false
 	for _, tx := range txs {
-		if serr := vm.submit(tx, vdb, now, ctx); serr != nil {
+		tadded, err := vm.submit(tx, vdb, now, ctx)
+		if err != nil {
 			log.Debug("failed to submit transaction",
 				"tx", tx.ID(),
-				"error", serr,
+				"error", err,
 			)
-			errs = append(errs, serr)
+			errs = append(errs, err)
 			continue
 		}
+		if tadded {
+			added = true
+		}
 		vdb.Abort()
+	}
+
+	// If at least 1 transaction was submitted to the mempool, we should attempt
+	// to kickoff block building.
+	if added {
+		// TODO: kickoff building
 	}
 	return errs
 }
 
-func (vm *VM) submit(tx *chain.Transaction, db database.Database, blkTime int64, ctx *chain.Context) error {
+func (vm *VM) submit(tx *chain.Transaction, db database.Database, blkTime int64, ctx *chain.Context) (bool, error) {
 	if err := tx.Init(); err != nil {
-		return err
+		return false, err
 	}
 	if err := tx.ExecuteBase(); err != nil {
-		return err
+		return false, err
 	}
 	if err := tx.Execute(db, blkTime, ctx); err != nil {
-		return err
+		return false, err
 	}
-	vm.mempool.Add(tx)
-	return nil
+	return vm.mempool.Add(tx), nil
 }
 
 // "SetPreference" implements "snowmanblock.ChainVM"

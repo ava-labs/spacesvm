@@ -10,11 +10,6 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-// Updates the build block/gossip interval.
-func (vm *VM) SetWorkInterval(d time.Duration) {
-	vm.workInterval = d
-}
-
 // signal the avalanchego engine
 // to build a block from pending transactions
 func (vm *VM) NotifyBlockReady() {
@@ -38,11 +33,11 @@ const blockBuildTimeout = time.Second
 // however, we still need to cache recently gossiped txs
 // in "GossipTxs" to further protect the node from being
 // DDOSed via repeated gossip failures
-func (vm *VM) run() {
-	log.Debug("starting run loops")
-	defer close(vm.donecRun)
+func (vm *VM) build() {
+	log.Debug("starting build loops")
+	defer close(vm.donecBuild)
 
-	t := time.NewTimer(vm.workInterval)
+	t := time.NewTimer(vm.buildInterval)
 	defer t.Stop()
 
 	buildBlk := true
@@ -52,7 +47,7 @@ func (vm *VM) run() {
 		case <-vm.stopc:
 			return
 		}
-		t.Reset(vm.workInterval)
+		t.Reset(vm.buildInterval)
 		if vm.mempool.Len() == 0 {
 			continue
 		}
