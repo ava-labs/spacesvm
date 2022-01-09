@@ -38,7 +38,7 @@ func (m *MockUnsignedTransaction) EXPECT() *MockUnsignedTransactionMockRecorder 
 }
 
 // Execute mocks base method.
-func (m *MockUnsignedTransaction) Execute(arg0 database.Database, arg1 int64) error {
+func (m *MockUnsignedTransaction) Execute(arg0 database.Database, arg1 uint64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Execute", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -80,10 +80,10 @@ func (mr *MockUnsignedTransactionMockRecorder) GetBlockID() *gomock.Call {
 }
 
 // GetSender mocks base method.
-func (m *MockUnsignedTransaction) GetSender() [32]byte {
+func (m *MockUnsignedTransaction) GetSender() [33]byte {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSender")
-	ret0, _ := ret[0].([32]byte)
+	ret0, _ := ret[0].([33]byte)
 	return ret0
 }
 
@@ -115,4 +115,18 @@ func (m *MockUnsignedTransaction) SetGraffiti(arg0 uint64) {
 func (mr *MockUnsignedTransactionMockRecorder) SetGraffiti(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGraffiti", reflect.TypeOf((*MockUnsignedTransaction)(nil).SetGraffiti), arg0)
+}
+
+// Units mocks base method.
+func (m *MockUnsignedTransaction) Units() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Units")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// Units indicates an expected call of Units.
+func (mr *MockUnsignedTransactionMockRecorder) Units() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Units", reflect.TypeOf((*MockUnsignedTransaction)(nil).Units))
 }
