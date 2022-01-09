@@ -238,13 +238,28 @@ func (th *Mempool) Has(id ids.ID) bool {
 }
 
 // GetNewTxs returns the array of [newTxs] and replaces it with a new array.
-func (th *Mempool) NewTxs() []*chain.Transaction {
+func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 	th.mu.Lock()
 	defer th.mu.Unlock()
 
-	cpy := th.newTxs
+	units := uint64(0)
+	selected := []*chain.Transaction{}
+	for i, tx := range th.newTxs {
+		// It is possible that a block may have been accepted that contains some
+		// new transactions before [NewTxs] is called.
+		if !th.maxHeap.Has(tx.ID()) {
+			continue
+		}
+		if tx.Units()+units > maxUnits {
+			// Note: this algorithm preserves the ordering of new transactions
+			th.newTxs = th.newTxs[i:]
+			return selected
+		}
+		selected = append(selected, tx)
+		units += tx.Units()
+	}
 	th.newTxs = nil
-	return cpy
+	return selected
 }
 
 // addPending makes sure that an item is in the Pending channel.

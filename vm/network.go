@@ -67,12 +67,6 @@ func (n *PushNetwork) GossipNewTxs(newTxs []*chain.Transaction) error {
 			log.Debug("already gossiped, skipping", "txId", tx.ID())
 			continue
 		}
-		// If the transaction is not pending according to the mempool
-		// then there is no need to gossip it further (happens if block build using
-		// new transactions).
-		if !n.vm.mempool.Has(tx.ID()) {
-			continue
-		}
 		n.gossipedTxs.Put(tx.ID(), nil)
 		txs = append(txs, tx)
 	}

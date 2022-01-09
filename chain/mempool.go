@@ -12,5 +12,5 @@ type Mempool interface {
 	Prune(ids.Set)
 	PopMax() (*Transaction, uint64)
 	Add(*Transaction) bool
-	NewTxs() []*Transaction
+	NewTxs(uint64) []*Transaction
 }
