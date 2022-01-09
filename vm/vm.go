@@ -62,9 +62,10 @@ type VM struct {
 	pruneInterval     time.Duration
 	fullPruneInterval time.Duration
 
-	mempool     *mempool.Mempool
-	appSender   common.AppSender
-	gossipedTxs *cache.LRU
+	mempool   *mempool.Mempool
+	appSender common.AppSender
+	network   *PushNetwork
+
 	// cache block objects to optimize "getBlock"
 	// only put when a block is accepted
 	// key: block ID, value: *chain.StatelessBlock
@@ -76,7 +77,7 @@ type VM struct {
 	verifiedBlocks map[ids.ID]*chain.StatelessBlock
 
 	toEngine chan<- common.Message
-	builder  *BlockBuilder
+	builder  BlockBuilder
 
 	preferred    ids.ID
 	lastAccepted *chain.StatelessBlock
@@ -84,15 +85,16 @@ type VM struct {
 	minDifficulty uint64
 	minBlockCost  uint64
 
-	stopc       chan struct{}
+	stopc        chan struct{}
+	builderStopc chan struct{}
+
 	donecBuild  chan struct{}
 	donecGossip chan struct{}
 	donecPrune  chan struct{}
 }
 
 const (
-	gossipedTxsLRUSize = 512
-	blocksLRUSize      = 100
+	blocksLRUSize = 100
 )
 
 // implements "snowmanblock.ChainVM.common.VM"
@@ -111,6 +113,13 @@ func (vm *VM) Initialize(
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
 
+	// Init channels before initializing other structs
+	vm.stopc = make(chan struct{})
+	vm.builderStopc = make(chan struct{})
+	vm.donecBuild = make(chan struct{})
+	vm.donecGossip = make(chan struct{})
+	vm.donecPrune = make(chan struct{})
+
 	// TODO: make this configurable via config
 	vm.buildInterval = defaultBuildInterval
 	vm.gossipInterval = defaultGossipInterval
@@ -124,13 +133,13 @@ func (vm *VM) Initialize(
 
 	vm.mempool = mempool.New(mempoolSize)
 	vm.appSender = appSender
-	vm.gossipedTxs = &cache.LRU{Size: gossipedTxsLRUSize}
-	vm.blocks = &cache.LRU{Size: blocksLRUSize}
+	vm.network = vm.NewPushNetwork()
 
+	vm.blocks = &cache.LRU{Size: blocksLRUSize}
 	vm.verifiedBlocks = make(map[ids.ID]*chain.StatelessBlock)
 
 	vm.toEngine = toEngine
-	vm.builder = vm.NewBlockBuilder()
+	vm.builder = vm.NewTimeBuilder()
 
 	// Try to load last accepted
 	has, err := chain.HasLastAccepted(vm.db)
@@ -172,13 +181,8 @@ func (vm *VM) Initialize(
 		log.Info("initialized quarkvm from genesis", "block", gBlkID)
 	}
 
-	vm.stopc = make(chan struct{})
-	vm.donecBuild = make(chan struct{})
-	vm.donecGossip = make(chan struct{})
-	vm.donecPrune = make(chan struct{})
-
-	go vm.builder.build()
-	go vm.builder.gossip()
+	go vm.builder.Build()
+	go vm.builder.Gossip()
 	go vm.prune()
 	return nil
 }
@@ -321,7 +325,7 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 func (vm *VM) BuildBlock() (snowman.Block, error) {
 	log.Debug("BuildBlock triggered")
 	blk, err := chain.BuildBlock(vm, vm.preferred)
-	vm.builder.handleGenerateBlock()
+	vm.builder.HandleGenerateBlock()
 	if err != nil {
 		log.Debug("BuildBlock failed", "error", err)
 		return nil, err

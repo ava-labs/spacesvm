@@ -4,12 +4,30 @@
 package vm
 
 import (
+	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/quarkvm/chain"
 	log "github.com/inconshreveable/log15"
+
+	"github.com/ava-labs/quarkvm/chain"
 )
 
-func (vm *VM) sendTxs(txs []*chain.Transaction) error {
+const (
+	gossipedTxsLRUSize = 512
+)
+
+type PushNetwork struct {
+	vm          *VM
+	gossipedTxs *cache.LRU
+}
+
+func (vm *VM) NewPushNetwork() *PushNetwork {
+	return &PushNetwork{
+		vm:          vm,
+		gossipedTxs: &cache.LRU{Size: gossipedTxsLRUSize},
+	}
+}
+
+func (n *PushNetwork) sendTxs(txs []*chain.Transaction) error {
 	if len(txs) == 0 {
 		return nil
 	}
@@ -24,7 +42,7 @@ func (vm *VM) sendTxs(txs []*chain.Transaction) error {
 		"txs", len(txs),
 		"size", len(b),
 	)
-	if err := vm.appSender.SendAppGossip(b); err != nil {
+	if err := n.vm.appSender.SendAppGossip(b); err != nil {
 		log.Warn(
 			"GossipTxs failed",
 			"error", err,
@@ -35,8 +53,8 @@ func (vm *VM) sendTxs(txs []*chain.Transaction) error {
 	return nil
 }
 
-func (vm *VM) GossipNewTxs(newTxs []*chain.Transaction) error {
-	if vm.appSender == nil {
+func (n *PushNetwork) GossipNewTxs(newTxs []*chain.Transaction) error {
+	if n.vm.appSender == nil {
 		return nil
 	}
 	txs := []*chain.Transaction{}
@@ -45,43 +63,43 @@ func (vm *VM) GossipNewTxs(newTxs []*chain.Transaction) error {
 		// skip if recently gossiped
 		// to further protect the node from being
 		// DDOSed via repeated gossip failures
-		if _, exists := vm.gossipedTxs.Get(tx.ID()); exists {
+		if _, exists := n.gossipedTxs.Get(tx.ID()); exists {
 			log.Debug("already gossiped, skipping", "txId", tx.ID())
 			continue
 		}
 		// If the transaction is not pending according to the mempool
 		// then there is no need to gossip it further (happens if block build using
 		// new transactions).
-		if !vm.mempool.Has(tx.ID()) {
+		if !n.vm.mempool.Has(tx.ID()) {
 			continue
 		}
-		vm.gossipedTxs.Put(tx.ID(), nil)
+		n.gossipedTxs.Put(tx.ID(), nil)
 		txs = append(txs, tx)
 	}
 
-	return vm.sendTxs(txs)
+	return n.sendTxs(txs)
 }
 
 // Triggers "AppGossip" on the pending transactions in the mempool.
 // "force" is true to re-gossip whether recently gossiped or not
-func (vm *VM) RegossipTxs() error {
-	if vm.appSender == nil {
+func (n *PushNetwork) RegossipTxs() error {
+	if n.vm.appSender == nil {
 		return nil
 	}
 	txs := []*chain.Transaction{}
 	units := uint64(0)
 	// Gossip at most the target units of a block at once
-	for vm.mempool.Len() > 0 && units < chain.TargetUnits {
-		tx, _ := vm.mempool.PopMax()
+	for n.vm.mempool.Len() > 0 && units < chain.TargetUnits {
+		tx, _ := n.vm.mempool.PopMax()
 
 		// Note: when regossiping, we force resend eventhough we may have done it
 		// recently.
-		vm.gossipedTxs.Put(tx.ID(), nil)
+		n.gossipedTxs.Put(tx.ID(), nil)
 		txs = append(txs, tx)
 		units += tx.Units()
 	}
 
-	return vm.sendTxs(txs)
+	return n.sendTxs(txs)
 }
 
 // Handles incoming "AppGossip" messages, parses them to transactions,

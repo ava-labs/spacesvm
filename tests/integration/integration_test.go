@@ -140,9 +140,11 @@ var _ = ginkgo.BeforeSuite(func() {
 		)
 		gomega.Ω(err).Should(gomega.BeNil())
 
-		// never trigger periodic batch gossip/block builds
-		// to make testing more deterministic
-		v.SetWorkInterval(24 * time.Hour)
+		var mb *vm.ManualBuilder
+		v.SetBlockBuilder(func() vm.BlockBuilder {
+			mb = v.NewManualBuilder()
+			return mb
+		})
 
 		var hd map[string]*common.HTTPHandler
 		hd, err = v.CreateHandlers()

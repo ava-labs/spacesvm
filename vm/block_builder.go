@@ -12,6 +12,36 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
+type BlockBuilder interface {
+	Build()
+	Gossip()
+	HandleGenerateBlock()
+}
+
+var (
+	_ BlockBuilder = (*TimeBuilder)(nil)
+	_ BlockBuilder = (*ManualBuilder)(nil)
+)
+
+// [SetBlockBuilder] changes the [BlockBuilder] during runtime by stopping the
+// previous block builder and then starting a new one.
+func (vm *VM) SetBlockBuilder(b func() BlockBuilder) {
+	// Wait for previous builder to stop
+	close(vm.builderStopc)
+	<-vm.donecBuild
+	<-vm.donecGossip
+
+	// Reset channels to make sure newly assigned builder shuts down correctly
+	vm.donecBuild = make(chan struct{})
+	vm.donecGossip = make(chan struct{})
+	vm.builderStopc = make(chan struct{})
+
+	// Start new builder
+	vm.builder = b()
+	go vm.builder.Build()
+	go vm.builder.Gossip()
+}
+
 // buildingBlkStatus denotes the current status of the VM in block production.
 type buildingBlkStatus uint8
 
@@ -21,8 +51,8 @@ const (
 	building
 )
 
-// BlockBuilder tells the engine when to build blocks and gossip transactions
-type BlockBuilder struct {
+// TimeBuilder tells the engine when to build blocks and gossip transactions
+type TimeBuilder struct {
 	vm *VM
 
 	// [l] must be held when accessing [buildStatus]
@@ -38,12 +68,22 @@ type BlockBuilder struct {
 	// Stage1 build a block if the batch size has been reached.
 	// Stage2 build a block regardless of the size.
 	buildBlockTimer *timer.Timer
+
+	stop        chan struct{}
+	builderStop chan struct{}
+
+	doneBuild  chan struct{}
+	doneGossip chan struct{}
 }
 
-func (vm *VM) NewBlockBuilder() *BlockBuilder {
-	b := &BlockBuilder{
-		vm:     vm,
-		status: dontBuild,
+func (vm *VM) NewTimeBuilder() *TimeBuilder {
+	b := &TimeBuilder{
+		vm:          vm,
+		status:      dontBuild,
+		doneBuild:   vm.donecBuild,
+		doneGossip:  vm.donecGossip,
+		builderStop: vm.builderStopc,
+		stop:        vm.stopc,
 	}
 	b.buildBlockTimer = timer.NewStagedTimer(b.buildBlockTwoStageTimer)
 	return b
@@ -53,7 +93,7 @@ func (vm *VM) NewBlockBuilder() *BlockBuilder {
 // has not already begun from an earlier notification. If [buildStatus] is anything
 // other than [dontBuild], then the attempt has already begun and this notification
 // can be safely skipped.
-func (b *BlockBuilder) signalTxsReady() {
+func (b *TimeBuilder) signalTxsReady() {
 	b.l.Lock()
 	defer b.l.Unlock()
 
@@ -66,7 +106,7 @@ func (b *BlockBuilder) signalTxsReady() {
 
 // signal the avalanchego engine
 // to build a block from pending transactions
-func (b *BlockBuilder) markBuilding() {
+func (b *TimeBuilder) markBuilding() {
 	select {
 	case b.vm.toEngine <- common.PendingTxs:
 		b.status = building
@@ -75,10 +115,10 @@ func (b *BlockBuilder) markBuilding() {
 	}
 }
 
-// handleGenerateBlock should be called immediately after [BuildBlock].
-// [handleGenerateBlock] invocation could lead to quiesence, building a block with
+// HandleGenerateBlock should be called immediately after [BuildBlock].
+// [HandleGenerateBlock] invocation could lead to quiesence, building a block with
 // some delay, or attempting to build another block immediately.
-func (b *BlockBuilder) handleGenerateBlock() {
+func (b *TimeBuilder) HandleGenerateBlock() {
 	b.l.Lock()
 	defer b.l.Unlock()
 
@@ -94,7 +134,7 @@ func (b *BlockBuilder) handleGenerateBlock() {
 
 // needToBuild returns true if there are outstanding transactions to be issued
 // into a block.
-func (b *BlockBuilder) needToBuild() bool {
+func (b *TimeBuilder) needToBuild() bool {
 	return b.vm.mempool.Len() > 0
 }
 
@@ -102,7 +142,7 @@ func (b *BlockBuilder) needToBuild() bool {
 // to the engine when the VM is ready to build a block.
 // If it should be called back again, it returns the timeout duration at
 // which it should be called again.
-func (b *BlockBuilder) buildBlockTwoStageTimer() (time.Duration, bool) {
+func (b *TimeBuilder) buildBlockTwoStageTimer() (time.Duration, bool) {
 	b.l.Lock()
 	defer b.l.Unlock()
 
@@ -123,24 +163,26 @@ func (b *BlockBuilder) buildBlockTwoStageTimer() (time.Duration, bool) {
 	return 0, false
 }
 
-func (b *BlockBuilder) build() {
+func (b *TimeBuilder) Build() {
 	log.Debug("starting build loops")
-	defer close(b.vm.donecBuild)
+	defer close(b.doneBuild)
 
 	for {
 		select {
 		case <-b.vm.mempool.Pending:
 			b.signalTxsReady()
-		case <-b.vm.stopc:
+		case <-b.builderStop:
+			return
+		case <-b.stop:
 			return
 		}
 	}
 }
 
 // periodically but less aggressively force-regossip the pending
-func (b *BlockBuilder) gossip() {
+func (b *TimeBuilder) Gossip() {
 	log.Debug("starting gossip loops")
-	defer close(b.vm.donecGossip)
+	defer close(b.doneGossip)
 
 	g := time.NewTicker(b.vm.gossipInterval)
 	defer g.Stop()
@@ -152,11 +194,35 @@ func (b *BlockBuilder) gossip() {
 		select {
 		case <-g.C:
 			newTxs := b.vm.mempool.GetNewTxs()
-			_ = b.vm.GossipNewTxs(newTxs)
+			_ = b.vm.network.GossipNewTxs(newTxs)
 		case <-rg.C:
-			_ = b.vm.RegossipTxs()
-		case <-b.vm.stopc:
+			_ = b.vm.network.RegossipTxs()
+		case <-b.builderStop:
+			return
+		case <-b.stop:
 			return
 		}
 	}
 }
+
+type ManualBuilder struct {
+	vm         *VM
+	doneBuild  chan struct{}
+	doneGossip chan struct{}
+}
+
+func (vm *VM) NewManualBuilder() *ManualBuilder {
+	return &ManualBuilder{
+		vm:         vm,
+		doneBuild:  vm.donecBuild,
+		doneGossip: vm.donecGossip,
+	}
+}
+
+func (b *ManualBuilder) Build() {
+	close(b.doneBuild)
+}
+func (b *ManualBuilder) Gossip() {
+	close(b.doneGossip)
+}
+func (b *ManualBuilder) HandleGenerateBlock() {}
