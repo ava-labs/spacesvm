@@ -55,7 +55,7 @@ func MineSignIssueTx(
 		return ids.Empty, err
 	}
 
-	color.Yellow("issuing tx (units: %d) %s with block ID %s", tx.ID(), tx.Units(), utx.GetBlockID())
+	color.Yellow("issuing tx (units: %d) %s with block ID %s", tx.Units(), tx.ID(), utx.GetBlockID())
 	txID, err = cli.IssueTx(tx.Bytes())
 	if err != nil {
 		return ids.Empty, err
@@ -82,8 +82,8 @@ func MineSignIssueTx(
 		}
 		expiry := time.Unix(int64(info.Expiry), 0)
 		color.Blue(
-			"prefix %q: units=%d expiry=%v (%v remaining)",
-			ret.prefixInfo, info.Units, expiry, time.Until(expiry),
+			"raw prefix %s: units=%d expiry=%v (%v remaining)",
+			info.RawPrefix, info.Units, expiry, time.Until(expiry),
 		)
 	}
 
