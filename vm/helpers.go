@@ -61,9 +61,12 @@ func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
 		return 0, 0, err
 	}
 	recentTxs := ctx.RecentTxIDs.Len()
-	recommendedC := vm.minBlockCost
-	if recentTxs > 0 {
-		recommendedC = ctx.NextCost / uint64(recentTxs)
+	if recentTxs == 0 {
+		return ctx.NextDifficulty, ctx.NextCost, nil
+	}
+	recommendedC := ctx.NextCost / uint64(recentTxs)
+	if recommendedC < vm.minBlockCost {
+		recommendedC = vm.minBlockCost
 	}
 	return ctx.NextDifficulty, recommendedC, nil
 }
