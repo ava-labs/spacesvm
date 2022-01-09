@@ -8,10 +8,16 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/crypto"
 	"github.com/ava-labs/quarkvm/mempool"
 )
+
+var f *crypto.FactorySECP256K1R
+
+func init() {
+	f = &crypto.FactorySECP256K1R{}
+}
 
 // $ go install -v golang.org/x/perf/cmd/benchstat@latest
 //
@@ -25,7 +31,7 @@ import (
 //
 func BenchmarkMempoolAddPrune(b *testing.B) {
 	b.StopTimer()
-	priv, err := crypto.NewPrivateKey()
+	priv, err := f.NewPrivateKey()
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -37,7 +43,7 @@ func BenchmarkMempoolAddPrune(b *testing.B) {
 
 func createTestMempool(
 	b *testing.B,
-	priv *crypto.PrivateKey,
+	priv crypto.PrivateKey,
 	maxSize int,
 	n int,
 	sampleBlk int) (mp chain.Mempool, sampleBlkIDs ids.Set) {
@@ -56,6 +62,11 @@ func createTestMempool(
 		blks[i] = ids.GenerateTestID()
 	}
 
+	sender, err := chain.FormatPK(priv.PublicKey())
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	b.StopTimer()
 	txs := make([]*chain.Transaction, n)
 	for i := 0; i < n; i++ {
@@ -68,7 +79,7 @@ func createTestMempool(
 		tx := &chain.Transaction{
 			UnsignedTransaction: &chain.ClaimTx{
 				BaseTx: &chain.BaseTx{
-					Sender:  priv.PublicKey().Bytes(),
+					Sender:  sender,
 					Prefix:  pfx,
 					BlockID: blks[i%blksN],
 				},
