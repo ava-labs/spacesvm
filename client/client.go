@@ -223,7 +223,7 @@ func (cli *client) Mine(
 			if err != nil {
 				return nil, err
 			}
-			if utxd >= difficulty && (utxd-difficulty)*utx.Units() > minSurplus {
+			if utxd >= difficulty && (utxd-difficulty)*utx.Units() >= minSurplus {
 				return utx, nil
 			}
 			graffiti++

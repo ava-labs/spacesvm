@@ -273,7 +273,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		ginkgo.By("check prefix after ClaimTx has been accepted", func() {
 			pf, err := instances[0].cli.PrefixInfo(pfx)
 			gomega.Ω(err).To(gomega.BeNil())
-			gomega.Ω(pf.Units).To(gomega.Equal(int64(1)))
+			gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
 			gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 		})
 
