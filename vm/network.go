@@ -145,3 +145,8 @@ func (vm *VM) AppGossip(nodeID ids.ShortID, msg []byte) error {
 	// TODO: gracefully handle "AppGossip" failures?
 	return nil
 }
+
+// used for testing VM
+func (vm *VM) Network() *PushNetwork {
+	return vm.network
+}

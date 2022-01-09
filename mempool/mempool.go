@@ -238,7 +238,7 @@ func (th *Mempool) Has(id ids.ID) bool {
 }
 
 // GetNewTxs returns the array of [newTxs] and replaces it with a new array.
-func (th *Mempool) GetNewTxs() []*chain.Transaction {
+func (th *Mempool) NewTxs() []*chain.Transaction {
 	th.mu.Lock()
 	defer th.mu.Unlock()
 

@@ -85,12 +85,13 @@ type VM struct {
 	minDifficulty uint64
 	minBlockCost  uint64
 
-	stopc        chan struct{}
-	builderStopc chan struct{}
+	stop chan struct{}
 
-	donecBuild  chan struct{}
-	donecGossip chan struct{}
-	donecPrune  chan struct{}
+	builderStop chan struct{}
+	doneBuild   chan struct{}
+	doneGossip  chan struct{}
+
+	donePrune chan struct{}
 }
 
 const (
@@ -114,11 +115,11 @@ func (vm *VM) Initialize(
 	vm.db = dbManager.Current().Database
 
 	// Init channels before initializing other structs
-	vm.stopc = make(chan struct{})
-	vm.builderStopc = make(chan struct{})
-	vm.donecBuild = make(chan struct{})
-	vm.donecGossip = make(chan struct{})
-	vm.donecPrune = make(chan struct{})
+	vm.stop = make(chan struct{})
+	vm.builderStop = make(chan struct{})
+	vm.doneBuild = make(chan struct{})
+	vm.doneGossip = make(chan struct{})
+	vm.donePrune = make(chan struct{})
 
 	// TODO: make this configurable via config
 	vm.buildInterval = defaultBuildInterval
@@ -199,10 +200,10 @@ func (vm *VM) Bootstrapped() error {
 
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Shutdown() error {
-	close(vm.stopc)
-	<-vm.donecBuild
-	<-vm.donecGossip
-	<-vm.donecPrune
+	close(vm.stop)
+	<-vm.doneBuild
+	<-vm.doneGossip
+	<-vm.donePrune
 	if vm.ctx == nil {
 		return nil
 	}

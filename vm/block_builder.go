@@ -27,14 +27,14 @@ var (
 // previous block builder and then starting a new one.
 func (vm *VM) SetBlockBuilder(b func() BlockBuilder) {
 	// Wait for previous builder to stop
-	close(vm.builderStopc)
-	<-vm.donecBuild
-	<-vm.donecGossip
+	close(vm.builderStop)
+	<-vm.doneBuild
+	<-vm.doneGossip
 
 	// Reset channels to make sure newly assigned builder shuts down correctly
-	vm.donecBuild = make(chan struct{})
-	vm.donecGossip = make(chan struct{})
-	vm.builderStopc = make(chan struct{})
+	vm.doneBuild = make(chan struct{})
+	vm.doneGossip = make(chan struct{})
+	vm.builderStop = make(chan struct{})
 
 	// Start new builder
 	vm.builder = b()
@@ -80,10 +80,10 @@ func (vm *VM) NewTimeBuilder() *TimeBuilder {
 	b := &TimeBuilder{
 		vm:          vm,
 		status:      dontBuild,
-		doneBuild:   vm.donecBuild,
-		doneGossip:  vm.donecGossip,
-		builderStop: vm.builderStopc,
-		stop:        vm.stopc,
+		builderStop: vm.builderStop,
+		stop:        vm.stop,
+		doneBuild:   vm.doneBuild,
+		doneGossip:  vm.doneGossip,
 	}
 	b.buildBlockTimer = timer.NewStagedTimer(b.buildBlockTwoStageTimer)
 	return b
@@ -193,8 +193,8 @@ func (b *TimeBuilder) Gossip() {
 	for {
 		select {
 		case <-g.C:
-			newTxs := b.vm.mempool.GetNewTxs()
-			_ = b.vm.network.GossipNewTxs(newTxs)
+			newTxs := b.vm.mempool.NewTxs()
+			_ = b.vm.network.GossipNewTxs(newTxs) // handles case where there are none
 		case <-rg.C:
 			_ = b.vm.network.RegossipTxs()
 		case <-b.builderStop:
@@ -214,8 +214,8 @@ type ManualBuilder struct {
 func (vm *VM) NewManualBuilder() *ManualBuilder {
 	return &ManualBuilder{
 		vm:         vm,
-		doneBuild:  vm.donecBuild,
-		doneGossip: vm.donecGossip,
+		doneBuild:  vm.doneBuild,
+		doneGossip: vm.doneGossip,
 	}
 }
 
@@ -226,3 +226,10 @@ func (b *ManualBuilder) Gossip() {
 	close(b.doneGossip)
 }
 func (b *ManualBuilder) HandleGenerateBlock() {}
+func (b *ManualBuilder) NotifyBuild() {
+	select {
+	case b.vm.toEngine <- common.PendingTxs:
+	default:
+		log.Debug("dropping message to consensus engine")
+	}
+}

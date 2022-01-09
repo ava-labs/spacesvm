@@ -36,7 +36,7 @@ func (vm *VM) pruneCall() bool {
 
 func (vm *VM) prune() {
 	log.Debug("starting prune loops")
-	defer close(vm.donecPrune)
+	defer close(vm.donePrune)
 
 	// should retry less aggressively
 	t := time.NewTimer(vm.pruneInterval)
@@ -45,7 +45,7 @@ func (vm *VM) prune() {
 	for {
 		select {
 		case <-t.C:
-		case <-vm.stopc:
+		case <-vm.stop:
 			return
 		}
 		if vm.pruneCall() {
