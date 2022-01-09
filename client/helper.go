@@ -27,13 +27,7 @@ func MineSignIssueTx(
 	ret := &Op{}
 	ret.applyOpts(opts)
 
-	diff, cost, err := cli.EstimateDifficulty()
-	if err != nil {
-		return ids.Empty, err
-	}
-	color.Yellow("fetched estimated difficulty (diff=%d, cost=%d)", diff, cost)
-
-	utx, err := cli.Mine(ctx, rtx, diff, cost)
+	utx, err := cli.Mine(ctx, rtx)
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -56,10 +50,9 @@ func MineSignIssueTx(
 		return ids.Empty, err
 	}
 
-	surplusContribution := (tx.Difficulty() - diff) * tx.Units()
 	color.Yellow(
-		"issuing tx %s (units=%d, difficulty=%d, surplus=%d, blkID=%s)",
-		tx.ID(), tx.Units(), tx.Difficulty(), surplusContribution, tx.GetBlockID(),
+		"issuing tx %s (fee units=%d, load units=%d, difficulty=%d, blkID=%s)",
+		tx.ID(), tx.FeeUnits(), tx.LoadUnits(), tx.Difficulty(), tx.GetBlockID(),
 	)
 	txID, err = cli.IssueTx(tx.Bytes())
 	if err != nil {
