@@ -31,8 +31,9 @@ import (
 const (
 	Name = "quarkvm"
 
-	defaultBuildInterval    = time.Second
-	defaultRegossipInterval = time.Second
+	defaultBuildInterval    = 500 * time.Millisecond
+	defaultGossipInterval   = 1 * time.Second
+	defaultRegossipInterval = 30 * time.Second
 
 	defaultPruneLimit        = 128
 	defaultPruneInterval     = time.Minute
@@ -54,6 +55,7 @@ type VM struct {
 	db  database.Database
 
 	buildInterval    time.Duration
+	gossipInterval   time.Duration
 	regossipInterval time.Duration
 
 	pruneLimit        int
@@ -74,8 +76,7 @@ type VM struct {
 	verifiedBlocks map[ids.ID]*chain.StatelessBlock
 
 	toEngine chan<- common.Message
-	// signaled when "BuildBlock" is triggered by the engine
-	blockBuilder chan struct{}
+	builder  *blockBuilder
 
 	preferred    ids.ID
 	lastAccepted *chain.StatelessBlock
@@ -83,10 +84,10 @@ type VM struct {
 	minDifficulty uint64
 	minBlockCost  uint64
 
-	stopc         chan struct{}
-	donecBuild    chan struct{}
-	donecRegossip chan struct{}
-	donecPrune    chan struct{}
+	stopc       chan struct{}
+	donecBuild  chan struct{}
+	donecGossip chan struct{}
+	donecPrune  chan struct{}
 }
 
 const (
@@ -112,6 +113,7 @@ func (vm *VM) Initialize(
 
 	// TODO: make this configurable via config
 	vm.buildInterval = defaultBuildInterval
+	vm.gossipInterval = defaultGossipInterval
 	vm.regossipInterval = defaultRegossipInterval
 	vm.pruneLimit = defaultPruneLimit
 	vm.pruneInterval = defaultPruneInterval
@@ -128,7 +130,7 @@ func (vm *VM) Initialize(
 	vm.verifiedBlocks = make(map[ids.ID]*chain.StatelessBlock)
 
 	vm.toEngine = toEngine
-	vm.blockBuilder = make(chan struct{}, 1)
+	vm.builder = vm.NewBlockBuilder()
 
 	// Try to load last accepted
 	has, err := chain.HasLastAccepted(vm.db)
@@ -172,11 +174,11 @@ func (vm *VM) Initialize(
 
 	vm.stopc = make(chan struct{})
 	vm.donecBuild = make(chan struct{})
-	vm.donecRegossip = make(chan struct{})
+	vm.donecGossip = make(chan struct{})
 	vm.donecPrune = make(chan struct{})
 
-	go vm.build()
-	go vm.regossip()
+	go vm.builder.build()
+	go vm.builder.gossip()
 	go vm.prune()
 	return nil
 }
@@ -195,7 +197,7 @@ func (vm *VM) Bootstrapped() error {
 func (vm *VM) Shutdown() error {
 	close(vm.stopc)
 	<-vm.donecBuild
-	<-vm.donecRegossip
+	<-vm.donecGossip
 	<-vm.donecPrune
 	if vm.ctx == nil {
 		return nil
@@ -319,16 +321,13 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 func (vm *VM) BuildBlock() (snowman.Block, error) {
 	log.Debug("BuildBlock triggered")
 	blk, err := chain.BuildBlock(vm, vm.preferred)
+	vm.builder.handleGenerateBlock()
 	if err != nil {
 		log.Debug("BuildBlock failed", "error", err)
 		return nil, err
 	}
 
 	log.Debug("BuildBlock success", "blockId", blk.ID())
-	select {
-	case vm.blockBuilder <- struct{}{}:
-	default:
-	}
 	return blk, nil
 }
 
@@ -353,10 +352,8 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 		return []error{err}
 	}
 
-	added := false
 	for _, tx := range txs {
-		tadded, err := vm.submit(tx, vdb, now, ctx)
-		if err != nil {
+		if err := vm.submit(tx, vdb, now, ctx); err != nil {
 			log.Debug("failed to submit transaction",
 				"tx", tx.ID(),
 				"error", err,
@@ -364,31 +361,23 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 			errs = append(errs, err)
 			continue
 		}
-		if tadded {
-			added = true
-		}
 		vdb.Abort()
-	}
-
-	// If at least 1 transaction was submitted to the mempool, we should attempt
-	// to kickoff block building.
-	if added {
-		// TODO: kickoff building
 	}
 	return errs
 }
 
-func (vm *VM) submit(tx *chain.Transaction, db database.Database, blkTime int64, ctx *chain.Context) (bool, error) {
+func (vm *VM) submit(tx *chain.Transaction, db database.Database, blkTime int64, ctx *chain.Context) error {
 	if err := tx.Init(); err != nil {
-		return false, err
+		return err
 	}
 	if err := tx.ExecuteBase(); err != nil {
-		return false, err
+		return err
 	}
 	if err := tx.Execute(db, blkTime, ctx); err != nil {
-		return false, err
+		return err
 	}
-	return vm.mempool.Add(tx), nil
+	vm.mempool.Add(tx)
+	return nil
 }
 
 // "SetPreference" implements "snowmanblock.ChainVM"

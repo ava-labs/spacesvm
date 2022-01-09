@@ -90,6 +90,12 @@ type Mempool struct {
 	maxSize int
 	maxHeap *internalTxHeap
 	minHeap *internalTxHeap
+
+	// Pending is a channel of length one, which the mempool ensures has an item on
+	// it as long as there is an unissued transaction remaining in [txs]
+	Pending chan struct{}
+	// newTxs is an array of [Tx] that are ready to be gossiped.
+	newTxs []*chain.Transaction
 }
 
 // New creates a new [Mempool]. [maxSize] must be > 0 or else the
@@ -99,6 +105,7 @@ func New(maxSize int) *Mempool {
 		maxSize: maxSize,
 		maxHeap: newInternalTxHeap(maxSize, false),
 		minHeap: newInternalTxHeap(maxSize, true),
+		Pending: make(chan struct{}, 1),
 	}
 }
 
@@ -137,6 +144,13 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 			return false
 		}
 	}
+	// When adding [tx] to the mempool make sure that there is an item in Pending
+	// to signal the VM to produce a block. Note: if the VM's buildStatus has already
+	// been set to something other than [dontBuild], this will be ignored and won't be
+	// reset until the engine calls BuildBlock. This case is handled in IssueCurrentTx
+	// and CancelCurrentTx.
+	th.newTxs = append(th.newTxs, tx)
+	th.addPending()
 	return true
 }
 
@@ -221,4 +235,22 @@ func (th *Mempool) Has(id ids.ID) bool {
 	th.mu.RLock()
 	defer th.mu.RUnlock()
 	return th.maxHeap.Has(id)
+}
+
+// GetNewTxs returns the array of [newTxs] and replaces it with a new array.
+func (th *Mempool) GetNewTxs() []*chain.Transaction {
+	th.mu.Lock()
+	defer th.mu.Unlock()
+
+	cpy := th.newTxs
+	th.newTxs = nil
+	return cpy
+}
+
+// addPending makes sure that an item is in the Pending channel.
+func (th *Mempool) addPending() {
+	select {
+	case th.Pending <- struct{}{}:
+	default:
+	}
 }

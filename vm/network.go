@@ -9,9 +9,58 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
+func (vm *VM) sendTxs(txs []*chain.Transaction) error {
+	b, err := chain.Marshal(txs)
+	if err != nil {
+		log.Warn("failed to marshal txs", "error", err)
+		return err
+	}
+
+	log.Debug("sending AppGossip",
+		"txs", len(txs),
+		"size", len(b),
+	)
+	if err := vm.appSender.SendAppGossip(b); err != nil {
+		log.Warn(
+			"GossipTxs failed",
+			"error", err,
+		)
+		return err
+	}
+
+	return nil
+}
+
+func (vm *VM) GossipNewTxs(newTxs []*chain.Transaction) error {
+	if vm.appSender == nil {
+		return nil
+	}
+	txs := []*chain.Transaction{}
+	// Gossip at most the target units of a block at once
+	for _, tx := range newTxs {
+		// skip if recently gossiped
+		// to further protect the node from being
+		// DDOSed via repeated gossip failures
+		if _, exists := vm.gossipedTxs.Get(tx.ID()); exists {
+			log.Debug("already gossiped, skipping", "txId", tx.ID())
+			continue
+		}
+		// If the transaction is not pending according to the mempool
+		// then there is no need to gossip it further (happens if block build using
+		// new transactions).
+		if !vm.mempool.Has(tx.ID()) {
+			continue
+		}
+		vm.gossipedTxs.Put(tx.ID(), nil)
+		txs = append(txs, tx)
+	}
+
+	return vm.sendTxs(txs)
+}
+
 // Triggers "AppGossip" on the pending transactions in the mempool.
 // "force" is true to re-gossip whether recently gossiped or not
-func (vm *VM) GossipTxs(force bool) error {
+func (vm *VM) RegossipTxs() error {
 	if vm.appSender == nil {
 		return nil
 	}
@@ -20,44 +69,15 @@ func (vm *VM) GossipTxs(force bool) error {
 	// Gossip at most the target units of a block at once
 	for vm.mempool.Len() > 0 && units < chain.TargetUnits {
 		tx, _ := vm.mempool.PopMax()
-		if !force {
-			// skip if recently gossiped
-			// to further protect the node from being
-			// DDOSed via repeated gossip failures
-			if _, exists := vm.gossipedTxs.Get(tx.ID()); exists {
-				log.Debug("already gossiped, skipping", "txId", tx.ID())
-				vm.mempool.Add(tx)
-				continue
-			}
-		}
-		// force regossip (but less aggressively with greater interval)
+
+		// Note: when regossiping, we force resend eventhough we may have done it
+		// recently.
 		vm.gossipedTxs.Put(tx.ID(), nil)
 		txs = append(txs, tx)
 		units += tx.Units()
 	}
 
-	b, err := chain.Marshal(txs)
-	if err != nil {
-		log.Warn("failed to marshal txs", "error", err)
-	} else {
-		log.Debug("sending AppGossip",
-			"txs", len(txs),
-			"size", len(b),
-		)
-		err = vm.appSender.SendAppGossip(b)
-	}
-	if err == nil {
-		return nil
-	}
-
-	log.Warn(
-		"GossipTxs failed; txs back to mempool",
-		"error", err,
-	)
-	for _, tx := range txs {
-		vm.mempool.Add(tx)
-	}
-	return err
+	return vm.sendTxs(txs)
 }
 
 // Handles incoming "AppGossip" messages, parses them to transactions,
