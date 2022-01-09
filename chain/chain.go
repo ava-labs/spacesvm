@@ -15,7 +15,7 @@ const (
 	BaseTxUnits   = 10
 
 	LookbackWindow = 60                                               // 60 Seconds
-	BlockTarget    = 60                                               // 60 Blocks per Lookback Window
+	BlockTarget    = 1                                                // 1 Block per Second
 	TargetUnits    = BaseTxUnits * 512 * LookbackWindow / BlockTarget // 512 Units Per Block
 
 	MinDifficulty = 10 // ~10ms per unit (100 ms for claim)
@@ -26,6 +26,9 @@ type Context struct {
 	RecentBlockIDs ids.Set
 	RecentTxIDs    ids.Set
 	RecentUnits    uint64
+
+	Difficulties []uint64
+	Costs        []uint64
 
 	NextCost       uint64
 	NextDifficulty uint64

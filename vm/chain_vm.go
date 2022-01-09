@@ -46,12 +46,16 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 	recentBlockIDs := ids.Set{}
 	recentTxIDs := ids.Set{}
 	recentUnits := uint64(0)
+	difficulties := []uint64{}
+	costs := []uint64{}
 	err := vm.lookback(currTime, lastBlock.ID(), func(b *chain.StatelessBlock) (bool, error) {
 		recentBlockIDs.Add(b.ID())
 		for _, tx := range b.StatefulBlock.Txs {
 			recentTxIDs.Add(tx.ID())
 			recentUnits += tx.Units()
 		}
+		difficulties = append(difficulties, b.Difficulty)
+		costs = append(costs, b.Cost)
 		return true, nil
 	})
 	if err != nil {
@@ -90,6 +94,9 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		RecentBlockIDs: recentBlockIDs,
 		RecentTxIDs:    recentTxIDs,
 		RecentUnits:    recentUnits,
+
+		Difficulties: difficulties,
+		Costs:        costs,
 
 		NextCost:       nextCost,
 		NextDifficulty: nextDifficulty,

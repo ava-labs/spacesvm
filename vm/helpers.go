@@ -5,11 +5,16 @@ package vm
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/quarkvm/chain"
+)
+
+const (
+	feePercentile = 60
 )
 
 // TODO: add caching + test
@@ -56,17 +61,34 @@ func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
 	if !ok {
 		return 0, 0, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", prnt)
 	}
+
 	ctx, err := vm.ExecutionContext(time.Now().Unix(), parent)
 	if err != nil {
 		return 0, 0, err
 	}
+
+	// Sort useful costs/difficulties
+	sort.Slice(ctx.Difficulties, func(i, j int) bool { return ctx.Difficulties[i] < ctx.Difficulties[j] })
+	pDiff := ctx.Difficulties[(len(ctx.Difficulties)-1)*feePercentile/100]
+	if pDiff < vm.minDifficulty {
+		pDiff = vm.minDifficulty
+	}
+	sort.Slice(ctx.Costs, func(i, j int) bool { return ctx.Costs[i] < ctx.Costs[j] })
+	pCost := ctx.Costs[(len(ctx.Costs)-1)*feePercentile/100]
+	if pCost < vm.minBlockCost {
+		pCost = vm.minBlockCost
+	}
+
+	// Adjust cost estimate based on recent txs
 	recentTxs := ctx.RecentTxIDs.Len()
 	if recentTxs == 0 {
-		return ctx.NextDifficulty, ctx.NextCost, nil
+		return pDiff, pCost, nil
 	}
-	recommendedC := ctx.NextCost / uint64(recentTxs)
-	if recommendedC < vm.minBlockCost {
-		recommendedC = vm.minBlockCost
+	cPerTx := pCost / uint64(recentTxs) / uint64(ctx.RecentBlockIDs.Len())
+	if cPerTx < vm.minBlockCost {
+		// We always recommend at least the minBlockCost in case there are no other
+		// transactions.
+		cPerTx = vm.minBlockCost
 	}
-	return ctx.NextDifficulty, recommendedC, nil
+	return pDiff, cPerTx, nil
 }

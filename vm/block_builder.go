@@ -81,6 +81,7 @@ func (vm *VM) run() {
 			}
 
 			// next iteration should be gossip
+			// TODO: deciding to build vs gossip shouldn't be based on this
 			buildBlk = false
 			continue
 		}
