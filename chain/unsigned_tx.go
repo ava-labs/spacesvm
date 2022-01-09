@@ -14,7 +14,8 @@ type UnsignedTransaction interface {
 	SetGraffiti(graffiti uint64)
 	GetSender() [crypto.SECP256K1RPKLen]byte
 	GetBlockID() ids.ID
+	Units() uint64 // number of units to mine tx
 
 	ExecuteBase() error
-	Execute(database.Database, int64) error
+	Execute(database.Database, uint64) error
 }

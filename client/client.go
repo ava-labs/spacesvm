@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/rpc"
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/parser"
-	"github.com/ava-labs/quarkvm/pow"
 	"github.com/ava-labs/quarkvm/vm"
 	"github.com/fatih/color"
 )
@@ -31,7 +30,7 @@ type Client interface {
 	// Returns "true" if the block is valid.
 	CheckBlock(blkID ids.ID) (bool, error)
 	// Requests for the estimated difficulty from VM.
-	EstimateDifficulty() (uint64, error)
+	EstimateDifficulty() (uint64, uint64, error)
 	// Issues the transaction and returns the transaction ID.
 	IssueTx(d []byte) (ids.ID, error)
 	// Checks the status of the transaction, and returns "true" if confirmed.
@@ -41,7 +40,9 @@ type Client interface {
 	// Range runs range-query and returns the results.
 	Range(pfx, key []byte, opts ...OpOption) (kvs []chain.KeyValue, err error)
 	// Performs Proof-of-Work (PoW) by enumerating the graffiti.
-	Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error)
+	Mine(
+		ctx context.Context, utx chain.UnsignedTransaction, difficulty uint64, minSurplus uint64,
+	) (chain.UnsignedTransaction, error)
 }
 
 // New creates a new client object.
@@ -112,16 +113,16 @@ func (cli *client) CheckBlock(blkID ids.ID) (bool, error) {
 	return resp.Valid, nil
 }
 
-func (cli *client) EstimateDifficulty() (uint64, error) {
+func (cli *client) EstimateDifficulty() (uint64, uint64, error) {
 	resp := new(vm.DifficultyEstimateReply)
 	if err := cli.req.SendRequest(
 		"difficultyEstimate",
 		&vm.DifficultyEstimateArgs{},
 		resp,
 	); err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	return resp.Difficulty, nil
+	return resp.Difficulty, resp.Cost, nil
 }
 
 func (cli *client) IssueTx(d []byte) (ids.ID, error) {
@@ -195,8 +196,11 @@ done:
 	return false, ctx.Err()
 }
 
-func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error) {
+func (cli *client) Mine(
+	ctx context.Context, utx chain.UnsignedTransaction, difficulty uint64, minSurplus uint64,
+) (chain.UnsignedTransaction, error) {
 	for ctx.Err() == nil {
+		// TODO: only query this periodically
 		cbID, err := cli.Preferred()
 		if err != nil {
 			return nil, err
@@ -205,6 +209,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 
 		graffiti := uint64(0)
 		for ctx.Err() == nil {
+			// TODO: only query periodically
 			valid, err := cli.CheckBlock(cbID)
 			if err != nil {
 				return nil, err
@@ -214,21 +219,16 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 				break
 			}
 			utx.SetGraffiti(graffiti)
-			b, err := chain.UnsignedBytes(utx)
+			_, utxd, err := chain.CalcDifficulty(utx)
 			if err != nil {
 				return nil, err
 			}
-			d := pow.Difficulty(b)
-			est, err := cli.EstimateDifficulty()
-			if err != nil {
-				return nil, err
-			}
-			if d >= est {
+			if utxd >= difficulty && (utxd-difficulty)*utx.Units() >= minSurplus {
 				return utx, nil
 			}
 			graffiti++
 		}
-		// Get new block hash if no longer valid
+		// TODO: get new block hash if no longer valid
 	}
 	return nil, ctx.Err()
 }

@@ -4,11 +4,17 @@
 package vm
 
 import (
+	"fmt"
+	"sort"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/quarkvm/chain"
+)
+
+const (
+	feePercentile = 60
 )
 
 // TODO: add caching + test
@@ -46,22 +52,43 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 	return foundBlockID, err
 }
 
-func (vm *VM) DifficultyEstimate() (uint64, error) {
-	totalDifficulty := uint64(0)
-	totalBlocks := uint64(0)
-	err := vm.lookback(time.Now().Unix(), vm.preferred, func(b *chain.StatelessBlock) (bool, error) {
-		totalDifficulty += b.Difficulty
-		totalBlocks++
-		return true, nil
-	})
+func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
+	prnt, err := vm.GetBlock(vm.preferred)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	// TODO: make more sophisticated...maybe return cost/difficulty separately?
-	recommended := totalDifficulty/totalBlocks + 1
-	minRequired := vm.minDifficulty + vm.minBlockCost
-	if recommended < minRequired {
-		recommended = minRequired
+	parent, ok := prnt.(*chain.StatelessBlock)
+	if !ok {
+		return 0, 0, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", prnt)
 	}
-	return recommended, nil
+
+	ctx, err := vm.ExecutionContext(time.Now().Unix(), parent)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// Sort useful costs/difficulties
+	sort.Slice(ctx.Difficulties, func(i, j int) bool { return ctx.Difficulties[i] < ctx.Difficulties[j] })
+	pDiff := ctx.Difficulties[(len(ctx.Difficulties)-1)*feePercentile/100]
+	if pDiff < vm.minDifficulty {
+		pDiff = vm.minDifficulty
+	}
+	sort.Slice(ctx.Costs, func(i, j int) bool { return ctx.Costs[i] < ctx.Costs[j] })
+	pCost := ctx.Costs[(len(ctx.Costs)-1)*feePercentile/100]
+	if pCost < vm.minBlockCost {
+		pCost = vm.minBlockCost
+	}
+
+	// Adjust cost estimate based on recent txs
+	recentTxs := ctx.RecentTxIDs.Len()
+	if recentTxs == 0 {
+		return pDiff, pCost, nil
+	}
+	cPerTx := pCost / uint64(recentTxs) / uint64(ctx.RecentBlockIDs.Len())
+	if cPerTx < vm.minBlockCost {
+		// We always recommend at least the minBlockCost in case there are no other
+		// transactions.
+		cPerTx = vm.minBlockCost
+	}
+	return pDiff, cPerTx, nil
 }

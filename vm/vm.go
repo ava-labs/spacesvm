@@ -33,10 +33,13 @@ const (
 
 	defaultWorkInterval     = 100 * time.Millisecond
 	defaultRegossipInterval = time.Second
-	defaultPruneInterval    = time.Minute
 
-	defaultMinimumDifficulty = 1
-	defaultMinBlockCost      = 1
+	defaultPruneLimit        = 128
+	defaultPruneInterval     = time.Minute
+	defaultFullPruneInterval = time.Second
+
+	defaultMinimumDifficulty = chain.MinDifficulty
+	defaultMinBlockCost      = chain.MinBlockCost
 
 	mempoolSize = 1024
 )
@@ -52,7 +55,10 @@ type VM struct {
 
 	workInterval     time.Duration
 	regossipInterval time.Duration
-	pruneInterval    time.Duration
+
+	pruneLimit        int
+	pruneInterval     time.Duration
+	fullPruneInterval time.Duration
 
 	mempool     *mempool.Mempool
 	appSender   common.AppSender
@@ -107,7 +113,9 @@ func (vm *VM) Initialize(
 	// TODO: make this configurable via config
 	vm.workInterval = defaultWorkInterval
 	vm.regossipInterval = defaultRegossipInterval
+	vm.pruneLimit = defaultPruneLimit
 	vm.pruneInterval = defaultPruneInterval
+	vm.fullPruneInterval = defaultFullPruneInterval
 
 	// TODO: make this configurable via genesis
 	vm.minDifficulty, vm.minBlockCost = defaultMinimumDifficulty, defaultMinBlockCost
@@ -312,15 +320,16 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 	log.Debug("BuildBlock triggered")
 	blk, err := chain.BuildBlock(vm, vm.preferred)
 	if err != nil {
-		log.Warn("BuildBlock failed", "error", err)
-	} else {
-		log.Debug("BuildBlock success", "blockId", blk.ID())
+		log.Debug("BuildBlock failed", "error", err)
+		return nil, err
 	}
+
+	log.Debug("BuildBlock success", "blockId", blk.ID())
 	select {
 	case vm.blockBuilder <- struct{}{}:
 	default:
 	}
-	return blk, err
+	return blk, nil
 }
 
 func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
@@ -328,13 +337,22 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 	if err != nil {
 		return []error{err}
 	}
+	sblk, ok := blk.(*chain.StatelessBlock)
+	if !ok {
+		return []error{fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", blk)}
+	}
 	now := time.Now().Unix()
-	ctx, err := vm.ExecutionContext(now, blk.(*chain.StatelessBlock))
+	ctx, err := vm.ExecutionContext(now, sblk)
 	if err != nil {
 		return []error{err}
 	}
 	vdb := versiondb.New(vm.db)
 	defer vdb.Close() // TODO: need to do everywhere?
+
+	// Expire outdated prefixes before checking submission validity
+	if err := chain.ExpireNext(vdb, sblk.Tmstmp, now); err != nil {
+		return []error{err}
+	}
 
 	for _, tx := range txs {
 		if serr := vm.submit(tx, vdb, now, ctx); serr != nil {

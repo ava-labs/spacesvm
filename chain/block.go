@@ -24,7 +24,7 @@ type StatefulBlock struct {
 	Prnt       ids.ID         `serialize:"true" json:"parent"`
 	Tmstmp     int64          `serialize:"true" json:"timestamp"`
 	Hght       uint64         `serialize:"true" json:"height"`
-	Difficulty uint64         `serialize:"true" json:"difficulty"`
+	Difficulty uint64         `serialize:"true" json:"difficulty"` // difficulty per unit
 	Cost       uint64         `serialize:"true" json:"cost"`
 	Txs        []*Transaction `serialize:"true" json:"txs"`
 }
@@ -59,7 +59,6 @@ func NewBlock(vm VM, parent snowman.Block, tmstp int64, context *Context) *State
 	}
 }
 
-// TODO: check work here? Seems like a DoS vuln?
 func ParseBlock(
 	source []byte,
 	status choices.Status,
@@ -159,20 +158,18 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	}
 
 	// Process new transactions
-	log.Debug("build context", "next difficulty", context.NextDifficulty, "next cost", context.NextCost)
-	var surplusDifficulty uint64
+	log.Debug("build context", "height", b.Hght, "difficulty", b.Difficulty, "cost", b.Cost)
+	surplusWork := uint64(0)
 	for _, tx := range b.Txs {
 		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
-			log.Debug("failed tx verification", "err", err)
 			return nil, nil, err
 		}
-		surplusDifficulty += tx.Difficulty() - context.NextDifficulty
+		surplusWork += (tx.Difficulty() - b.Difficulty) * tx.Units()
 	}
 	// Ensure enough work is performed to compensate for block production speed
 	requiredSurplus := b.Difficulty * b.Cost
-	if surplusDifficulty < requiredSurplus {
-		log.Debug("insufficient block surplus", "found", surplusDifficulty, "required", requiredSurplus)
-		return nil, nil, ErrInsufficientSurplus
+	if surplusWork < requiredSurplus {
+		return nil, nil, fmt.Errorf("%w: required=%d found=%d", ErrInsufficientSurplus, requiredSurplus, surplusWork)
 	}
 	return parent, onAcceptDB, nil
 }

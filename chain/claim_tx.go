@@ -16,7 +16,7 @@ type ClaimTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 }
 
-func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
+func (c *ClaimTx) Execute(db database.Database, blockTime uint64) error {
 	// Restrict address prefix to be owned by pk
 	// [33]byte prefix is reserved for pubkey
 	if len(c.Prefix) == crypto.SECP256K1RPKLen && !bytes.Equal(c.Sender[:], c.Prefix) {
@@ -37,10 +37,10 @@ func (c *ClaimTx) Execute(db database.Database, blockTime int64) error {
 		Owner:       c.Sender,
 		Created:     blockTime,
 		LastUpdated: blockTime,
-		Expiry:      blockTime + expiryTime,
-		Keys:        1,
+		Expiry:      blockTime + ExpiryTime,
+		Units:       1,
 	}
-	if err := PutPrefixInfo(db, c.Prefix, newInfo, -1); err != nil {
+	if err := PutPrefixInfo(db, c.Prefix, newInfo, 0); err != nil {
 		return err
 	}
 	return nil

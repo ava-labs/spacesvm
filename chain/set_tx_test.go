@@ -94,18 +94,6 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Sender:  sender,
-					Prefix:  []byte("foo"),
-					BlockID: ids.GenerateTestID(),
-				},
-				Key: []byte("bar"),
-			},
-			blockTime: 100,
-			err:       ErrPrefixExpired,
-		},
-		{
-			utx: &SetTx{
-				BaseTx: &BaseTx{
 					Sender:  sender2,
 					Prefix:  []byte("foo"),
 					BlockID: ids.GenerateTestID(),
@@ -153,7 +141,7 @@ func TestSetTx(t *testing.T) {
 					BlockID: ids.GenerateTestID(),
 				},
 				Key:   []byte("bar"),
-				Value: bytes.Repeat([]byte{'b'}, parser.MaxKeySize+1),
+				Value: bytes.Repeat([]byte{'b'}, MaxValueSize+1),
 			},
 			blockTime: 1,
 			err:       ErrValueTooBig,
@@ -170,9 +158,39 @@ func TestSetTx(t *testing.T) {
 			blockTime: 1,
 			err:       parser.ErrInvalidDelimiter,
 		},
+		{
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					Sender:  sender,
+					Prefix:  []byte("foo"),
+					BlockID: ids.GenerateTestID(),
+				},
+				Key: []byte("bar"),
+			},
+			blockTime: 100,
+			err:       ErrKeyMissing,
+		},
+		{
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					Sender:  sender,
+					Prefix:  []byte("foo"),
+					BlockID: ids.GenerateTestID(),
+				},
+				Key: []byte("bar"),
+			},
+			blockTime: ExpiryTime * 2,
+			err:       ErrPrefixMissing,
+		},
 	}
 	for i, tv := range tt {
-		err := tv.utx.Execute(db, tv.blockTime)
+		if i > 0 {
+			// Expire old prefixes between txs
+			if err := ExpireNext(db, tt[i-1].blockTime, tv.blockTime); err != nil {
+				t.Fatalf("#%d: ExpireNext errored %v", i, err)
+			}
+		}
+		err := tv.utx.Execute(db, uint64(tv.blockTime))
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
 		}

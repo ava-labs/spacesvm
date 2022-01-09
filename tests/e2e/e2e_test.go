@@ -5,6 +5,7 @@
 package e2e_test
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -158,7 +159,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				color.Blue("checking prefix on %q", inst.uri)
 				pf, err := inst.cli.PrefixInfo(pfx)
 				gomega.Ω(err).To(gomega.BeNil())
-				gomega.Ω(pf.Keys).To(gomega.Equal(int64(1)))
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			}
 		})
@@ -197,7 +198,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				color.Blue("checking prefix on %q", inst.uri)
 				pf, err := inst.cli.PrefixInfo(pfx)
 				gomega.Ω(err).To(gomega.BeNil())
-				gomega.Ω(pf.Keys).To(gomega.Equal(int64(2)))
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(2)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			}
 		})
@@ -209,6 +210,101 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 				gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
+			}
+		})
+
+		v2 := bytes.Repeat([]byte("a"), chain.ValueUnitSize*20+1)
+		ginkgo.By("mine and issue large SetTx overwrite to a different node (if available)", func() {
+			setTx := &chain.SetTx{
+				BaseTx: &chain.BaseTx{
+					Sender: sender,
+					Prefix: pfx,
+				},
+				Key:   k,
+				Value: v2,
+			}
+
+			cli := instances[0].cli
+			if len(instances) > 1 {
+				cli = instances[1].cli
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.MineSignIssueTx(
+				ctx,
+				cli,
+				setTx,
+				priv,
+				client.WithPollTx(),
+				client.WithPrefixInfo(pfx),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.BeNil())
+		})
+
+		ginkgo.By("check prefix to check if SetTx has been accepted from all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking prefix on %q", inst.uri)
+				pf, err := inst.cli.PrefixInfo(pfx)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(22)))
+				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
+			}
+		})
+
+		ginkgo.By("send Range to all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking SetTx with Range on %q", inst.uri)
+				kvs, err := inst.cli.Range(pfx, k)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
+				gomega.Ω(kvs[0].Value).To(gomega.Equal(v2))
+			}
+		})
+
+		ginkgo.By("mine and issue delete SetTx to a different node (if available)", func() {
+			setTx := &chain.SetTx{
+				BaseTx: &chain.BaseTx{
+					Sender: sender,
+					Prefix: pfx,
+				},
+				Key: k,
+			}
+
+			cli := instances[0].cli
+			if len(instances) > 1 {
+				cli = instances[1].cli
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.MineSignIssueTx(
+				ctx,
+				cli,
+				setTx,
+				priv,
+				client.WithPollTx(),
+				client.WithPrefixInfo(pfx),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.BeNil())
+		})
+
+		ginkgo.By("check prefix to check if SetTx has been accepted from all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking prefix on %q", inst.uri)
+				pf, err := inst.cli.PrefixInfo(pfx)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
+				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
+			}
+		})
+
+		ginkgo.By("send Range to all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking SetTx with Range on %q", inst.uri)
+				kvs, err := inst.cli.Range(pfx, k)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(len(kvs)).To(gomega.Equal(0))
 			}
 		})
 	})

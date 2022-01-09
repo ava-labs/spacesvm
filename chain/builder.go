@@ -43,7 +43,8 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	mempool.Prune(context.RecentBlockIDs) // clean out invalid txs
 	vdb := versiondb.New(parentDB)
 	b.Txs = []*Transaction{}
-	for len(b.Txs) < TargetTransactions && mempool.Len() > 0 {
+	units := uint64(0)
+	for units < TargetUnits && mempool.Len() > 0 {
 		next, diff := mempool.PopMax()
 		if diff < b.Difficulty {
 			mempool.Add(next)
@@ -61,6 +62,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		}
 		// Wait to add prefix until after verification
 		b.Txs = append(b.Txs, next)
+		units += next.Units()
 	}
 
 	// Compute block hash and marshaled representation

@@ -273,7 +273,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		ginkgo.By("check prefix after ClaimTx has been accepted", func() {
 			pf, err := instances[0].cli.PrefixInfo(pfx)
 			gomega.Ω(err).To(gomega.BeNil())
-			gomega.Ω(pf.Keys).To(gomega.Equal(int64(1)))
+			gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
 			gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 		})
 
@@ -334,21 +334,23 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 func mineAndExpectBlkAccept(
 	cli client.Client,
 	vm *vm.VM,
-	utx chain.UnsignedTransaction,
+	rtx chain.UnsignedTransaction,
 	toEngine <-chan common.Message,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	mtx, err := cli.Mine(ctx, utx)
+	diff, cost, err := cli.EstimateDifficulty()
+	gomega.Ω(err).Should(gomega.BeNil())
+	utx, err := cli.Mine(ctx, rtx, diff, cost)
 	cancel()
 	gomega.Ω(err).Should(gomega.BeNil())
 
-	b, err := chain.UnsignedBytes(mtx)
+	b, err := chain.UnsignedBytes(utx)
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	sig, err := priv.Sign(b)
 	gomega.Ω(err).Should(gomega.BeNil())
 
-	tx := chain.NewTx(mtx, sig)
+	tx := chain.NewTx(utx, sig)
 	err = tx.Init()
 	gomega.Ω(err).To(gomega.BeNil())
 

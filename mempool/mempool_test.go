@@ -27,8 +27,8 @@ func TestMempool(t *testing.T) {
 		}
 		txm.Add(tx)
 	}
-	if _, diff := txm.PeekMax(); diff != 5 {
-		t.Fatalf("difficulty expected 5, got %d", diff)
+	if _, diff := txm.PeekMax(); diff != 3 {
+		t.Fatalf("difficulty expected 4, got %d", diff)
 	}
 	if _, diff := txm.PeekMin(); diff != 0 {
 		t.Fatalf("difficulty expected 0, got %d", diff)

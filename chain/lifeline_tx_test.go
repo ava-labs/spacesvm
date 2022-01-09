@@ -27,7 +27,7 @@ func TestLifelineTx(t *testing.T) {
 
 	tt := []struct {
 		utx       UnsignedTransaction
-		blockTime int64
+		blockTime uint64
 		err       error
 	}{
 		{ // invalid when prefix info is missing

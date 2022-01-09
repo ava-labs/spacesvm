@@ -38,12 +38,12 @@ func UnsignedBytes(utx UnsignedTransaction) ([]byte, error) {
 }
 
 func (t *Transaction) Init() error {
-	utx, err := UnsignedBytes(t.UnsignedTransaction)
+	utx, diff, err := CalcDifficulty(t.UnsignedTransaction)
 	if err != nil {
 		return err
 	}
 	t.unsignedBytes = utx
-	t.difficulty = pow.Difficulty(utx)
+	t.difficulty = diff
 
 	stx, err := Marshal(t)
 	if err != nil {
@@ -70,11 +70,24 @@ func (t *Transaction) Size() uint64 { return t.size }
 
 func (t *Transaction) ID() ids.ID { return t.id }
 
+// Difficulty per unit of work done by tx
 func (t *Transaction) Difficulty() uint64 { return t.difficulty }
+
+// Used during mining
+func CalcDifficulty(utx UnsignedTransaction) ([]byte, uint64, error) {
+	b, err := UnsignedBytes(utx)
+	if err != nil {
+		return nil, 0, err
+	}
+	return b, pow.Difficulty(b) / utx.Units(), nil
+}
 
 func (t *Transaction) Execute(db database.Database, blockTime int64, context *Context) error {
 	if err := t.UnsignedTransaction.ExecuteBase(); err != nil {
 		return err
+	}
+	if t.Difficulty() < context.NextDifficulty {
+		return ErrInvalidDifficulty
 	}
 	if !context.RecentBlockIDs.Contains(t.GetBlockID()) {
 		// Hash must be recent to be any good
@@ -88,9 +101,6 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 		// block hash referenced in the tx is valid
 		return ErrDuplicateTx
 	}
-	if t.Difficulty() < context.NextDifficulty {
-		return ErrInvalidDifficulty
-	}
 	sender := t.GetSender()
 	pk, err := f.ToPublicKey(sender[:])
 	if err != nil {
@@ -99,7 +109,7 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 	if !pk.Verify(t.unsignedBytes, t.Signature) {
 		return ErrInvalidSignature
 	}
-	if err := t.UnsignedTransaction.Execute(db, blockTime); err != nil {
+	if err := t.UnsignedTransaction.Execute(db, uint64(blockTime)); err != nil {
 		return err
 	}
 	return SetTransaction(db, t)

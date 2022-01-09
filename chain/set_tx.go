@@ -21,16 +21,14 @@ type SetTx struct {
 	// If non-empty, the transaction writes the key-value pair to the storage.
 	// If empty, the transaction deletes the value for the "prefix/key".
 	Value []byte `serialize:"true" json:"value"`
-
-	// TODO: support range deletes?
 }
 
-func (s *SetTx) Execute(db database.Database, blockTime int64) error {
+func (s *SetTx) Execute(db database.Database, blockTime uint64) error {
 	// assume prefix is already validated via "BaseTx"
 	if err := parser.CheckKey(s.Key); err != nil {
 		return err
 	}
-	if len(s.Value) > MaxValueLength {
+	if len(s.Value) > MaxValueSize {
 		return ErrValueTooBig
 	}
 
@@ -50,37 +48,46 @@ func (s *SetTx) Execute(db database.Database, blockTime int64) error {
 	if i.Expiry < blockTime {
 		return ErrPrefixExpired
 	}
-	// If we are trying to delete a key, make sure it previously exists.
-	if len(s.Value) > 0 {
-		return s.updatePrefix(db, blockTime, i)
-	}
-	has, err = HasPrefixKey(db, s.Prefix, s.Key)
-	if err != nil {
-		return err
-	}
-	// Cannot delete non-existent key
-	if !has {
-		return ErrKeyMissing
-	}
 	return s.updatePrefix(db, blockTime, i)
 }
 
-func (s *SetTx) updatePrefix(db database.Database, blockTime int64, i *PrefixInfo) error {
-	timeRemaining := (i.Expiry - i.LastUpdated) * i.Keys
-	if len(s.Value) == 0 {
-		i.Keys--
+func (s *SetTx) updatePrefix(db database.Database, blockTime uint64, i *PrefixInfo) error {
+	v, exists, err := GetValue(db, s.Prefix, s.Key)
+	if err != nil {
+		return err
+	}
+
+	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
+	if len(s.Value) == 0 { //nolint:nestif
+		if !exists {
+			return ErrKeyMissing
+		}
+		i.Units -= lengthOverhead(v)
 		if err := DeletePrefixKey(db, s.Prefix, s.Key); err != nil {
 			return err
 		}
 	} else {
-		i.Keys++
+		if exists {
+			i.Units -= lengthOverhead(v)
+		}
+		i.Units += lengthOverhead(s.Value)
 		if err := PutPrefixKey(db, s.Prefix, s.Key, s.Value); err != nil {
 			return err
 		}
 	}
-	newTimeRemaining := timeRemaining / i.Keys
+	newTimeRemaining := timeRemaining / i.Units
 	i.LastUpdated = blockTime
 	lastExpiry := i.Expiry
 	i.Expiry = blockTime + newTimeRemaining
 	return PutPrefixInfo(db, s.Prefix, i, lastExpiry)
+}
+
+func lengthOverhead(b []byte) uint64 {
+	return uint64(len(b)/ValueUnitSize + 1)
+}
+
+func (s *SetTx) Units() uint64 {
+	// We don't subtract by 1 here because we want to charge extra for any
+	// value-based interaction (even if it is small).
+	return s.BaseTx.Units() + lengthOverhead(s.Value)
 }

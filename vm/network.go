@@ -16,7 +16,9 @@ func (vm *VM) GossipTxs(force bool) error {
 		return nil
 	}
 	txs := []*chain.Transaction{}
-	for vm.mempool.Len() > 0 && len(txs) < chain.TargetTransactions {
+	units := uint64(0)
+	// Gossip at most the target units of a block at once
+	for vm.mempool.Len() > 0 && units < chain.TargetUnits {
 		tx, _ := vm.mempool.PopMax()
 		if !force {
 			// skip if recently gossiped
@@ -31,6 +33,7 @@ func (vm *VM) GossipTxs(force bool) error {
 		// force regossip (but less aggressively with greater interval)
 		vm.gossipedTxs.Put(tx.ID(), nil)
 		txs = append(txs, tx)
+		units += tx.Units()
 	}
 
 	b, err := chain.Marshal(txs)
