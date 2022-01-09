@@ -249,7 +249,7 @@ func PruneNext(db database.Database, limit int) (removals int, err error) {
 	startKey := RangeTimeKey(pruningPrefix, 0)
 	endKey := RangeTimeKey(pruningPrefix, math.MaxInt64)
 	cursor := db.NewIteratorWithStart(startKey)
-	for cursor.Next() && removals <= limit {
+	for cursor.Next() && removals < limit {
 		// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
 		curKey := cursor.Key()
 		if bytes.Compare(startKey, curKey) < -1 { // startKey < curKey; continue search
