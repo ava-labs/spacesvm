@@ -14,6 +14,8 @@ TODO: Extend on
 * Prefixes (address prefixes reserved)
 * Hashed Value Keys
 * Prefix Expiry (based on weight of all key-values)
+* Load Units vs Fee Units
+* Lifeline Rewards
 
 # Quick start
 

@@ -62,7 +62,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		}
 		// Wait to add prefix until after verification
 		b.Txs = append(b.Txs, next)
-		units += next.Units()
+		units += next.LoadUnits()
 	}
 
 	// Compute block hash and marshaled representation

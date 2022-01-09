@@ -164,7 +164,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
 			return nil, nil, err
 		}
-		surplusWork += (tx.Difficulty() - b.Difficulty) * tx.Units()
+		surplusWork += (tx.Difficulty() - b.Difficulty) * tx.FeeUnits()
 	}
 	// Ensure enough work is performed to compensate for block production speed
 	requiredSurplus := b.Difficulty * b.Cost

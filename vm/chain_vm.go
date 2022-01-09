@@ -52,7 +52,7 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		recentBlockIDs.Add(b.ID())
 		for _, tx := range b.StatefulBlock.Txs {
 			recentTxIDs.Add(tx.ID())
-			recentUnits += tx.Units()
+			recentUnits += tx.LoadUnits()
 		}
 		difficulties = append(difficulties, b.Difficulty)
 		costs = append(costs, b.Cost)

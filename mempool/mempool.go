@@ -250,13 +250,13 @@ func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 		if !th.maxHeap.Has(tx.ID()) {
 			continue
 		}
-		if tx.Units()+units > maxUnits {
+		if tx.LoadUnits()+units > maxUnits {
 			// Note: this algorithm preserves the ordering of new transactions
 			th.newTxs = th.newTxs[i:]
 			return selected
 		}
 		selected = append(selected, tx)
-		units += tx.Units()
+		units += tx.LoadUnits()
 	}
 	th.newTxs = nil
 	return selected

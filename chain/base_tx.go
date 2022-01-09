@@ -58,6 +58,10 @@ func (b *BaseTx) ExecuteBase() error {
 	return nil
 }
 
-func (b *BaseTx) Units() uint64 {
+func (b *BaseTx) FeeUnits() uint64 {
 	return BaseTxUnits
+}
+
+func (b *BaseTx) LoadUnits() uint64 {
+	return b.FeeUnits()
 }
