@@ -21,8 +21,8 @@ const (
 	building
 )
 
-// blockBuilder tells the engine when to build blocks and gossip transactions
-type blockBuilder struct {
+// BlockBuilder tells the engine when to build blocks and gossip transactions
+type BlockBuilder struct {
 	vm *VM
 
 	// [l] must be held when accessing [buildStatus]
@@ -40,8 +40,8 @@ type blockBuilder struct {
 	buildBlockTimer *timer.Timer
 }
 
-func (vm *VM) NewBlockBuilder() *blockBuilder {
-	b := &blockBuilder{
+func (vm *VM) NewBlockBuilder() *BlockBuilder {
+	b := &BlockBuilder{
 		vm:     vm,
 		status: dontBuild,
 	}
@@ -53,7 +53,7 @@ func (vm *VM) NewBlockBuilder() *blockBuilder {
 // has not already begun from an earlier notification. If [buildStatus] is anything
 // other than [dontBuild], then the attempt has already begun and this notification
 // can be safely skipped.
-func (b *blockBuilder) signalTxsReady() {
+func (b *BlockBuilder) signalTxsReady() {
 	b.l.Lock()
 	defer b.l.Unlock()
 
@@ -66,7 +66,7 @@ func (b *blockBuilder) signalTxsReady() {
 
 // signal the avalanchego engine
 // to build a block from pending transactions
-func (b *blockBuilder) markBuilding() {
+func (b *BlockBuilder) markBuilding() {
 	select {
 	case b.vm.toEngine <- common.PendingTxs:
 		b.status = building
@@ -78,7 +78,7 @@ func (b *blockBuilder) markBuilding() {
 // handleGenerateBlock should be called immediately after [BuildBlock].
 // [handleGenerateBlock] invocation could lead to quiesence, building a block with
 // some delay, or attempting to build another block immediately.
-func (b *blockBuilder) handleGenerateBlock() {
+func (b *BlockBuilder) handleGenerateBlock() {
 	b.l.Lock()
 	defer b.l.Unlock()
 
@@ -94,7 +94,7 @@ func (b *blockBuilder) handleGenerateBlock() {
 
 // needToBuild returns true if there are outstanding transactions to be issued
 // into a block.
-func (b *blockBuilder) needToBuild() bool {
+func (b *BlockBuilder) needToBuild() bool {
 	return b.vm.mempool.Len() > 0
 }
 
@@ -102,7 +102,7 @@ func (b *blockBuilder) needToBuild() bool {
 // to the engine when the VM is ready to build a block.
 // If it should be called back again, it returns the timeout duration at
 // which it should be called again.
-func (b *blockBuilder) buildBlockTwoStageTimer() (time.Duration, bool) {
+func (b *BlockBuilder) buildBlockTwoStageTimer() (time.Duration, bool) {
 	b.l.Lock()
 	defer b.l.Unlock()
 
@@ -123,7 +123,7 @@ func (b *blockBuilder) buildBlockTwoStageTimer() (time.Duration, bool) {
 	return 0, false
 }
 
-func (b *blockBuilder) build() {
+func (b *BlockBuilder) build() {
 	log.Debug("starting build loops")
 	defer close(b.vm.donecBuild)
 
@@ -138,7 +138,7 @@ func (b *blockBuilder) build() {
 }
 
 // periodically but less aggressively force-regossip the pending
-func (b *blockBuilder) gossip() {
+func (b *BlockBuilder) gossip() {
 	log.Debug("starting gossip loops")
 	defer close(b.vm.donecGossip)
 

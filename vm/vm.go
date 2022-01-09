@@ -76,7 +76,7 @@ type VM struct {
 	verifiedBlocks map[ids.ID]*chain.StatelessBlock
 
 	toEngine chan<- common.Message
-	builder  *blockBuilder
+	builder  *BlockBuilder
 
 	preferred    ids.ID
 	lastAccepted *chain.StatelessBlock
