@@ -8,6 +8,13 @@ KVVM defines a blockchain that is a key-value storage server. Each block in the 
 
 KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin).
 
+# Features
+TODO: Extend on
+* PoW Transactions (no tokens)
+* Prefixes (address prefixes reserved)
+* Hashed Value Keys
+* Prefix Expiry (based on weight of all key-values)
+
 # Quick start
 
 At its core, the Avalanche protocol still maintains the immutable ordered sequence of states in a fully permissionless settings. And KVVM defines the rules and data structures to store key-value pairs.
