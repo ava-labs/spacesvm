@@ -38,10 +38,6 @@ type blockBuilder struct {
 	// Stage1 build a block if the batch size has been reached.
 	// Stage2 build a block regardless of the size.
 	buildBlockTimer *timer.Timer
-
-	// [lastGossiped] is the last time the builder sent normal gossip (is not
-	// impacted by regossip)
-	lastGossiped time.Time
 }
 
 func (vm *VM) NewBlockBuilder() *blockBuilder {
@@ -156,9 +152,7 @@ func (b *blockBuilder) gossip() {
 		select {
 		case <-g.C:
 			newTxs := b.vm.mempool.GetNewTxs()
-			if len(newTxs) > 0 {
-				_ = b.vm.GossipNewTxs(newTxs)
-			}
+			_ = b.vm.GossipNewTxs(newTxs)
 		case <-rg.C:
 			_ = b.vm.RegossipTxs()
 		case <-b.vm.stopc:

@@ -10,6 +10,10 @@ import (
 )
 
 func (vm *VM) sendTxs(txs []*chain.Transaction) error {
+	if len(txs) == 0 {
+		return nil
+	}
+
 	b, err := chain.Marshal(txs)
 	if err != nil {
 		log.Warn("failed to marshal txs", "error", err)
