@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/ava-labs/quarkvm/parser"
 )
@@ -87,6 +88,53 @@ func TestSetTx(t *testing.T) {
 					BlockID: ids.GenerateTestID(),
 				},
 				Key: []byte("bar"),
+			},
+			blockTime: 1,
+			err:       nil,
+		},
+		{ // write hashed value
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					Sender:  sender,
+					Prefix:  []byte("foo"),
+					BlockID: ids.GenerateTestID(),
+				},
+				Key: func() []byte {
+					h := sha3.Sum256([]byte("value"))
+					return h[:]
+				}(),
+				Value: []byte("value"),
+			},
+			blockTime: 1,
+			err:       nil,
+		},
+		{ // write incorrect hashed value
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					Sender:  sender,
+					Prefix:  []byte("foo"),
+					BlockID: ids.GenerateTestID(),
+				},
+				Key: func() []byte {
+					h := sha3.Sum256([]byte("not value"))
+					return h[:]
+				}(),
+				Value: []byte("value"),
+			},
+			blockTime: 1,
+			err:       ErrInvalidKey,
+		},
+		{ // delete hashed value
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					Sender:  sender,
+					Prefix:  []byte("foo"),
+					BlockID: ids.GenerateTestID(),
+				},
+				Key: func() []byte {
+					h := sha3.Sum256([]byte("value"))
+					return h[:]
+				}(),
 			},
 			blockTime: 1,
 			err:       nil,

@@ -5,6 +5,7 @@ package chain
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
@@ -61,7 +62,7 @@ func (s *SetTx) Execute(db database.Database, blockTime uint64) error {
 			return err
 		}
 		if !bytes.Equal(s.Key, id[:]) {
-			return ErrInvalidKey
+			return fmt.Errorf("%w: expected %x got %x", ErrInvalidKey, id[:], s.Key)
 		}
 	}
 	return s.updatePrefix(db, blockTime, i)
