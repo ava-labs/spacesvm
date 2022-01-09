@@ -346,9 +346,7 @@ func mineAndExpectBlkAccept(
 	rtx chain.UnsignedTransaction,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	diff, cost, err := i.cli.EstimateDifficulty()
-	gomega.Ω(err).Should(gomega.BeNil())
-	utx, err := i.cli.Mine(ctx, rtx, diff, cost)
+	utx, err := i.cli.Mine(ctx, rtx)
 	cancel()
 	gomega.Ω(err).Should(gomega.BeNil())
 
