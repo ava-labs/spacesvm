@@ -321,14 +321,15 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 	blk, err := chain.BuildBlock(vm, vm.preferred)
 	if err != nil {
 		log.Warn("BuildBlock failed", "error", err)
-	} else {
-		log.Debug("BuildBlock success", "blockId", blk.ID())
+		return nil, err
 	}
+
+	log.Debug("BuildBlock success", "blockId", blk.ID())
 	select {
 	case vm.blockBuilder <- struct{}{}:
 	default:
 	}
-	return blk, err
+	return blk, nil
 }
 
 func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
