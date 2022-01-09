@@ -320,7 +320,7 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 	log.Debug("BuildBlock triggered")
 	blk, err := chain.BuildBlock(vm, vm.preferred)
 	if err != nil {
-		log.Warn("BuildBlock failed", "error", err)
+		log.Debug("BuildBlock failed", "error", err)
 		return nil, err
 	}
 
