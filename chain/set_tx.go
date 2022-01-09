@@ -54,7 +54,7 @@ func (s *SetTx) Execute(db database.Database, blockTime uint64) error {
 	}
 	// If Key is equal to hash length, ensure it is equal to the hash of the
 	// value
-	if len(s.Key) == IDLen {
+	if len(s.Key) == IDLen && len(s.Value) > 0 {
 		h := sha3.Sum256(s.Value)
 		id, err := ids.ToID(h[:])
 		if err != nil {
