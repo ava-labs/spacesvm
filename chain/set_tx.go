@@ -5,10 +5,15 @@ package chain
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/quarkvm/parser"
+	"golang.org/x/crypto/sha3"
 )
+
+const IDLen = 32
 
 var _ UnsignedTransaction = &SetTx{}
 
@@ -47,6 +52,18 @@ func (s *SetTx) Execute(db database.Database, blockTime uint64) error {
 	// Prefix cannot be updated if expired
 	if i.Expiry < blockTime {
 		return ErrPrefixExpired
+	}
+	// If Key is equal to hash length, ensure it is equal to the hash of the
+	// value
+	if len(s.Key) == IDLen && len(s.Value) > 0 {
+		h := sha3.Sum256(s.Value)
+		id, err := ids.ToID(h[:])
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(s.Key, id[:]) {
+			return fmt.Errorf("%w: expected %x got %x", ErrInvalidKey, id[:], s.Key)
+		}
 	}
 	return s.updatePrefix(db, blockTime, i)
 }

@@ -27,6 +27,7 @@ var (
 	ErrValueTooBig       = errors.New("value too big")
 	ErrPrefixExpired     = errors.New("prefix expired")
 	ErrKeyMissing        = errors.New("key missing")
+	ErrInvalidKey        = errors.New("key is invalid")
 	ErrPublicKeyMismatch = errors.New("public key does not match decoded prefix")
 	ErrPrefixNotExpired  = errors.New("prefix not expired")
 	ErrPrefixMissing     = errors.New("prefix missing")
