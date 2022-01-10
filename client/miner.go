@@ -16,16 +16,18 @@ import (
 )
 
 func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error) {
+	now := time.Now()
 	ctx, cancel := context.WithCancel(ctx)
 	g, gctx := errgroup.WithContext(ctx)
 
 	var (
-		ready = make(chan struct{})
-		l     = sync.RWMutex{}
-
+		ready         = make(chan struct{})
+		dl            = sync.RWMutex{}
 		blockID       ids.ID
 		minDifficulty uint64
 		minCost       uint64
+
+		graffiti uint64
 
 		solution chain.UnsignedTransaction
 	)
@@ -40,34 +42,42 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 		}
 
 		lastBlk := blockID
-		graffiti := uint64(0)
-
 		for gctx.Err() == nil {
-			l.RLock()
+			dl.RLock()
+			bID := blockID
+			md := minDifficulty
+			mc := minCost
+			dl.RUnlock()
+
 			// Reset graffiti when block has been updated
 			//
 			// Note: We always want to use the newest BlockID when mining to maximize
 			// the probability our transaction will get into a block before it
 			// expires.
-			if blockID != lastBlk {
-				lastBlk = blockID
+			if bID != lastBlk {
+				lastBlk = bID
 				graffiti = 0
 			}
-			utx.SetBlockID(blockID)
+
+			// Try new graffiti
+			utx.SetBlockID(bID)
 			utx.SetGraffiti(graffiti)
 			_, utxd, err := chain.CalcDifficulty(utx)
 			if err != nil {
-				l.RUnlock()
 				return err
 			}
-			if utxd >= minDifficulty && (utxd-minDifficulty)*utx.FeeUnits() >= minCost*minDifficulty {
-				l.RUnlock()
+			if utxd >= md && (utxd-md)*utx.FeeUnits() >= mc*md {
 				solution = utx
+				color.Green(
+					"mining complete[%d] (difficulty=%d, surplus=%d, t=%v)",
+					graffiti, utxd, (utxd-minDifficulty)*solution.FeeUnits(), time.Since(now),
+				)
 				cancel()
 				return nil
 			}
+
+			// Work is insufficient, try again
 			graffiti++
-			l.RUnlock()
 		}
 		return gctx.Err()
 	})
@@ -84,17 +94,31 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 		// Inline function so that we don't need to copy variables around and/or
 		// make execution context with locks
 		printETA := func() {
-			l.RLock()
+			// If we haven't returned yet, but have a solution, exit
+			if solution != nil {
+				return
+			}
+
+			dl.RLock()
+			md := minDifficulty
+			bID := blockID
+			dl.RUnlock()
+
 			// Assumes each additional unit of difficulty is ~1ms of compute
-			eta := time.Duration(utx.FeeUnits()*minDifficulty) * time.Millisecond
+			eta := time.Duration(utx.FeeUnits()*md) * time.Millisecond * 3 / 2
+			diff := time.Since(now)
+			if diff > eta {
+				eta = 0
+			} else {
+				eta -= diff
+			}
 			color.Yellow(
-				"mining in progress... (fee units=%d, min surplus=%d, ETA=%v)",
-				utx.FeeUnits(), minDifficulty*minCost, eta,
+				"mining in progress[%s/%d]... (ETA=%v)",
+				bID, graffiti, eta,
 			)
-			l.RUnlock()
 		}
 
-		t := time.NewTimer(3 * time.Second)
+		t := time.NewTicker(3 * time.Second)
 		printETA()
 		for {
 			select {
@@ -108,7 +132,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 
 	// Periodically update blockID and required difficulty
 	g.Go(func() error {
-		t := time.NewTimer(time.Second)
+		t := time.NewTicker(time.Second)
 		readyClosed := false
 		for {
 			select {
@@ -122,11 +146,11 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 					return err
 				}
 
-				l.Lock()
+				dl.Lock()
 				blockID = blkID
 				minDifficulty = diff
 				minCost = cost
-				l.Unlock()
+				dl.Unlock()
 
 				if !readyClosed {
 					close(ready)

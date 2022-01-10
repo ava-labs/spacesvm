@@ -12,10 +12,9 @@ import (
 
 // Recommended reading to understand how this works: https://en.bitcoin.it/wiki/Difficulty
 var (
-	// TODO: provide meaningful comment here
 	// Bitcoin uses 2^208 for the [base]
-	// Each unit of difficulty at 2^240 adds ~1ms on a nice macbook
-	base          = new(big.Int).Exp(big.NewInt(2), big.NewInt(240), nil)
+	// Each unit of difficulty at 2^230 adds ~1ms on a new laptop
+	base          = new(big.Int).Exp(big.NewInt(2), big.NewInt(230), nil)
 	scalingFactor = new(big.Int).Mul(big.NewInt(0xFFFF), base)
 )
 
