@@ -151,7 +151,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		hd, err = v.CreateHandlers()
 		gomega.Ω(err).Should(gomega.BeNil())
 
-		httpServer := httptest.NewServer(hd[""].Handler)
+		httpServer := httptest.NewServer(hd[vm.PublicEndpoint].Handler)
 		instances[i] = instance{
 			nodeID:     ctx.NodeID,
 			vm:         v,

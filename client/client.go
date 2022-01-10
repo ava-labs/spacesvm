@@ -48,6 +48,7 @@ type Client interface {
 
 // New creates a new client object.
 func New(uri string, endpoint string, reqTimeout time.Duration) Client {
+	// TODO: automatically append public/private based on method
 	if !strings.HasPrefix(endpoint, "/") {
 		endpoint = "/" + endpoint
 	}
