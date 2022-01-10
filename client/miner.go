@@ -5,6 +5,7 @@ package client
 
 import (
 	"context"
+	"runtime"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -15,9 +16,12 @@ import (
 )
 
 const (
-	defaultThreads = 4
-	durPrecision   = 10 * time.Millisecond
-	etaMultiplier  = 3
+	durPrecision  = 10 * time.Millisecond
+	etaMultiplier = 3
+)
+
+var (
+	concurrency = uint64(runtime.NumCPU())
 )
 
 type miningData struct {
@@ -41,7 +45,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 	)
 
 	// Mine for solution
-	for i := uint64(0); i < defaultThreads; i++ {
+	for i := uint64(0); i < concurrency; i++ {
 		j := i             // i will get overwritten during loop iteration
 		jutx := utx.Copy() // ensure each thread is modifying own copy of tx
 		graffiti := j      // need to offset graffiti by thread
@@ -84,8 +88,8 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 				}
 
 				// Work is insufficient, try again
-				graffiti += defaultThreads // offset to avoid duplicate work
-				agraffiti = graffiti       // approximate graffiti values
+				graffiti += concurrency // offset to avoid duplicate work
+				agraffiti = graffiti    // approximate graffiti values
 			}
 			return gctx.Err()
 		})
@@ -111,18 +115,18 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 			// Assumes each additional unit of difficulty is ~1ms of compute
 			cmd := md
 			eta := time.Duration(utx.FeeUnits()*cmd.minDifficulty) * time.Millisecond
-			eta = (eta / defaultThreads) * etaMultiplier // account for threads and overestimate
+			eta = (eta / time.Duration(concurrency)) * etaMultiplier // account for threads and overestimate
 			diff := time.Since(now)
 			if diff > eta {
 				color.Yellow(
-					"mining in progress[%s/%d]... (elapsed=%v)",
-					cmd.blockID, agraffiti, time.Since(now).Round(durPrecision),
+					"mining in progress[%s/%d]... (elapsed=%v, threads=%d)",
+					cmd.blockID, agraffiti, time.Since(now).Round(durPrecision), concurrency,
 				)
 			} else {
 				eta -= diff
 				color.Yellow(
-					"mining in progress[%s/%d]... (elapsed=%v, est. remaining=%v)",
-					cmd.blockID, agraffiti, time.Since(now).Round(durPrecision), eta.Round(durPrecision),
+					"mining in progress[%s/%d]... (elapsed=%v, est. remaining=%v, threads=%d)",
+					cmd.blockID, agraffiti, time.Since(now).Round(durPrecision), eta.Round(durPrecision), concurrency,
 				)
 			}
 		}
