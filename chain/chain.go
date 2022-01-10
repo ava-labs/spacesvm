@@ -5,6 +5,7 @@ package chain
 
 import (
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/units"
 )
 
 // TODO: load from genesis
@@ -13,8 +14,8 @@ const (
 	BaseTxUnits = 10
 
 	// SetTx params
-	ValueUnitSize = 256           // 256B
-	MaxValueSize  = 1 << 10 * 128 // 128KB (500 Units)
+	ValueUnitSize = 256             // 256B
+	MaxValueSize  = 512 * units.KiB // (2000 Units)
 
 	// Claim Params
 	ClaimFeeMultiplier   = 5
@@ -31,8 +32,8 @@ const (
 	// Fee Mechanism Params
 	LookbackWindow = 60                                               // 60 Seconds
 	BlockTarget    = 1                                                // 1 Block per Second
-	TargetUnits    = BaseTxUnits * 512 * LookbackWindow / BlockTarget // 512 Units Per Block
-	MinDifficulty  = 10                                               // ~10ms per unit (500ms for basic claim)
+	TargetUnits    = BaseTxUnits * 512 * LookbackWindow / BlockTarget // 5012 Units Per Block (~1.2MB of SetTx)
+	MinDifficulty  = 100                                              // ~100ms per unit (5s for basic claim)
 	MinBlockCost   = 1                                                // Minimum Unit Overhead
 )
 
