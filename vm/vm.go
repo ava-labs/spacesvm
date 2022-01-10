@@ -335,8 +335,14 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 		log.Debug("BuildBlock failed", "error", err)
 		return nil, err
 	}
+	sblk, ok := blk.(*chain.StatelessBlock)
+	if !ok {
+		return nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", blk)
+	}
 
-	log.Debug("BuildBlock success", "blockId", blk.ID())
+	log.Debug("BuildBlock success",
+		"blkID", blk.ID(), "txs", len(sblk.Txs), "beneficiary", string(sblk.Beneficiary),
+	)
 	return blk, nil
 }
 

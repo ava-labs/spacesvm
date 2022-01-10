@@ -13,7 +13,7 @@ type LifelineTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 }
 
-func addLife(db database.Database, prefix []byte) error {
+func addLife(db database.KeyValueReaderWriter, prefix []byte) error {
 	i, has, err := GetPrefixInfo(db, prefix)
 	if err != nil {
 		return err

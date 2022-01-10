@@ -48,8 +48,8 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	if err := ExpireNext(vdb, parent.Tmstmp, b.Tmstmp); err != nil {
 		return nil, err
 	}
-	// Reward producer (if [b.Reward] is non-nil)
-	if err := Reward(vdb, b.Reward); err != nil {
+	// Reward producer (if [b.Beneficiary] is non-nil)
+	if err := Reward(vdb, b.Beneficiary); err != nil {
 		return nil, err
 	}
 

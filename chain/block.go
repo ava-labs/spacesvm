@@ -21,13 +21,13 @@ const futureBound = 10 * time.Second
 var _ snowman.Block = &StatelessBlock{}
 
 type StatefulBlock struct {
-	Prnt       ids.ID         `serialize:"true" json:"parent"`
-	Tmstmp     int64          `serialize:"true" json:"timestamp"`
-	Hght       uint64         `serialize:"true" json:"height"`
-	Difficulty uint64         `serialize:"true" json:"difficulty"` // difficulty per unit
-	Cost       uint64         `serialize:"true" json:"cost"`
-	Txs        []*Transaction `serialize:"true" json:"txs"`
-	Reward     []byte         `serialize:"true" json:"reward"` // prefix to reward
+	Prnt        ids.ID         `serialize:"true" json:"parent"`
+	Tmstmp      int64          `serialize:"true" json:"timestamp"`
+	Hght        uint64         `serialize:"true" json:"height"`
+	Difficulty  uint64         `serialize:"true" json:"difficulty"` // difficulty per unit
+	Cost        uint64         `serialize:"true" json:"cost"`
+	Txs         []*Transaction `serialize:"true" json:"txs"`
+	Beneficiary []byte         `serialize:"true" json:"beneficiary"` // prefix to reward
 }
 
 // Stateless is defined separately from "Block"
@@ -46,15 +46,15 @@ type StatelessBlock struct {
 	onAcceptDB *versiondb.Database
 }
 
-func NewBlock(vm VM, parent snowman.Block, tmstp int64, reward []byte, context *Context) *StatelessBlock {
+func NewBlock(vm VM, parent snowman.Block, tmstp int64, beneficiary []byte, context *Context) *StatelessBlock {
 	return &StatelessBlock{
 		StatefulBlock: &StatefulBlock{
-			Tmstmp:     tmstp,
-			Prnt:       parent.ID(),
-			Hght:       parent.Height() + 1,
-			Difficulty: context.NextDifficulty,
-			Cost:       context.NextCost,
-			Reward:     reward,
+			Tmstmp:      tmstp,
+			Prnt:        parent.ID(),
+			Hght:        parent.Height() + 1,
+			Difficulty:  context.NextDifficulty,
+			Cost:        context.NextCost,
+			Beneficiary: beneficiary,
 		},
 		vm: vm,
 		st: choices.Processing,
@@ -159,8 +159,8 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		return nil, nil, err
 	}
 
-	// Reward producer (if [b.Reward] is non-nil)
-	if err := Reward(onAcceptDB, b.Reward); err != nil {
+	// Reward producer (if [b.Beneficiary] is non-nil)
+	if err := Reward(onAcceptDB, b.Beneficiary); err != nil {
 		return nil, nil, err
 	}
 
