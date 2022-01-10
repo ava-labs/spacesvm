@@ -18,7 +18,10 @@ TODO: Extend on
 * Lifeline Rewards (why run a node -> don't need to mine)
 
 # RPC
+## /public
 * range query
+
+## /private
 * set beneficiary
 
 # Quick start

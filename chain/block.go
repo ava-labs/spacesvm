@@ -144,6 +144,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	if b.Difficulty != context.NextDifficulty {
 		return nil, nil, ErrInvalidDifficulty
 	}
+
 	parentState, err := parent.onAccept()
 	if err != nil {
 		return nil, nil, err
@@ -154,7 +155,6 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp); err != nil {
 		return nil, nil, err
 	}
-
 	// Reward producer (if [b.Beneficiary] is non-nil)
 	if err := Reward(onAcceptDB, b.Beneficiary); err != nil {
 		return nil, nil, err

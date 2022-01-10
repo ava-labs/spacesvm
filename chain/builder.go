@@ -28,17 +28,17 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	}
 	b := NewBlock(vm, parent, nextTime, vm.Beneficiary(), context)
 
-	// Select new transactions
+	// Clean out invalid txs
+	mempool := vm.Mempool()
+	mempool.Prune(context.RecentBlockIDs)
+
 	parentDB, err := parent.onAccept()
 	if err != nil {
 		log.Debug("block building failed: couldn't get parent db", "err", err)
 		return nil, err
 	}
-	mempool := vm.Mempool()
-	mempool.Prune(context.RecentBlockIDs) // clean out invalid txs
-
-	// TODO: move all this setup somewhere shared
 	vdb := versiondb.New(parentDB)
+
 	// Remove all expired prefixes
 	if err := ExpireNext(vdb, parent.Tmstmp, b.Tmstmp); err != nil {
 		return nil, err
