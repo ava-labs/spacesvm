@@ -39,10 +39,18 @@ func (vm *VM) Accepted(b *chain.StatelessBlock) {
 	vm.blocks.Put(b.ID(), b)
 	delete(vm.verifiedBlocks, b.ID())
 	vm.lastAccepted = b
-	log.Debug("accepted block", "id", b.ID())
+	log.Debug("accepted block", "blkID", b.ID(), "beneficiary", string(b.Beneficiary))
+}
+
+func (vm *VM) SetBeneficiary(prefix []byte) {
+	vm.beneficiaryLock.Lock()
+	defer vm.beneficiaryLock.Unlock()
+	vm.beneficiary = prefix
 }
 
 func (vm *VM) Beneficiary() []byte {
+	vm.beneficiaryLock.RLock()
+	defer vm.beneficiaryLock.RUnlock()
 	return vm.beneficiary
 }
 

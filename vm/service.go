@@ -197,6 +197,7 @@ type SetBeneficiaryArgs struct {
 }
 
 func (svc *Service) SetBeneficiary(_ *http.Request, args *SetBeneficiaryArgs, _ interface{}) error {
-	svc.vm.beneficiary = args.Beneficiary
+	// TODO: move to admin api
+	svc.vm.SetBeneficiary(args.Beneficiary)
 	return nil
 }

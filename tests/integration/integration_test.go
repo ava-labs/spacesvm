@@ -297,9 +297,21 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		// to work around "ErrInsufficientSurplus" for mining too fast
 		time.Sleep(5 * time.Second)
 
-		ginkgo.By("mine and accept block with a new SetTx", func() {
-			// TODO: add reward to vm
+		ginkgo.By("mine and accept block with a new SetTx (with beneficiary)", func() {
+			i, err := instances[0].cli.PrefixInfo(pfx)
+			gomega.Ω(err).To(gomega.BeNil())
+			instances[0].vm.SetBeneficiary(pfx)
+
 			mineAndExpectBlkAccept(instances[0], setTx)
+
+			i2, err := instances[0].cli.PrefixInfo(pfx)
+			gomega.Ω(err).To(gomega.BeNil())
+			n := uint64(time.Now().Unix())
+			irem := (i.Expiry - n) * i.Units
+			i2rem := (i2.Expiry - n) * i2.Units
+			gomega.Ω(i2rem > irem).To(gomega.BeTrue())
+
+			instances[0].vm.SetBeneficiary(nil)
 		})
 
 		ginkgo.By("read back from VM with range query", func() {

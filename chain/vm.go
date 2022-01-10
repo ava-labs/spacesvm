@@ -14,6 +14,7 @@ type VM interface {
 	Mempool() Mempool
 	GetBlock(ids.ID) (snowman.Block, error)
 	Beneficiary() []byte
+	SetBeneficiary(prefix []byte)
 	ExecutionContext(currentTime int64, parent *StatelessBlock) (*Context, error)
 	Verified(*StatelessBlock)
 	Rejected(*StatelessBlock)

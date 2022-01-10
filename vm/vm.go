@@ -7,6 +7,7 @@ package vm
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -87,7 +88,8 @@ type VM struct {
 
 	// beneficiary is the prefix that will receive rewards if the node produces
 	// a block
-	beneficiary []byte
+	beneficiaryLock sync.RWMutex
+	beneficiary     []byte
 
 	stop chan struct{}
 
