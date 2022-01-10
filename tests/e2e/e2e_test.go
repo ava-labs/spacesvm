@@ -44,7 +44,7 @@ func init() {
 	flag.DurationVar(
 		&requestTimeout,
 		"request-timeout",
-		60*time.Second,
+		120*time.Second,
 		"timeout for transaction issuance and confirmation",
 	)
 	flag.StringVar(
