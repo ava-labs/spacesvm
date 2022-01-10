@@ -8,39 +8,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
-
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/claim"
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/delete"
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/genesis"
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/get"
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/set"
+	"github.com/ava-labs/quarkvm/cmd/quarkcli/cmd"
 )
 
-var rootCmd = &cobra.Command{
-	Use:        "quark-cli",
-	Short:      "QuarkVM client CLI",
-	SuggestFor: []string{"quark-cli", "quarkcli", "quarkctl"},
-}
-
-func init() {
-	cobra.EnablePrefixMatching = true
-}
-
-func init() {
-	rootCmd.AddCommand(
-		genesis.NewCommand(),
-		create.NewCommand(),
-		set.NewCommand(),
-		delete.NewCommand(),
-		claim.NewCommand(),
-		get.NewCommand(),
-	)
-}
-
 func main() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := cmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "quark-cli failed %v\n", err)
 		os.Exit(1)
 	}

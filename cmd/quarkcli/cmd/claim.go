@@ -1,43 +1,25 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package claim
+package cmd
 
 import (
 	"bytes"
 	"context"
 	"fmt"
 	"os"
-	"strings"
-	"time"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
 	"github.com/ava-labs/quarkvm/parser"
 )
 
-func init() {
-	cobra.EnablePrefixMatching = true
-}
-
-var (
-	privateKeyFile string
-	url            string
-	endpoint       string
-	requestTimeout time.Duration
-	prefixInfo     bool
-)
-
-// NewCommand implements "quark-cli claim" command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "claim [options] <prefix>",
-		Short: "Claims the given prefix",
-		Long: `
+var claimCmd = &cobra.Command{
+	Use:   "claim [options] <prefix>",
+	Short: "Claims the given prefix",
+	Long: `
 Claims the given prefix by issuing claim transaction
 with the prefix information.
 
@@ -65,44 +47,12 @@ success
 COMMENT
 
 `,
-		RunE: claimFunc,
-	}
-	cmd.PersistentFlags().StringVar(
-		&privateKeyFile,
-		"private-key-file",
-		".quark-cli-pk",
-		"private key file path",
-	)
-	cmd.PersistentFlags().StringVar(
-		&url,
-		"url",
-		"http://127.0.0.1:9650",
-		"RPC URL for VM",
-	)
-	cmd.PersistentFlags().StringVar(
-		&endpoint,
-		"endpoint",
-		"",
-		"RPC endpoint for VM",
-	)
-	cmd.PersistentFlags().DurationVar(
-		&requestTimeout,
-		"request-timeout",
-		30*time.Second,
-		"timeout for transaction issuance and confirmation",
-	)
-	cmd.PersistentFlags().BoolVar(
-		&prefixInfo,
-		"prefix-info",
-		true,
-		"'true' to print out the prefix owner information",
-	)
-	return cmd
+	RunE: claimFunc,
 }
 
 // TODO: move all this to a separate client code
 func claimFunc(cmd *cobra.Command, args []string) error {
-	priv, err := create.LoadPK(privateKeyFile)
+	priv, err := LoadPK(privateKeyFile)
 	if err != nil {
 		return err
 	}
@@ -112,12 +62,7 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	pfx := getClaimOp(args)
-
-	if !strings.HasPrefix(endpoint, "/") {
-		endpoint = "/" + endpoint
-	}
-	color.Blue("creating requester with URL %s and endpoint %q for prefix %q", url, endpoint, pfx)
-	cli := client.New(url, endpoint, requestTimeout)
+	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.ClaimTx{
 		BaseTx: &chain.BaseTx{
@@ -126,13 +71,8 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	opts := []client.OpOption{client.WithPollTx()}
-	if prefixInfo {
-		opts = append(opts, client.WithPrefixInfo(pfx))
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	_, err = client.MineSignIssueTx(ctx, cli, utx, priv, opts...)
-	cancel()
+	opts := []client.OpOption{client.WithPollTx(), client.WithPrefixInfo(pfx)}
+	_, err = client.MineSignIssueTx(context.Background(), cli, utx, priv, opts...)
 	return err
 }
 

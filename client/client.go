@@ -7,7 +7,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -47,14 +46,10 @@ type Client interface {
 }
 
 // New creates a new client object.
-func New(uri string, endpoint string, reqTimeout time.Duration) Client {
-	// TODO: automatically append public/private based on method
-	if !strings.HasPrefix(endpoint, "/") {
-		endpoint = "/" + endpoint
-	}
+func New(uri string, reqTimeout time.Duration) Client {
 	req := rpc.NewEndpointRequester(
 		uri,
-		endpoint,
+		vm.PublicEndpoint,
 		"quarkvm",
 		reqTimeout,
 	)

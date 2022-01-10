@@ -1,41 +1,24 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package delete
+package cmd
 
 import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
 	"github.com/ava-labs/quarkvm/parser"
 )
 
-func init() {
-	cobra.EnablePrefixMatching = true
-}
-
-var (
-	privateKeyFile string
-	url            string
-	endpoint       string
-	requestTimeout time.Duration
-	prefixInfo     bool
-)
-
-// NewCommand implements "quark-cli" command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "delete [options] <prefix/key>",
-		Short: "Deletes a key-value pair for the given prefix",
-		Long: `
+var deleteCmd = &cobra.Command{
+	Use:   "delete [options] <prefix/key>",
+	Short: "Deletes a key-value pair for the given prefix",
+	Long: `
 Issues "SetTx" to delete key-value pair(s).
 
 The prefix is automatically parsed with the delimiter "/".
@@ -85,44 +68,12 @@ error
 COMMENT
 
 `,
-		RunE: deleteFunc,
-	}
-	cmd.PersistentFlags().StringVar(
-		&privateKeyFile,
-		"private-key-file",
-		".quark-cli-pk",
-		"private key file path",
-	)
-	cmd.PersistentFlags().StringVar(
-		&url,
-		"url",
-		"http://127.0.0.1:9650",
-		"RPC URL for VM",
-	)
-	cmd.PersistentFlags().StringVar(
-		&endpoint,
-		"endpoint",
-		"",
-		"RPC endpoint for VM",
-	)
-	cmd.PersistentFlags().DurationVar(
-		&requestTimeout,
-		"request-timeout",
-		30*time.Second,
-		"timeout for transaction issuance and confirmation",
-	)
-	cmd.PersistentFlags().BoolVar(
-		&prefixInfo,
-		"prefix-info",
-		true,
-		"'true' to print out the prefix owner information",
-	)
-	return cmd
+	RunE: deleteFunc,
 }
 
 // TODO: move all this to a separate client code
 func deleteFunc(cmd *cobra.Command, args []string) error {
-	priv, err := create.LoadPK(privateKeyFile)
+	priv, err := LoadPK(privateKeyFile)
 	if err != nil {
 		return err
 	}
@@ -132,9 +83,7 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	pfx, key := getDeleteOp(args)
-
-	color.Blue("creating requester with URL %s and endpoint %q for prefix %q and key %q", url, endpoint, pfx, key)
-	cli := client.New(url, endpoint, requestTimeout)
+	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.SetTx{
 		BaseTx: &chain.BaseTx{
@@ -145,13 +94,8 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 		Value: nil,
 	}
 
-	opts := []client.OpOption{client.WithPollTx()}
-	if prefixInfo {
-		opts = append(opts, client.WithPrefixInfo(pfx))
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	_, err = client.MineSignIssueTx(ctx, cli, utx, priv, opts...)
-	cancel()
+	opts := []client.OpOption{client.WithPollTx(), client.WithPrefixInfo(pfx)}
+	_, err = client.MineSignIssueTx(context.Background(), cli, utx, priv, opts...)
 	return err
 }
 

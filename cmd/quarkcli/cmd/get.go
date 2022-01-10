@@ -1,12 +1,11 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package get
+package cmd
 
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -15,26 +14,30 @@ import (
 	"github.com/ava-labs/quarkvm/parser"
 )
 
-func init() {
-	cobra.EnablePrefixMatching = true
-}
-
 var (
-	privateKeyFile string
-	url            string
-	endpoint       string
-	requestTimeout time.Duration
-	limit          uint32
-	withPrefix     bool
-	prefixInfo     bool
+	limit      uint32
+	withPrefix bool
 )
 
-// NewCommand implements "quark-cli get" command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "get [options] <prefix/key> <rangeEnd>",
-		Short: "Reads the keys with the given prefix",
-		Long: `
+func init() {
+	getCmd.PersistentFlags().Uint32Var(
+		&limit,
+		"limit",
+		0,
+		"non-zero to limit the number of key-values in the response",
+	)
+	getCmd.PersistentFlags().BoolVar(
+		&withPrefix,
+		"with-prefix",
+		false,
+		"'true' for prefix query",
+	)
+}
+
+var getCmd = &cobra.Command{
+	Use:   "get [options] <prefix/key> <rangeEnd>",
+	Short: "Reads the keys with the given prefix",
+	Long: `
 If no range end is given, it only reads the value for the
 specified key if it exists. If a range end is given, it reads
 all key-values in [start,end) at most "limit" entries.
@@ -90,59 +93,13 @@ $ quark-cli get hello.avax/foo1 hello.avax/foo3
 COMMENT
 
 `,
-		RunE: getFunc,
-	}
-	cmd.PersistentFlags().StringVar(
-		&privateKeyFile,
-		"private-key-file",
-		".quark-cli-pk",
-		"private key file path",
-	)
-	cmd.PersistentFlags().StringVar(
-		&url,
-		"url",
-		"http://127.0.0.1:9650",
-		"RPC URL for VM",
-	)
-	cmd.PersistentFlags().StringVar(
-		&endpoint,
-		"endpoint",
-		"",
-		"RPC endpoint for VM",
-	)
-	cmd.PersistentFlags().DurationVar(
-		&requestTimeout,
-		"request-timeout",
-		30*time.Second,
-		"timeout for transaction issuance and confirmation",
-	)
-	cmd.PersistentFlags().Uint32Var(
-		&limit,
-		"limit",
-		0,
-		"non-zero to limit the number of key-values in the response",
-	)
-	cmd.PersistentFlags().BoolVar(
-		&withPrefix,
-		"with-prefix",
-		false,
-		"'true' for prefix query",
-	)
-	cmd.PersistentFlags().BoolVar(
-		&prefixInfo,
-		"prefix-info",
-		true,
-		"'true' to print out the prefix owner information",
-	)
-	return cmd
+	RunE: getFunc,
 }
 
 // TODO: move all this to a separate client code
 func getFunc(cmd *cobra.Command, args []string) error {
 	pfx, key, rangeEnd := getGetOp(args, withPrefix)
-
-	color.Blue("creating requester with URL %s and endpoint %q for prefix %q and key %q", url, endpoint, pfx, key)
-	cli := client.New(url, endpoint, requestTimeout)
+	cli := client.New(uri, requestTimeout)
 
 	opts := []client.OpOption{}
 	if len(rangeEnd) > 0 {
@@ -162,13 +119,6 @@ func getFunc(cmd *cobra.Command, args []string) error {
 		fmt.Printf("key: %q, value: %q\n", kv.Key, kv.Value)
 	}
 
-	if prefixInfo {
-		info, err := cli.PrefixInfo(pfx)
-		if err != nil {
-			color.Red("cannot get prefix info %v", err)
-		}
-		color.Blue("prefix %q info %+v", pfx, info)
-	}
 	return nil
 }
 

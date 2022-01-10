@@ -51,7 +51,7 @@ func init() {
 	flag.DurationVar(
 		&requestTimeout,
 		"request-timeout",
-		60*time.Second,
+		120*time.Second,
 		"timeout for transaction issuance and confirmation",
 	)
 	flag.IntVar(
@@ -158,7 +158,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			vm:         v,
 			toEngine:   toEngine,
 			httpServer: httpServer,
-			cli:        client.New(httpServer.URL, "", requestTimeout),
+			cli:        client.New(httpServer.URL, requestTimeout),
 			builder:    mb,
 		}
 	}

@@ -24,17 +24,17 @@ func addLife(db database.KeyValueReaderWriter, prefix []byte) error {
 	}
 	// Lifeline spread across all units
 	lastExpiry := i.Expiry
-	prefixPenalty := prefixUnits(prefix) / PrefixRenewalDiscount
-	if prefixPenalty < 1 { // avoid division by 0
-		prefixPenalty = 1
-	}
-
-	i.Expiry += ExpiryTime / i.Units / prefixPenalty
+	i.Expiry += ExpiryTime / i.Units
 	return PutPrefixInfo(db, prefix, i, lastExpiry)
 }
 
 func (l *LifelineTx) Execute(db database.Database, blockTime uint64) error {
 	return addLife(db, l.Prefix)
+}
+
+func (l *LifelineTx) FeeUnits() uint64 {
+	prefixUnits := prefixUnits(l.Prefix) / PrefixRenewalDiscount
+	return l.LoadUnits() + prefixUnits
 }
 
 func (l *LifelineTx) Copy() UnsignedTransaction {
