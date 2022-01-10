@@ -20,9 +20,7 @@ const (
 	etaMultiplier = 3
 )
 
-var (
-	concurrency = uint64(runtime.NumCPU())
-)
+var concurrency = uint64(runtime.NumCPU())
 
 type miningData struct {
 	blockID       ids.ID
