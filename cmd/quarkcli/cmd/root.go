@@ -47,6 +47,7 @@ func init() {
 		genesisCmd,
 		getCmd,
 		createCmd,
+		lifelineCmd,
 	)
 
 	rootCmd.PersistentFlags().StringVar(
