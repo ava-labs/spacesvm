@@ -33,7 +33,7 @@ func lifelineFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	pfx := getClaimOp(args)
+	pfx := getLifelineOp(args)
 	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.LifelineTx{

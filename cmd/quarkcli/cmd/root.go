@@ -41,13 +41,13 @@ func init() {
 
 	cobra.EnablePrefixMatching = true
 	rootCmd.AddCommand(
-		claimCmd,
 		createCmd,
-		deleteCmd,
 		genesisCmd,
-		getCmd,
-		createCmd,
+		claimCmd,
 		lifelineCmd,
+		setCmd,
+		deleteCmd,
+		getCmd,
 	)
 
 	rootCmd.PersistentFlags().StringVar(
