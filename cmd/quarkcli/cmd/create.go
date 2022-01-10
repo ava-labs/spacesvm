@@ -1,61 +1,29 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// Package create implements "create" commands.
-package create
+package cmd
 
 import (
 	"errors"
 	"os"
-	"path/filepath"
 
 	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
-var (
-	f *crypto.FactorySECP256K1R
-
-	workDir        string
-	privateKeyFile string
-)
-
-func init() {
-	p, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	workDir = p
-	f = &crypto.FactorySECP256K1R{}
-
-	cobra.EnablePrefixMatching = true
-}
-
-// NewCommand implements "quark-cli create" command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "create [options]",
-		Short: "Creates a new key in the default location",
-		Long: `
+var createCmd = &cobra.Command{
+	Use:   "create [options]",
+	Short: "Creates a new key in the default location",
+	Long: `
 Creates a new key in the default location.
 It will error if the key file already exists.
 
 $ quark-cli create
 
 `,
-		RunE: createFunc,
-	}
-	cmd.PersistentFlags().StringVar(
-		&privateKeyFile,
-		"private-key-file",
-		filepath.Join(workDir, ".quark-cli-pk"),
-		"private key file path",
-	)
-	return cmd
+	RunE: createFunc,
 }
-
-const fsModeWrite = 0o600
 
 func createFunc(cmd *cobra.Command, args []string) error {
 	if _, err := os.Stat(privateKeyFile); err == nil {

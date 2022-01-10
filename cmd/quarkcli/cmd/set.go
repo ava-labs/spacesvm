@@ -1,39 +1,24 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package set
+package cmd
 
 import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/create"
 	"github.com/ava-labs/quarkvm/parser"
 )
 
-func init() {
-	cobra.EnablePrefixMatching = true
-}
-
-var (
-	privateKeyFile string
-	uri            string
-	requestTimeout time.Duration
-	prefixInfo     bool
-)
-
-// NewCommand implements "quark-cli set" command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "set [options] <prefix/key> <value>",
-		Short: "Writes a key-value pair for the given prefix",
-		Long: `
+var setCmd = &cobra.Command{
+	Use:   "set [options] <prefix/key> <value>",
+	Short: "Writes a key-value pair for the given prefix",
+	Long: `
 Issues "SetTx" to write a key-value pair.
 
 The prefix is automatically parsed with the delimiter "/".
@@ -79,38 +64,12 @@ success
 COMMENT
 
 `,
-		RunE: setFunc,
-	}
-	cmd.PersistentFlags().StringVar(
-		&privateKeyFile,
-		"private-key-file",
-		".quark-cli-pk",
-		"private key file path",
-	)
-	cmd.PersistentFlags().StringVar(
-		&uri,
-		"endpoint",
-		"http://127.0.0.1:9650",
-		"RPC Endpoint for VM",
-	)
-	cmd.PersistentFlags().DurationVar(
-		&requestTimeout,
-		"request-timeout",
-		30*time.Second,
-		"timeout for transaction issuance and confirmation",
-	)
-	cmd.PersistentFlags().BoolVar(
-		&prefixInfo,
-		"prefix-info",
-		true,
-		"'true' to print out the prefix owner information",
-	)
-	return cmd
+	RunE: setFunc,
 }
 
 // TODO: move all this to a separate client code
 func setFunc(cmd *cobra.Command, args []string) error {
-	priv, err := create.LoadPK(privateKeyFile)
+	priv, err := LoadPK(privateKeyFile)
 	if err != nil {
 		return err
 	}
@@ -131,10 +90,7 @@ func setFunc(cmd *cobra.Command, args []string) error {
 		Value: val,
 	}
 
-	opts := []client.OpOption{client.WithPollTx()}
-	if prefixInfo {
-		opts = append(opts, client.WithPrefixInfo(pfx))
-	}
+	opts := []client.OpOption{client.WithPollTx(), client.WithPrefixInfo(pfx)}
 	_, err = client.MineSignIssueTx(context.Background(), cli, utx, priv, opts...)
 	return err
 }

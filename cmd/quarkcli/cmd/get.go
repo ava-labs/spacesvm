@@ -1,12 +1,11 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package get
+package cmd
 
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -15,24 +14,30 @@ import (
 	"github.com/ava-labs/quarkvm/parser"
 )
 
-func init() {
-	cobra.EnablePrefixMatching = true
-}
-
 var (
-	privateKeyFile string
-	uri            string
-	requestTimeout time.Duration
-	limit          uint32
-	withPrefix     bool
+	limit      uint32
+	withPrefix bool
 )
 
-// NewCommand implements "quark-cli get" command.
-func NewCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "get [options] <prefix/key> <rangeEnd>",
-		Short: "Reads the keys with the given prefix",
-		Long: `
+func init() {
+	getCmd.PersistentFlags().Uint32Var(
+		&limit,
+		"limit",
+		0,
+		"non-zero to limit the number of key-values in the response",
+	)
+	getCmd.PersistentFlags().BoolVar(
+		&withPrefix,
+		"with-prefix",
+		false,
+		"'true' for prefix query",
+	)
+}
+
+var getCmd = &cobra.Command{
+	Use:   "get [options] <prefix/key> <rangeEnd>",
+	Short: "Reads the keys with the given prefix",
+	Long: `
 If no range end is given, it only reads the value for the
 specified key if it exists. If a range end is given, it reads
 all key-values in [start,end) at most "limit" entries.
@@ -88,39 +93,7 @@ $ quark-cli get hello.avax/foo1 hello.avax/foo3
 COMMENT
 
 `,
-		RunE: getFunc,
-	}
-	cmd.PersistentFlags().StringVar(
-		&privateKeyFile,
-		"private-key-file",
-		".quark-cli-pk",
-		"private key file path",
-	)
-	cmd.PersistentFlags().StringVar(
-		&uri,
-		"endpoint",
-		"http://127.0.0.1:9650",
-		"RPC Endpoint for VM",
-	)
-	cmd.PersistentFlags().DurationVar(
-		&requestTimeout,
-		"request-timeout",
-		30*time.Second,
-		"timeout for transaction issuance and confirmation",
-	)
-	cmd.PersistentFlags().Uint32Var(
-		&limit,
-		"limit",
-		0,
-		"non-zero to limit the number of key-values in the response",
-	)
-	cmd.PersistentFlags().BoolVar(
-		&withPrefix,
-		"with-prefix",
-		false,
-		"'true' for prefix query",
-	)
-	return cmd
+	RunE: getFunc,
 }
 
 // TODO: move all this to a separate client code
