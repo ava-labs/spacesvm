@@ -37,6 +37,20 @@ func (m *MockUnsignedTransaction) EXPECT() *MockUnsignedTransactionMockRecorder 
 	return m.recorder
 }
 
+// Copy mocks base method.
+func (m *MockUnsignedTransaction) Copy() UnsignedTransaction {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Copy")
+	ret0, _ := ret[0].(UnsignedTransaction)
+	return ret0
+}
+
+// Copy indicates an expected call of Copy.
+func (mr *MockUnsignedTransactionMockRecorder) Copy() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Copy", reflect.TypeOf((*MockUnsignedTransaction)(nil).Copy))
+}
+
 // Execute mocks base method.
 func (m *MockUnsignedTransaction) Execute(arg0 database.Database, arg1 uint64) error {
 	m.ctrl.T.Helper()
