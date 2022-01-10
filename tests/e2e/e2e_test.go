@@ -8,8 +8,8 @@ import (
 	"bytes"
 	"context"
 	"flag"
-	"fmt"
 	"path"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -17,6 +17,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/client"
+	"github.com/ava-labs/quarkvm/parser"
 	"github.com/ava-labs/quarkvm/tests"
 	"github.com/ava-labs/quarkvm/vm"
 	"github.com/fatih/color"
@@ -134,7 +135,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		}
 	})
 
-	pfx := []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
+	pfx := []byte(strings.Repeat("a", parser.MaxPrefixSize))
 	ginkgo.It("Claim/SetTx with valid PoW in a single node", func() {
 		ginkgo.By("mine and issue ClaimTx to the first node", func() {
 			claimTx := &chain.ClaimTx{
