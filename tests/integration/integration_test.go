@@ -298,6 +298,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		time.Sleep(5 * time.Second)
 
 		ginkgo.By("mine and accept block with a new SetTx", func() {
+			// TODO: add reward to vm
 			mineAndExpectBlkAccept(instances[0], setTx)
 		})
 
