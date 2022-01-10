@@ -6,13 +6,12 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 )
 
 type VM interface {
 	State() database.Database
 	Mempool() Mempool
-	GetBlock(ids.ID) (snowman.Block, error)
+	GetStatelessBlock(ids.ID) (*StatelessBlock, error)
 	Beneficiary() []byte
 	SetBeneficiary(prefix []byte)
 	ExecutionContext(currentTime int64, parent *StatelessBlock) (*Context, error)

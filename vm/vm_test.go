@@ -35,7 +35,7 @@ func TestBlockCache(t *testing.T) {
 
 	// we have not set up any persistent db
 	// so this must succeed from using cache
-	blk2, err := vm.getBlock(blkID)
+	blk2, err := vm.GetStatelessBlock(blkID)
 	if err != nil {
 		t.Fatal(err)
 	}

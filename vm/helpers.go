@@ -19,7 +19,7 @@ const (
 
 // TODO: add caching + test
 func (vm *VM) lookback(currTime int64, lastID ids.ID, f func(b *chain.StatelessBlock) (bool, error)) error {
-	curr, err := vm.getBlock(lastID)
+	curr, err := vm.GetStatelessBlock(lastID)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func (vm *VM) lookback(currTime int64, lastID ids.ID, f func(b *chain.StatelessB
 		if curr.Hght == 0 /* genesis */ {
 			return nil
 		}
-		b, err := vm.getBlock(curr.Prnt)
+		b, err := vm.GetStatelessBlock(curr.Prnt)
 		if err != nil {
 			return err
 		}

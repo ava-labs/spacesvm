@@ -119,14 +119,10 @@ func (b *StatelessBlock) ID() ids.ID { return b.id }
 // verify checks the correctness of a block and then returns the
 // *versiondb.Database computed during execution.
 func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) {
-	prnt, err := b.vm.GetBlock(b.Prnt)
+	parent, err := b.vm.GetStatelessBlock(b.Prnt)
 	if err != nil {
 		log.Debug("could not get parent", "id", b.Prnt)
 		return nil, nil, err
-	}
-	parent, ok := prnt.(*StatelessBlock)
-	if !ok {
-		return nil, nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", prnt)
 	}
 
 	if len(b.Txs) == 0 {

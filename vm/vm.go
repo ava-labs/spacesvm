@@ -69,7 +69,7 @@ type VM struct {
 	appSender common.AppSender
 	network   *PushNetwork
 
-	// cache block objects to optimize "getBlock"
+	// cache block objects to optimize "GetBlockStateless"
 	// only put when a block is accepted
 	// key: block ID, value: *chain.StatelessBlock
 	blocks *cache.LRU
@@ -163,7 +163,7 @@ func (vm *VM) Initialize(
 			return err
 		}
 
-		blk, err := vm.getBlock(blkID)
+		blk, err := vm.GetStatelessBlock(blkID)
 		if err != nil {
 			log.Error("could not load last accepted", "err", err)
 			return err
@@ -304,14 +304,14 @@ func (vm *VM) Disconnected(id ids.ShortID) error {
 // implements "snowmanblock.ChainVM.commom.VM.Getter"
 // replaces "core.SnowmanVM.GetBlock"
 func (vm *VM) GetBlock(id ids.ID) (snowman.Block, error) {
-	b, err := vm.getBlock(id)
+	b, err := vm.GetStatelessBlock(id)
 	if err != nil {
 		log.Warn("failed to get block", "err", err)
 	}
 	return b, err
 }
 
-func (vm *VM) getBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
+func (vm *VM) GetStatelessBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
 	// has the block been cached from previous "Accepted" call
 	bi, exist := vm.blocks.Get(blkID)
 	if exist {
@@ -374,23 +374,19 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 }
 
 func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
-	blk, err := vm.GetBlock(vm.preferred)
+	blk, err := vm.GetStatelessBlock(vm.preferred)
 	if err != nil {
 		return []error{err}
 	}
-	sblk, ok := blk.(*chain.StatelessBlock)
-	if !ok {
-		return []error{fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", blk)}
-	}
 	now := time.Now().Unix()
-	ctx, err := vm.ExecutionContext(now, sblk)
+	ctx, err := vm.ExecutionContext(now, blk)
 	if err != nil {
 		return []error{err}
 	}
 	vdb := versiondb.New(vm.db)
 
 	// Expire outdated prefixes before checking submission validity
-	if err := chain.ExpireNext(vdb, sblk.Tmstmp, now); err != nil {
+	if err := chain.ExpireNext(vdb, blk.Tmstmp, now); err != nil {
 		return []error{err}
 	}
 

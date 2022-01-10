@@ -4,7 +4,6 @@
 package chain
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/database/versiondb"
@@ -17,14 +16,10 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	log.Debug("attempting block building")
 
 	nextTime := time.Now().Unix()
-	prnt, err := vm.GetBlock(preferred)
+	parent, err := vm.GetStatelessBlock(preferred)
 	if err != nil {
 		log.Debug("block building failed: couldn't get parent", "err", err)
 		return nil, err
-	}
-	parent, ok := prnt.(*StatelessBlock)
-	if !ok {
-		return nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", prnt)
 	}
 	context, err := vm.ExecutionContext(nextTime, parent)
 	if err != nil {

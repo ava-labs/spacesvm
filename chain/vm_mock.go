@@ -12,7 +12,6 @@ import (
 
 	database "github.com/ava-labs/avalanchego/database"
 	ids "github.com/ava-labs/avalanchego/ids"
-	snowman "github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -80,19 +79,19 @@ func (mr *MockVMMockRecorder) ExecutionContext(currentTime, parent interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecutionContext", reflect.TypeOf((*MockVM)(nil).ExecutionContext), currentTime, parent)
 }
 
-// GetBlock mocks base method.
-func (m *MockVM) GetBlock(arg0 ids.ID) (snowman.Block, error) {
+// GetStatelessBlock mocks base method.
+func (m *MockVM) GetStatelessBlock(arg0 ids.ID) (*StatelessBlock, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBlock", arg0)
-	ret0, _ := ret[0].(snowman.Block)
+	ret := m.ctrl.Call(m, "GetStatelessBlock", arg0)
+	ret0, _ := ret[0].(*StatelessBlock)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetBlock indicates an expected call of GetBlock.
-func (mr *MockVMMockRecorder) GetBlock(arg0 interface{}) *gomock.Call {
+// GetStatelessBlock indicates an expected call of GetStatelessBlock.
+func (mr *MockVMMockRecorder) GetStatelessBlock(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlock", reflect.TypeOf((*MockVM)(nil).GetBlock), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatelessBlock", reflect.TypeOf((*MockVM)(nil).GetStatelessBlock), arg0)
 }
 
 // Mempool mocks base method.
