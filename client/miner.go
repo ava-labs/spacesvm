@@ -14,71 +14,82 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 )
 
+const (
+	defaultThreads = 4
+	durPrecision   = 10 * time.Millisecond
+	etaMultiplier  = 3
+)
+
 type miningData struct {
 	blockID       ids.ID
 	minDifficulty uint64
 	minCost       uint64
 }
 
+// TODO: properly benchmark and optimize
 func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error) {
 	now := time.Now()
-	ctx, cancel := context.WithCancel(ctx)
 	g, gctx := errgroup.WithContext(ctx)
 
 	// We purposely do not lock around any of these values because it makes the
 	// core mining loop inefficient.
 	var (
-		ready    = make(chan struct{})
-		md       *miningData
-		graffiti uint64
-		solution chain.UnsignedTransaction
+		ready     = make(chan struct{})
+		md        *miningData
+		agraffiti uint64 //approximate
+		solution  chain.UnsignedTransaction
 	)
 
 	// Mine for solution
-	g.Go(func() error {
-		// Wait for all vars to be initialized
-		select {
-		case <-ready:
-		case <-gctx.Done():
+	for i := uint64(0); i < defaultThreads; i++ {
+		j := i             // i will get overwritten during loop iteration
+		jutx := utx.Copy() // ensure each thread is modifying own copy of tx
+		graffiti := j      // need to offset graffiti by thread
+		g.Go(func() error {
+			// Wait for all vars to be initialized
+			select {
+			case <-ready:
+			case <-gctx.Done():
+				return gctx.Err()
+			}
+
+			lastBlk := md.blockID
+			for gctx.Err() == nil {
+				cmd := md
+				// Reset graffiti when block has been updated
+				//
+				// Note: We always want to use the newest BlockID when mining to maximize
+				// the probability our transaction will get into a block before it
+				// expires.
+				if cmd.blockID != lastBlk {
+					lastBlk = cmd.blockID
+					graffiti = j
+				}
+
+				// Try new graffiti
+				jutx.SetBlockID(cmd.blockID)
+				jutx.SetGraffiti(graffiti)
+				_, utxd, err := chain.CalcDifficulty(jutx)
+				if err != nil {
+					return err
+				}
+				if utxd >= cmd.minDifficulty &&
+					(utxd-cmd.minDifficulty)*jutx.FeeUnits() >= cmd.minDifficulty*cmd.minCost {
+					solution = jutx
+					color.Green(
+						"mining complete[%d] (difficulty=%d, surplus=%d, elapsed=%v)",
+						graffiti, utxd, (utxd-cmd.minDifficulty)*solution.FeeUnits(), time.Since(now).Round(durPrecision),
+					)
+					return ErrSolution
+				}
+
+				// Work is insufficient, try again
+				graffiti += defaultThreads // offset to avoid duplicate work
+				agraffiti = graffiti       // approximate graffiti values
+			}
 			return gctx.Err()
-		}
-
-		lastBlk := md.blockID
-		for gctx.Err() == nil {
-			cmd := md
-			// Reset graffiti when block has been updated
-			//
-			// Note: We always want to use the newest BlockID when mining to maximize
-			// the probability our transaction will get into a block before it
-			// expires.
-			if cmd.blockID != lastBlk {
-				lastBlk = cmd.blockID
-				graffiti = 0
-			}
-
-			// Try new graffiti
-			utx.SetBlockID(cmd.blockID)
-			utx.SetGraffiti(graffiti)
-			_, utxd, err := chain.CalcDifficulty(utx)
-			if err != nil {
-				return err
-			}
-			if utxd >= cmd.minDifficulty &&
-				(utxd-cmd.minDifficulty)*utx.FeeUnits() >= cmd.minDifficulty*cmd.minCost {
-				solution = utx
-				color.Green(
-					"mining complete[%d] (difficulty=%d, surplus=%d, t=%v)",
-					graffiti, utxd, (utxd-cmd.minDifficulty)*solution.FeeUnits(), time.Since(now),
-				)
-				cancel()
-				return nil
-			}
-
-			// Work is insufficient, try again
-			graffiti++
-		}
-		return gctx.Err()
-	})
+		})
+	}
 
 	// Periodically print ETA
 	g.Go(func() error {
@@ -99,20 +110,24 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 
 			// Assumes each additional unit of difficulty is ~1ms of compute
 			cmd := md
-			eta := time.Duration(utx.FeeUnits()*cmd.minDifficulty) * time.Millisecond * 2 // overestimate by 2
+			eta := time.Duration(utx.FeeUnits()*cmd.minDifficulty) * time.Millisecond
+			eta = (eta / defaultThreads) * etaMultiplier // account for threads and overestimate
 			diff := time.Since(now)
 			if diff > eta {
-				eta = 0
+				color.Yellow(
+					"mining in progress[%s/%d]... (elapsed=%v)",
+					cmd.blockID, agraffiti, time.Since(now).Round(durPrecision),
+				)
 			} else {
 				eta -= diff
+				color.Yellow(
+					"mining in progress[%s/%d]... (elapsed=%v, est. remaining=%v)",
+					cmd.blockID, agraffiti, time.Since(now).Round(durPrecision), eta.Round(durPrecision),
+				)
 			}
-			color.Yellow(
-				"mining in progress[%s/%d]... (ETA=%v)",
-				cmd.blockID, graffiti, eta,
-			)
 		}
 
-		t := time.NewTicker(3 * time.Second)
+		t := time.NewTicker(2 * time.Second)
 		printETA()
 		for {
 			select {

@@ -65,3 +65,18 @@ func (b *BaseTx) FeeUnits() uint64 {
 func (b *BaseTx) LoadUnits() uint64 {
 	return b.FeeUnits()
 }
+
+func (b *BaseTx) Copy() *BaseTx {
+	sender := [crypto.SECP256K1RPKLen]byte{}
+	copy(sender[:], b.Sender[:])
+	blockID := ids.ID{}
+	copy(blockID[:], b.BlockID[:])
+	prefix := make([]byte, len(b.Prefix))
+	copy(prefix[:], b.Prefix[:])
+	return &BaseTx{
+		Sender:   sender,
+		BlockID:  blockID,
+		Graffiti: b.Graffiti,
+		Prefix:   prefix,
+	}
+}

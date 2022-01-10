@@ -71,3 +71,9 @@ func (c *ClaimTx) FeeUnits() uint64 {
 func (c *ClaimTx) LoadUnits() uint64 {
 	return c.BaseTx.LoadUnits() * ClaimFeeMultiplier
 }
+
+func (c *ClaimTx) Copy() UnsignedTransaction {
+	return &ClaimTx{
+		BaseTx: c.BaseTx.Copy(),
+	}
+}

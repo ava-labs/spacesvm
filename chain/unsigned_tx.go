@@ -10,6 +10,8 @@ import (
 )
 
 type UnsignedTransaction interface {
+	Copy() UnsignedTransaction
+
 	SetBlockID(block ids.ID)
 	SetGraffiti(graffiti uint64)
 	GetSender() [crypto.SECP256K1RPKLen]byte

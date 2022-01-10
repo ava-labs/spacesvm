@@ -36,3 +36,9 @@ func addLife(db database.KeyValueReaderWriter, prefix []byte) error {
 func (l *LifelineTx) Execute(db database.Database, blockTime uint64) error {
 	return addLife(db, l.Prefix)
 }
+
+func (l *LifelineTx) Copy() UnsignedTransaction {
+	return &LifelineTx{
+		BaseTx: l.BaseTx.Copy(),
+	}
+}

@@ -33,7 +33,7 @@ const (
 	LookbackWindow = 60                                               // 60 Seconds
 	BlockTarget    = 1                                                // 1 Block per Second
 	TargetUnits    = BaseTxUnits * 512 * LookbackWindow / BlockTarget // 5012 Units Per Block (~1.2MB of SetTx)
-	MinDifficulty  = 50                                               // ~50ms per unit (~2.5s for easiest claim)
+	MinDifficulty  = 100                                              // ~100ms per unit (~5s for easiest claim)
 	MinBlockCost   = 1                                                // Minimum Unit Overhead
 )
 
