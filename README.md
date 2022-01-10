@@ -60,12 +60,14 @@ uris:
 COMMENT
 
 # ping the local cluster
-curl -X POST --data '{
+curl --location --request POST 'http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL/public' \
+--header 'Content-Type: application/json' \
+--data-raw '{
     "jsonrpc": "2.0",
     "method": "quarkvm.ping",
     "params":{},
     "id": 1
-}' -H 'content-type:application/json;' 127.0.0.1:56239/ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM
+}'
 <<COMMENT
 {"jsonrpc":"2.0","result":{"success":true},"id":1}
 COMMENT
@@ -74,21 +76,163 @@ COMMENT
 kill 12811
 ```
 
-## Claim a Prefix (work done automatically)
+# CLI Usage
+## Create Genesis
+```bash
+./build/quark-cli genesis
+```
 
+## Create Private Key
+```bash
+./build/quark-cli create
+```
+
+## Claim a Prefix
 ```bash
 ./build/quark-cli \
 --private-key-file .quark-cli-pk \
---endpoint http://127.0.0.1:9650/ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM  \
-claim pat
+--endpoint http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL  \
+claim patrick.avax
 
->>>>>
-creating requester with URL http://127.0.0.1:9650 and endpoint "/ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM"
-Submitting tx NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw with BlockID (zgvHpznxkG7xAh2qgsQFVkrioB4ENdKYfum6KWe6rZGiuzdPf): &{0xc00011a0c8 [175 87 123 222 38 232 10 27 198 13 215 107 60 56 102 21 11 12 195 39 191 122 160 156 155 11 183 164 202 22 22 76 231 28 232 58 18 187 198 249 170 168 232 227 43 85 90 54 94 76 49 184 59 9 194 205 222 162 20 67 208 185 115 12] 0}
-issued transaction NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw (success true)
-polling transaction "NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw"
-confirmed transaction "NpfRjXRGRCXGxfqq6vcvH3GAm3yijJyxYD7QBxQFDS6YvSnXw"
-prefix pat info &{Owner:0xc00011dd70 LastUpdated:1638591044 Expiry:1638591074 Keys:1}
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/201]... (elapsed=1.01s, est. remaining=1m54.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/3329621]... (elapsed=3.01s, est. remaining=1m52.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/6640466]... (elapsed=5.01s, est. remaining=1m50.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/9938320]... (elapsed=7.01s, est. remaining=1m48.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/13222800]... (elapsed=9.01s, est. remaining=1m46.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/16473949]... (elapsed=11.01s, est. remaining=1m44.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/19307265]... (elapsed=13.01s, est. remaining=1m42.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/22151737]... (elapsed=15.01s, est. remaining=1m40.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/25580779]... (elapsed=17.01s, est. remaining=1m38.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/28485504]... (elapsed=19.01s, est. remaining=1m36.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/31685345]... (elapsed=21.01s, est. remaining=1m34.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/34616110]... (elapsed=23.01s, est. remaining=1m32.3s, threads=16)
+mining in progress[ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh/37668727]... (elapsed=25.01s, est. remaining=1m30.3s, threads=16)
+mining complete[40596778] (difficulty=188, surplus=541200, elapsed=26.97s)
+issuing tx 7Y5voKiHGvytF7ddroV7UvgW8LgmxPR7EzZSyJY1MwQJ4yC9x (fee units=6150, load units=50, difficulty=188, blkID=ShWhojqb9FYqf2cWTYWauv1QFuT6igUxLjqATntvq3E52kdLh)
+issued transaction 7Y5voKiHGvytF7ddroV7UvgW8LgmxPR7EzZSyJY1MwQJ4yC9x (now polling)
+transaction 7Y5voKiHGvytF7ddroV7UvgW8LgmxPR7EzZSyJY1MwQJ4yC9x confirmed
+raw prefix M9Jh5DMRXwMwaTHciFLVAMpc9dZKFpuGE: units=1 expiry=2022-02-09 02:17:33 -0800 PST (719h59m58.807801s remaining)
+```
+
+## Set Key in Prefix
+```bash
+./build/quark-cli \
+--private-key-file .quark-cli-pk \
+--endpoint http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL  \
+set patrick.avax/twitter @_patrickogrady
+
+mining in progress[2QsEbN4VgFjeMMfxU1T9KWUFMLtyTpYT7Ud8fw4kZ7hZfMMWhA/37]... (elapsed=1.01s, threads=16)
+mining complete[1145609] (difficulty=165, surplus=715, elapsed=1.76s)
+issuing tx APWDpcgjUcDDP8P4L97x3BbKkvJ4NzZfESXc2AcNjQV99aRqw (fee units=11, load units=11, difficulty=165, blkID=2QsEbN4VgFjeMMfxU1T9KWUFMLtyTpYT7Ud8fw4kZ7hZfMMWhA)
+issued transaction APWDpcgjUcDDP8P4L97x3BbKkvJ4NzZfESXc2AcNjQV99aRqw (now polling)
+transaction APWDpcgjUcDDP8P4L97x3BbKkvJ4NzZfESXc2AcNjQV99aRqw confirmed
+raw prefix M9Jh5DMRXwMwaTHciFLVAMpc9dZKFpuGE: units=2 expiry=2022-01-25 02:18:47 -0800 PST (359h59m58.948798s remaining)
+```
+
+## Get Key in Preifx
+```bash
+./build/quark-cli \
+--private-key-file .quark-cli-pk \
+--endpoint http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL  \
+get patrick.avax/twitter
+
+range success 1 key-values
+key: "twitter", value: "@_patrickogrady"
+```
+
+## Delete Key in Preifx
+```bash
+./build/quark-cli \
+--private-key-file .quark-cli-pk \
+--endpoint http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL  \
+delete patrick.avax/twitter
+
+mining in progress[g5rmmSRrCMZDUsg5KBzNR4wpeX6Ph6xaXoNCPwUWj7xHM7epD/333]... (elapsed=1.01s, threads=16)
+mining complete[222163] (difficulty=127, surplus=297, elapsed=1.16s)
+issuing tx 2AmF6zY1mTdniwXrifoKCfzPGEqrKyJv21S8k5gSa1MYbhFR3h (fee units=11, load units=11, difficulty=127, blkID=g5rmmSRrCMZDUsg5KBzNR4wpeX6Ph6xaXoNCPwUWj7xHM7epD)
+issued transaction 2AmF6zY1mTdniwXrifoKCfzPGEqrKyJv21S8k5gSa1MYbhFR3h (now polling)
+transaction 2AmF6zY1mTdniwXrifoKCfzPGEqrKyJv21S8k5gSa1MYbhFR3h confirmed
+raw prefix M9Jh5DMRXwMwaTHciFLVAMpc9dZKFpuGE: units=1 expiry=2022-02-09 02:20:55 -0800 PST (719h59m58.687729s remaining)
+```
+
+## Extend Prefix Life
+```bash
+./build/quark-cli \
+--private-key-file .quark-cli-pk \
+--endpoint http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL  \
+lifeline patrick.avax
+
+mining in progress[2ty1GmQAatedGd3CeUXzj5YUYVaqeMawpvCRPxqCf12u7fNfM/39]... (elapsed=1.01s, threads=16)
+mining complete[469870] (difficulty=169, surplus=690, elapsed=1.31s)
+issuing tx 2bJPjSWyr6NoDUE9ZyyamDetjNYDQ87G4dtZnT3LVf4uGYtFtU (fee units=10, load units=10, difficulty=169, blkID=2ty1GmQAatedGd3CeUXzj5YUYVaqeMawpvCRPxqCf12u7fNfM)
+issued transaction 2bJPjSWyr6NoDUE9ZyyamDetjNYDQ87G4dtZnT3LVf4uGYtFtU (now polling)
+transaction 2bJPjSWyr6NoDUE9ZyyamDetjNYDQ87G4dtZnT3LVf4uGYtFtU confirmed
+raw prefix M9Jh5DMRXwMwaTHciFLVAMpc9dZKFpuGE: units=1 expiry=2022-02-09 04:07:07 -0800 PST (721h44m47.312056s remaining)
+```
+
+# HTTP Examples
+## Get Prefix Info
+_cGF0cmljay5hdmF4 is "patrick.avax" in base64_
+```bash
+curl --location --request POST 'http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL/public' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "jsonrpc": "2.0",
+    "method": "quarkvm.prefixInfo",
+    "params":{
+        "prefix":"cGF0cmljay5hdmF4"
+    },
+    "id": 1
+}'
+
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "info": {
+            "owner": [
+                3,
+                74,
+                255,
+                247,
+                51,
+                219,
+                231,
+                3,
+                243,
+                231,
+                100,
+                99,
+                245,
+                34,
+                43,
+                222,
+                16,
+                61,
+                202,
+                99,
+                39,
+                113,
+                85,
+                197,
+                4,
+                185,
+                122,
+                214,
+                117,
+                141,
+                45,
+                98,
+                196
+            ],
+            "created": 1641809853,
+            "lastUpdated": 1641810055,
+            "expiry": 1644408427,
+            "units": 1,
+            "rawPrefix": "M9Jh5DMRXwMwaTHciFLVAMpc9dZKFpuGE"
+        }
+    },
+    "id": 1
+}
 ```
 
 # Difficulty Estiamtes
