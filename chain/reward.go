@@ -9,7 +9,7 @@ import (
 	"github.com/ava-labs/quarkvm/parser"
 )
 
-func Reward(db database.Database, prefix []byte) error {
+func Reward(db database.KeyValueReaderWriter, prefix []byte) error {
 	// No one to reward
 	if prefix == nil {
 		return nil
