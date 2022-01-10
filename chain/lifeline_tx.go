@@ -25,7 +25,11 @@ func addLife(db database.KeyValueReaderWriter, prefix []byte) error {
 	// Lifeline spread across all units
 	lastExpiry := i.Expiry
 	prefixPenalty := prefixUnits(prefix) / PrefixRenewalDiscount
-	i.Expiry += ExpiryTime / i.Units / prefixUnits(prefix) / prefixPenalty
+	if prefixPenalty < 1 { // avoid division by 0
+		prefixPenalty = 1
+	}
+
+	i.Expiry += ExpiryTime / i.Units / prefixPenalty
 	return PutPrefixInfo(db, prefix, i, lastExpiry)
 }
 

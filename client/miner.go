@@ -105,7 +105,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 			dl.RUnlock()
 
 			// Assumes each additional unit of difficulty is ~1ms of compute
-			eta := time.Duration(utx.FeeUnits()*md) * time.Millisecond * 3 / 2
+			eta := time.Duration(utx.FeeUnits()*md) * time.Millisecond * 2 // overestimate by 2
 			diff := time.Since(now)
 			if diff > eta {
 				eta = 0
