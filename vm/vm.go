@@ -322,7 +322,7 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 	if err != nil {
 		log.Error("could not parse block", "err", err)
 	} else {
-		log.Debug("parsing block", "id", blk.ID())
+		log.Debug("parsed block", "id", blk.ID())
 	}
 	return blk, err
 }

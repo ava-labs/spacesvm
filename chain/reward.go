@@ -10,8 +10,8 @@ import (
 )
 
 func Reward(db database.KeyValueReaderWriter, prefix []byte) error {
-	// No one to reward
-	if prefix == nil {
+	// If there is no one to reward, do nothing
+	if len(prefix) == 0 {
 		return nil
 	}
 	if err := parser.CheckPrefix(prefix); err != nil {

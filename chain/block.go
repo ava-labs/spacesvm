@@ -185,6 +185,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 func (b *StatelessBlock) Verify() error {
 	parent, onAcceptDB, err := b.verify()
 	if err != nil {
+		log.Debug("block verification failed", "blkID", b.ID(), "error", err)
 		return err
 	}
 	b.onAcceptDB = onAcceptDB
