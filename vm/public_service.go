@@ -19,7 +19,7 @@ var (
 	ErrInvalidEmptyTx = errors.New("invalid empty transaction")
 )
 
-type Service struct {
+type PublicService struct {
 	vm *VM
 }
 
@@ -29,7 +29,7 @@ type PingReply struct {
 	Success bool `serialize:"true" json:"success"`
 }
 
-func (svc *Service) Ping(_ *http.Request, args *PingArgs, reply *PingReply) (err error) {
+func (svc *PublicService) Ping(_ *http.Request, args *PingArgs, reply *PingReply) (err error) {
 	log.Info("ping")
 	reply.Success = true
 	return nil
@@ -44,7 +44,7 @@ type IssueTxReply struct {
 	Success bool   `serialize:"true" json:"success"`
 }
 
-func (svc *Service) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
+func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
 	tx := new(chain.Transaction)
 	if _, err := chain.Unmarshal(args.Tx, tx); err != nil {
 		return err
@@ -76,7 +76,7 @@ type CheckTxReply struct {
 	Confirmed bool `serialize:"true" json:"confirmed"`
 }
 
-func (svc *Service) CheckTx(_ *http.Request, args *CheckTxArgs, reply *CheckTxReply) error {
+func (svc *PublicService) CheckTx(_ *http.Request, args *CheckTxArgs, reply *CheckTxReply) error {
 	has, err := chain.HasTransaction(svc.vm.db, args.TxID)
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ type CurrBlockReply struct {
 	BlockID ids.ID `serialize:"true" json:"blockId"`
 }
 
-func (svc *Service) CurrBlock(_ *http.Request, args *CurrBlockArgs, reply *CurrBlockReply) error {
+func (svc *PublicService) CurrBlock(_ *http.Request, args *CurrBlockArgs, reply *CurrBlockReply) error {
 	reply.BlockID = svc.vm.preferred
 	return nil
 }
@@ -104,7 +104,7 @@ type ValidBlockIDReply struct {
 	Valid bool `serialize:"true" json:"valid"`
 }
 
-func (svc *Service) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, reply *ValidBlockIDReply) error {
+func (svc *PublicService) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, reply *ValidBlockIDReply) error {
 	valid, err := svc.vm.ValidBlockID(args.BlockID)
 	if err != nil {
 		return err
@@ -120,7 +120,7 @@ type DifficultyEstimateReply struct {
 	Cost       uint64 `serialize:"true" json:"cost"`
 }
 
-func (svc *Service) DifficultyEstimate(
+func (svc *PublicService) DifficultyEstimate(
 	_ *http.Request,
 	_ *DifficultyEstimateArgs,
 	reply *DifficultyEstimateReply,
@@ -142,7 +142,7 @@ type PrefixInfoReply struct {
 	Info *chain.PrefixInfo `serialize:"true" json:"info"`
 }
 
-func (svc *Service) PrefixInfo(_ *http.Request, args *PrefixInfoArgs, reply *PrefixInfoReply) error {
+func (svc *PublicService) PrefixInfo(_ *http.Request, args *PrefixInfoArgs, reply *PrefixInfoReply) error {
 	i, _, err := chain.GetPrefixInfo(svc.vm.db, args.Prefix)
 	if err != nil {
 		return err
@@ -175,7 +175,7 @@ type RangeReply struct {
 	KeyValues []chain.KeyValue `serialize:"true" json:"keyValues"`
 }
 
-func (svc *Service) Range(_ *http.Request, args *RangeArgs, reply *RangeReply) (err error) {
+func (svc *PublicService) Range(_ *http.Request, args *RangeArgs, reply *RangeReply) (err error) {
 	log.Debug("range query", "key", string(args.Key), "rangeEnd", string(args.RangeEnd))
 	opts := make([]chain.OpOption, 0)
 	if len(args.RangeEnd) > 0 {

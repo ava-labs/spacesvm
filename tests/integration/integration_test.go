@@ -7,8 +7,8 @@ package integration_test
 import (
 	"context"
 	"flag"
-	"fmt"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,6 +25,7 @@ import (
 
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/client"
+	"github.com/ava-labs/quarkvm/parser"
 	"github.com/ava-labs/quarkvm/vm"
 )
 
@@ -50,7 +51,7 @@ func init() {
 	flag.DurationVar(
 		&requestTimeout,
 		"request-timeout",
-		30*time.Second,
+		60*time.Second,
 		"timeout for transaction issuance and confirmation",
 	)
 	flag.IntVar(
@@ -151,7 +152,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		hd, err = v.CreateHandlers()
 		gomega.Ω(err).Should(gomega.BeNil())
 
-		httpServer := httptest.NewServer(hd[""].Handler)
+		httpServer := httptest.NewServer(hd[vm.PublicEndpoint].Handler)
 		instances[i] = instance{
 			nodeID:     ctx.NodeID,
 			vm:         v,
@@ -195,7 +196,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	})
 
 	ginkgo.It("Gossip ClaimTx to a different node", func() {
-		pfx := []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
+		pfx := []byte(strings.Repeat("a", parser.MaxPrefixSize))
 		claimTx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
 				Sender: sender,
@@ -265,7 +266,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	})
 
 	ginkgo.It("Claim/SetTx with valid PoW in a single node", func() {
-		pfx := []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
+		pfx := []byte(strings.Repeat("b", parser.MaxPrefixSize))
 		claimTx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
 				Sender: sender,
@@ -297,8 +298,21 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		// to work around "ErrInsufficientSurplus" for mining too fast
 		time.Sleep(5 * time.Second)
 
-		ginkgo.By("mine and accept block with a new SetTx", func() {
+		ginkgo.By("mine and accept block with a new SetTx (with beneficiary)", func() {
+			i, err := instances[0].cli.PrefixInfo(pfx)
+			gomega.Ω(err).To(gomega.BeNil())
+			instances[0].vm.SetBeneficiary(pfx)
+
 			mineAndExpectBlkAccept(instances[0], setTx)
+
+			i2, err := instances[0].cli.PrefixInfo(pfx)
+			gomega.Ω(err).To(gomega.BeNil())
+			n := uint64(time.Now().Unix())
+			irem := (i.Expiry - n) * i.Units
+			i2rem := (i2.Expiry - n) * i2.Units
+			gomega.Ω(i2rem > irem).To(gomega.BeTrue())
+
+			instances[0].vm.SetBeneficiary(nil)
 		})
 
 		ginkgo.By("read back from VM with range query", func() {
@@ -310,7 +324,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	})
 
 	ginkgo.It("fail Gossip ClaimTx to a stale node when missing previous blocks", func() {
-		pfx := []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
+		pfx := []byte(strings.Repeat("c", parser.MaxPrefixSize))
 		claimTx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
 				Sender: sender,
@@ -346,9 +360,7 @@ func mineAndExpectBlkAccept(
 	rtx chain.UnsignedTransaction,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	diff, cost, err := i.cli.EstimateDifficulty()
-	gomega.Ω(err).Should(gomega.BeNil())
-	utx, err := i.cli.Mine(ctx, rtx, diff, cost)
+	utx, err := i.cli.Mine(ctx, rtx)
 	cancel()
 	gomega.Ω(err).Should(gomega.BeNil())
 

@@ -10,11 +10,13 @@ import (
 )
 
 type UnsignedTransaction interface {
+	Copy() UnsignedTransaction
 	SetBlockID(block ids.ID)
 	SetGraffiti(graffiti uint64)
 	GetSender() [crypto.SECP256K1RPKLen]byte
 	GetBlockID() ids.ID
-	Units() uint64 // number of units to mine tx
+	FeeUnits() uint64  // number of units to mine tx
+	LoadUnits() uint64 // units that should impact fee rate
 
 	ExecuteBase() error
 	Execute(database.Database, uint64) error

@@ -8,7 +8,8 @@ import (
 	"bytes"
 	"context"
 	"flag"
-	"fmt"
+	"path"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -16,7 +17,9 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/client"
+	"github.com/ava-labs/quarkvm/parser"
 	"github.com/ava-labs/quarkvm/tests"
+	"github.com/ava-labs/quarkvm/vm"
 	"github.com/fatih/color"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -43,7 +46,7 @@ func init() {
 	flag.DurationVar(
 		&requestTimeout,
 		"request-timeout",
-		30*time.Second,
+		60*time.Second,
 		"timeout for transaction issuance and confirmation",
 	)
 	flag.StringVar(
@@ -96,7 +99,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		u := clusterInfo.URIs[i]
 		instances[i] = instance{
 			uri: u,
-			cli: client.New(u, clusterInfo.Endpoint, requestTimeout),
+			cli: client.New(u, path.Join(clusterInfo.Endpoint, vm.PublicEndpoint), requestTimeout),
 		}
 	}
 	color.Blue("created clients with %+v", clusterInfo)
@@ -132,7 +135,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		}
 	})
 
-	pfx := []byte(fmt.Sprintf("%10d", time.Now().UnixNano()))
+	pfx := []byte(strings.Repeat("a", parser.MaxPrefixSize))
 	ginkgo.It("Claim/SetTx with valid PoW in a single node", func() {
 		ginkgo.By("mine and issue ClaimTx to the first node", func() {
 			claimTx := &chain.ClaimTx{

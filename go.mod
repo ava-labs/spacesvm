@@ -16,6 +16,7 @@ require (
 	github.com/onsi/gomega v1.17.0
 	github.com/spf13/cobra v1.2.1
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	sigs.k8s.io/yaml v1.3.0
 )
 

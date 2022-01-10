@@ -37,6 +37,20 @@ func (m *MockUnsignedTransaction) EXPECT() *MockUnsignedTransactionMockRecorder 
 	return m.recorder
 }
 
+// Copy mocks base method.
+func (m *MockUnsignedTransaction) Copy() UnsignedTransaction {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Copy")
+	ret0, _ := ret[0].(UnsignedTransaction)
+	return ret0
+}
+
+// Copy indicates an expected call of Copy.
+func (mr *MockUnsignedTransactionMockRecorder) Copy() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Copy", reflect.TypeOf((*MockUnsignedTransaction)(nil).Copy))
+}
+
 // Execute mocks base method.
 func (m *MockUnsignedTransaction) Execute(arg0 database.Database, arg1 uint64) error {
 	m.ctrl.T.Helper()
@@ -63,6 +77,20 @@ func (m *MockUnsignedTransaction) ExecuteBase() error {
 func (mr *MockUnsignedTransactionMockRecorder) ExecuteBase() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBase", reflect.TypeOf((*MockUnsignedTransaction)(nil).ExecuteBase))
+}
+
+// FeeUnits mocks base method.
+func (m *MockUnsignedTransaction) FeeUnits() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FeeUnits")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// FeeUnits indicates an expected call of FeeUnits.
+func (mr *MockUnsignedTransactionMockRecorder) FeeUnits() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeUnits", reflect.TypeOf((*MockUnsignedTransaction)(nil).FeeUnits))
 }
 
 // GetBlockID mocks base method.
@@ -93,6 +121,20 @@ func (mr *MockUnsignedTransactionMockRecorder) GetSender() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSender", reflect.TypeOf((*MockUnsignedTransaction)(nil).GetSender))
 }
 
+// LoadUnits mocks base method.
+func (m *MockUnsignedTransaction) LoadUnits() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoadUnits")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// LoadUnits indicates an expected call of LoadUnits.
+func (mr *MockUnsignedTransactionMockRecorder) LoadUnits() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadUnits", reflect.TypeOf((*MockUnsignedTransaction)(nil).LoadUnits))
+}
+
 // SetBlockID mocks base method.
 func (m *MockUnsignedTransaction) SetBlockID(arg0 ids.ID) {
 	m.ctrl.T.Helper()
@@ -115,18 +157,4 @@ func (m *MockUnsignedTransaction) SetGraffiti(arg0 uint64) {
 func (mr *MockUnsignedTransactionMockRecorder) SetGraffiti(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGraffiti", reflect.TypeOf((*MockUnsignedTransaction)(nil).SetGraffiti), arg0)
-}
-
-// Units mocks base method.
-func (m *MockUnsignedTransaction) Units() uint64 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Units")
-	ret0, _ := ret[0].(uint64)
-	return ret0
-}
-
-// Units indicates an expected call of Units.
-func (mr *MockUnsignedTransactionMockRecorder) Units() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Units", reflect.TypeOf((*MockUnsignedTransaction)(nil).Units))
 }

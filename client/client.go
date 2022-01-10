@@ -12,10 +12,11 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/rpc"
+	"github.com/fatih/color"
+
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/parser"
 	"github.com/ava-labs/quarkvm/vm"
-	"github.com/fatih/color"
 )
 
 // Client defines quarkvm client operations.
@@ -41,12 +42,13 @@ type Client interface {
 	Range(pfx, key []byte, opts ...OpOption) (kvs []chain.KeyValue, err error)
 	// Performs Proof-of-Work (PoW) by enumerating the graffiti.
 	Mine(
-		ctx context.Context, utx chain.UnsignedTransaction, difficulty uint64, minSurplus uint64,
+		ctx context.Context, utx chain.UnsignedTransaction,
 	) (chain.UnsignedTransaction, error)
 }
 
 // New creates a new client object.
 func New(uri string, endpoint string, reqTimeout time.Duration) Client {
+	// TODO: automatically append public/private based on method
 	if !strings.HasPrefix(endpoint, "/") {
 		endpoint = "/" + endpoint
 	}
@@ -194,43 +196,6 @@ done:
 		}
 	}
 	return false, ctx.Err()
-}
-
-func (cli *client) Mine(
-	ctx context.Context, utx chain.UnsignedTransaction, difficulty uint64, minSurplus uint64,
-) (chain.UnsignedTransaction, error) {
-	for ctx.Err() == nil {
-		// TODO: only query this periodically
-		cbID, err := cli.Preferred()
-		if err != nil {
-			return nil, err
-		}
-		utx.SetBlockID(cbID)
-
-		graffiti := uint64(0)
-		for ctx.Err() == nil {
-			// TODO: only query periodically
-			valid, err := cli.CheckBlock(cbID)
-			if err != nil {
-				return nil, err
-			}
-			if !valid {
-				color.Yellow("%v is no longer a valid block id", cbID)
-				break
-			}
-			utx.SetGraffiti(graffiti)
-			_, utxd, err := chain.CalcDifficulty(utx)
-			if err != nil {
-				return nil, err
-			}
-			if utxd >= difficulty && (utxd-difficulty)*utx.Units() >= minSurplus {
-				return utx, nil
-			}
-			graffiti++
-		}
-		// TODO: get new block hash if no longer valid
-	}
-	return nil, ctx.Err()
 }
 
 type Op struct {

@@ -79,15 +79,15 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime uint64, i *PrefixIn
 		if !exists {
 			return ErrKeyMissing
 		}
-		i.Units -= lengthOverhead(v)
+		i.Units -= valueUnits(v)
 		if err := DeletePrefixKey(db, s.Prefix, s.Key); err != nil {
 			return err
 		}
 	} else {
 		if exists {
-			i.Units -= lengthOverhead(v)
+			i.Units -= valueUnits(v)
 		}
-		i.Units += lengthOverhead(s.Value)
+		i.Units += valueUnits(s.Value)
 		if err := PutPrefixKey(db, s.Prefix, s.Key, s.Value); err != nil {
 			return err
 		}
@@ -99,12 +99,28 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime uint64, i *PrefixIn
 	return PutPrefixInfo(db, s.Prefix, i, lastExpiry)
 }
 
-func lengthOverhead(b []byte) uint64 {
+func valueUnits(b []byte) uint64 {
 	return uint64(len(b)/ValueUnitSize + 1)
 }
 
-func (s *SetTx) Units() uint64 {
+func (s *SetTx) FeeUnits() uint64 {
 	// We don't subtract by 1 here because we want to charge extra for any
-	// value-based interaction (even if it is small).
-	return s.BaseTx.Units() + lengthOverhead(s.Value)
+	// value-based interaction (even if it is small or a delete).
+	return s.BaseTx.FeeUnits() + valueUnits(s.Value)
+}
+
+func (s *SetTx) LoadUnits() uint64 {
+	return s.FeeUnits()
+}
+
+func (s *SetTx) Copy() UnsignedTransaction {
+	key := make([]byte, len(s.Key))
+	copy(key, s.Key)
+	value := make([]byte, len(s.Value))
+	copy(value, s.Value)
+	return &SetTx{
+		BaseTx: s.BaseTx.Copy(),
+		Key:    key,
+		Value:  value,
+	}
 }

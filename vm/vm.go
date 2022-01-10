@@ -7,6 +7,7 @@ package vm
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -29,7 +30,9 @@ import (
 )
 
 const (
-	Name = "quarkvm"
+	Name            = "quarkvm"
+	PublicEndpoint  = "/public"
+	PrivateEndpoint = "/private"
 
 	defaultBuildInterval    = 500 * time.Millisecond
 	defaultGossipInterval   = 1 * time.Second
@@ -66,7 +69,7 @@ type VM struct {
 	appSender common.AppSender
 	network   *PushNetwork
 
-	// cache block objects to optimize "getBlock"
+	// cache block objects to optimize "GetBlockStateless"
 	// only put when a block is accepted
 	// key: block ID, value: *chain.StatelessBlock
 	blocks *cache.LRU
@@ -84,6 +87,11 @@ type VM struct {
 
 	minDifficulty uint64
 	minBlockCost  uint64
+
+	// beneficiary is the prefix that will receive rewards if the node produces
+	// a block
+	beneficiaryLock sync.RWMutex
+	beneficiary     []byte
 
 	stop chan struct{}
 
@@ -155,7 +163,7 @@ func (vm *VM) Initialize(
 			return err
 		}
 
-		blk, err := vm.getBlock(blkID)
+		blk, err := vm.GetStatelessBlock(blkID)
 		if err != nil {
 			log.Error("could not load last accepted", "err", err)
 			return err
@@ -213,20 +221,43 @@ func (vm *VM) Shutdown() error {
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Version() (string, error) { return version.Version.String(), nil }
 
-// implements "snowmanblock.ChainVM.common.VM"
-// for "ext/vm/[chainID]"
-func (vm *VM) CreateHandlers() (map[string]*common.HTTPHandler, error) {
+// NewHandler returns a new Handler for a service where:
+//   * The handler's functionality is defined by [service]
+//     [service] should be a gorilla RPC service (see https://www.gorillatoolkit.org/pkg/rpc/v2)
+//   * The name of the service is [name]
+//   * The LockOption is the first element of [lockOption]
+//     By default the LockOption is WriteLock
+//     [lockOption] should have either 0 or 1 elements. Elements beside the first are ignored.
+func newHandler(name string, service interface{}, lockOption ...common.LockOption) (*common.HTTPHandler, error) {
 	server := rpc.NewServer()
 	server.RegisterCodec(json.NewCodec(), "application/json")
 	server.RegisterCodec(json.NewCodec(), "application/json;charset=UTF-8")
-	if err := server.RegisterService(&Service{vm: vm}, Name); err != nil {
+	if err := server.RegisterService(service, name); err != nil {
 		return nil, err
 	}
-	return map[string]*common.HTTPHandler{
-		"": {
-			Handler: server,
-		},
-	}, nil
+
+	var lock common.LockOption = common.WriteLock
+	if len(lockOption) != 0 {
+		lock = lockOption[0]
+	}
+	return &common.HTTPHandler{LockOptions: lock, Handler: server}, nil
+}
+
+// implements "snowmanblock.ChainVM.common.VM"
+// for "ext/vm/[chainID]"
+func (vm *VM) CreateHandlers() (map[string]*common.HTTPHandler, error) {
+	apis := map[string]*common.HTTPHandler{}
+	public, err := newHandler(Name, &PublicService{vm: vm})
+	if err != nil {
+		return nil, err
+	}
+	apis[PublicEndpoint] = public
+	private, err := newHandler(Name, &PrivateService{vm: vm})
+	if err != nil {
+		return nil, err
+	}
+	apis[PrivateEndpoint] = private
+	return apis, nil
 }
 
 // implements "snowmanblock.ChainVM.common.VM"
@@ -273,14 +304,14 @@ func (vm *VM) Disconnected(id ids.ShortID) error {
 // implements "snowmanblock.ChainVM.commom.VM.Getter"
 // replaces "core.SnowmanVM.GetBlock"
 func (vm *VM) GetBlock(id ids.ID) (snowman.Block, error) {
-	b, err := vm.getBlock(id)
+	b, err := vm.GetStatelessBlock(id)
 	if err != nil {
 		log.Warn("failed to get block", "err", err)
 	}
 	return b, err
 }
 
-func (vm *VM) getBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
+func (vm *VM) GetStatelessBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
 	// has the block been cached from previous "Accepted" call
 	bi, exist := vm.blocks.Get(blkID)
 	if exist {
@@ -316,7 +347,7 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 	if err != nil {
 		log.Error("could not parse block", "err", err)
 	} else {
-		log.Debug("parsing block", "id", blk.ID())
+		log.Debug("parsed block", "id", blk.ID())
 	}
 	return blk, err
 }
@@ -331,29 +362,31 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 		log.Debug("BuildBlock failed", "error", err)
 		return nil, err
 	}
+	sblk, ok := blk.(*chain.StatelessBlock)
+	if !ok {
+		return nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", blk)
+	}
 
-	log.Debug("BuildBlock success", "blockId", blk.ID())
+	log.Debug("BuildBlock success",
+		"blkID", blk.ID(), "txs", len(sblk.Txs), "beneficiary", string(sblk.Beneficiary),
+	)
 	return blk, nil
 }
 
 func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
-	blk, err := vm.GetBlock(vm.preferred)
+	blk, err := vm.GetStatelessBlock(vm.preferred)
 	if err != nil {
 		return []error{err}
 	}
-	sblk, ok := blk.(*chain.StatelessBlock)
-	if !ok {
-		return []error{fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", blk)}
-	}
 	now := time.Now().Unix()
-	ctx, err := vm.ExecutionContext(now, sblk)
+	ctx, err := vm.ExecutionContext(now, blk)
 	if err != nil {
 		return []error{err}
 	}
 	vdb := versiondb.New(vm.db)
 
 	// Expire outdated prefixes before checking submission validity
-	if err := chain.ExpireNext(vdb, sblk.Tmstmp, now); err != nil {
+	if err := chain.ExpireNext(vdb, blk.Tmstmp, now); err != nil {
 		return []error{err}
 	}
 

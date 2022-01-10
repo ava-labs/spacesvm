@@ -12,7 +12,6 @@ import (
 
 	database "github.com/ava-labs/avalanchego/database"
 	ids "github.com/ava-labs/avalanchego/ids"
-	snowman "github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -51,6 +50,20 @@ func (mr *MockVMMockRecorder) Accepted(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Accepted", reflect.TypeOf((*MockVM)(nil).Accepted), arg0)
 }
 
+// Beneficiary mocks base method.
+func (m *MockVM) Beneficiary() []byte {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Beneficiary")
+	ret0, _ := ret[0].([]byte)
+	return ret0
+}
+
+// Beneficiary indicates an expected call of Beneficiary.
+func (mr *MockVMMockRecorder) Beneficiary() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Beneficiary", reflect.TypeOf((*MockVM)(nil).Beneficiary))
+}
+
 // ExecutionContext mocks base method.
 func (m *MockVM) ExecutionContext(currentTime int64, parent *StatelessBlock) (*Context, error) {
 	m.ctrl.T.Helper()
@@ -66,19 +79,19 @@ func (mr *MockVMMockRecorder) ExecutionContext(currentTime, parent interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecutionContext", reflect.TypeOf((*MockVM)(nil).ExecutionContext), currentTime, parent)
 }
 
-// GetBlock mocks base method.
-func (m *MockVM) GetBlock(arg0 ids.ID) (snowman.Block, error) {
+// GetStatelessBlock mocks base method.
+func (m *MockVM) GetStatelessBlock(arg0 ids.ID) (*StatelessBlock, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBlock", arg0)
-	ret0, _ := ret[0].(snowman.Block)
+	ret := m.ctrl.Call(m, "GetStatelessBlock", arg0)
+	ret0, _ := ret[0].(*StatelessBlock)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetBlock indicates an expected call of GetBlock.
-func (mr *MockVMMockRecorder) GetBlock(arg0 interface{}) *gomock.Call {
+// GetStatelessBlock indicates an expected call of GetStatelessBlock.
+func (mr *MockVMMockRecorder) GetStatelessBlock(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlock", reflect.TypeOf((*MockVM)(nil).GetBlock), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatelessBlock", reflect.TypeOf((*MockVM)(nil).GetStatelessBlock), arg0)
 }
 
 // Mempool mocks base method.
@@ -105,6 +118,18 @@ func (m *MockVM) Rejected(arg0 *StatelessBlock) {
 func (mr *MockVMMockRecorder) Rejected(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rejected", reflect.TypeOf((*MockVM)(nil).Rejected), arg0)
+}
+
+// SetBeneficiary mocks base method.
+func (m *MockVM) SetBeneficiary(prefix []byte) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetBeneficiary", prefix)
+}
+
+// SetBeneficiary indicates an expected call of SetBeneficiary.
+func (mr *MockVMMockRecorder) SetBeneficiary(prefix interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBeneficiary", reflect.TypeOf((*MockVM)(nil).SetBeneficiary), prefix)
 }
 
 // State mocks base method.

@@ -90,7 +90,7 @@ func (n *PushNetwork) RegossipTxs() error {
 		// recently.
 		n.gossipedTxs.Put(tx.ID(), nil)
 		txs = append(txs, tx)
-		units += tx.Units()
+		units += tx.LoadUnits()
 	}
 
 	return n.sendTxs(txs)

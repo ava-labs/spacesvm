@@ -4,7 +4,6 @@
 package chain
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/database/versiondb"
@@ -17,31 +16,38 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	log.Debug("attempting block building")
 
 	nextTime := time.Now().Unix()
-	prnt, err := vm.GetBlock(preferred)
+	parent, err := vm.GetStatelessBlock(preferred)
 	if err != nil {
 		log.Debug("block building failed: couldn't get parent", "err", err)
 		return nil, err
-	}
-	parent, ok := prnt.(*StatelessBlock)
-	if !ok {
-		return nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", prnt)
 	}
 	context, err := vm.ExecutionContext(nextTime, parent)
 	if err != nil {
 		log.Debug("block building failed: couldn't get execution context", "err", err)
 		return nil, err
 	}
-	b := NewBlock(vm, parent, nextTime, context)
+	b := NewBlock(vm, parent, nextTime, vm.Beneficiary(), context)
 
-	// Select new transactions
+	// Clean out invalid txs
+	mempool := vm.Mempool()
+	mempool.Prune(context.RecentBlockIDs)
+
 	parentDB, err := parent.onAccept()
 	if err != nil {
 		log.Debug("block building failed: couldn't get parent db", "err", err)
 		return nil, err
 	}
-	mempool := vm.Mempool()
-	mempool.Prune(context.RecentBlockIDs) // clean out invalid txs
 	vdb := versiondb.New(parentDB)
+
+	// Remove all expired prefixes
+	if err := ExpireNext(vdb, parent.Tmstmp, b.Tmstmp); err != nil {
+		return nil, err
+	}
+	// Reward producer (if [b.Beneficiary] is non-nil)
+	if err := Reward(vdb, b.Beneficiary); err != nil {
+		return nil, err
+	}
+
 	b.Txs = []*Transaction{}
 	units := uint64(0)
 	for units < TargetUnits && mempool.Len() > 0 {
@@ -62,8 +68,9 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		}
 		// Wait to add prefix until after verification
 		b.Txs = append(b.Txs, next)
-		units += next.Units()
+		units += next.LoadUnits()
 	}
+	vdb.Abort()
 
 	// Compute block hash and marshaled representation
 	if err := b.init(); err != nil {

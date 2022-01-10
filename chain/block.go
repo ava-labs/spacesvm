@@ -21,12 +21,13 @@ const futureBound = 10 * time.Second
 var _ snowman.Block = &StatelessBlock{}
 
 type StatefulBlock struct {
-	Prnt       ids.ID         `serialize:"true" json:"parent"`
-	Tmstmp     int64          `serialize:"true" json:"timestamp"`
-	Hght       uint64         `serialize:"true" json:"height"`
-	Difficulty uint64         `serialize:"true" json:"difficulty"` // difficulty per unit
-	Cost       uint64         `serialize:"true" json:"cost"`
-	Txs        []*Transaction `serialize:"true" json:"txs"`
+	Prnt        ids.ID         `serialize:"true" json:"parent"`
+	Tmstmp      int64          `serialize:"true" json:"timestamp"`
+	Hght        uint64         `serialize:"true" json:"height"`
+	Difficulty  uint64         `serialize:"true" json:"difficulty"` // difficulty per unit
+	Cost        uint64         `serialize:"true" json:"cost"`
+	Txs         []*Transaction `serialize:"true" json:"txs"`
+	Beneficiary []byte         `serialize:"true" json:"beneficiary"` // prefix to reward
 }
 
 // Stateless is defined separately from "Block"
@@ -45,14 +46,15 @@ type StatelessBlock struct {
 	onAcceptDB *versiondb.Database
 }
 
-func NewBlock(vm VM, parent snowman.Block, tmstp int64, context *Context) *StatelessBlock {
+func NewBlock(vm VM, parent snowman.Block, tmstp int64, beneficiary []byte, context *Context) *StatelessBlock {
 	return &StatelessBlock{
 		StatefulBlock: &StatefulBlock{
-			Tmstmp:     tmstp,
-			Prnt:       parent.ID(),
-			Hght:       parent.Height() + 1,
-			Difficulty: context.NextDifficulty,
-			Cost:       context.NextCost,
+			Tmstmp:      tmstp,
+			Prnt:        parent.ID(),
+			Hght:        parent.Height() + 1,
+			Difficulty:  context.NextDifficulty,
+			Cost:        context.NextCost,
+			Beneficiary: beneficiary,
 		},
 		vm: vm,
 		st: choices.Processing,
@@ -117,14 +119,10 @@ func (b *StatelessBlock) ID() ids.ID { return b.id }
 // verify checks the correctness of a block and then returns the
 // *versiondb.Database computed during execution.
 func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) {
-	prnt, err := b.vm.GetBlock(b.Prnt)
+	parent, err := b.vm.GetStatelessBlock(b.Prnt)
 	if err != nil {
 		log.Debug("could not get parent", "id", b.Prnt)
 		return nil, nil, err
-	}
-	parent, ok := prnt.(*StatelessBlock)
-	if !ok {
-		return nil, nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", prnt)
 	}
 
 	if len(b.Txs) == 0 {
@@ -146,6 +144,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	if b.Difficulty != context.NextDifficulty {
 		return nil, nil, ErrInvalidDifficulty
 	}
+
 	parentState, err := parent.onAccept()
 	if err != nil {
 		return nil, nil, err
@@ -156,6 +155,10 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp); err != nil {
 		return nil, nil, err
 	}
+	// Reward producer (if [b.Beneficiary] is non-nil)
+	if err := Reward(onAcceptDB, b.Beneficiary); err != nil {
+		return nil, nil, err
+	}
 
 	// Process new transactions
 	log.Debug("build context", "height", b.Hght, "difficulty", b.Difficulty, "cost", b.Cost)
@@ -164,7 +167,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
 			return nil, nil, err
 		}
-		surplusWork += (tx.Difficulty() - b.Difficulty) * tx.Units()
+		surplusWork += (tx.Difficulty() - b.Difficulty) * tx.FeeUnits()
 	}
 	// Ensure enough work is performed to compensate for block production speed
 	requiredSurplus := b.Difficulty * b.Cost
@@ -178,6 +181,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 func (b *StatelessBlock) Verify() error {
 	parent, onAcceptDB, err := b.verify()
 	if err != nil {
+		log.Debug("block verification failed", "blkID", b.ID(), "error", err)
 		return err
 	}
 	b.onAcceptDB = onAcceptDB

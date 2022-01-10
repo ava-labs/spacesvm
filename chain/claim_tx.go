@@ -8,6 +8,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/crypto"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 var _ UnsignedTransaction = &ClaimTx{}
@@ -44,4 +45,35 @@ func (c *ClaimTx) Execute(db database.Database, blockTime uint64) error {
 		return err
 	}
 	return nil
+}
+
+// [prefixUnits] requires the caller to produce more work to get prefixes of
+// a shorter length because they are more desirable. This creates a "lottery"
+// mechanism where the people that spend the most mining power will win the
+// prefix.
+//
+// [prefixUnits] should only be called on a prefix that is valid
+func prefixUnits(p []byte) uint64 {
+	desirability := parser.MaxKeySize - len(p)
+	if len(p) > ClaimTier2Size {
+		return uint64(desirability * ClaimTier3Multiplier)
+	}
+	if len(p) > ClaimTier1Size {
+		return uint64(desirability * ClaimTier2Multiplier)
+	}
+	return uint64(desirability * ClaimTier1Multiplier)
+}
+
+func (c *ClaimTx) FeeUnits() uint64 {
+	return c.LoadUnits() + prefixUnits(c.Prefix)
+}
+
+func (c *ClaimTx) LoadUnits() uint64 {
+	return c.BaseTx.LoadUnits() * ClaimFeeMultiplier
+}
+
+func (c *ClaimTx) Copy() UnsignedTransaction {
+	return &ClaimTx{
+		BaseTx: c.BaseTx.Copy(),
+	}
 }

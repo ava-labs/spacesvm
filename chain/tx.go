@@ -79,7 +79,7 @@ func CalcDifficulty(utx UnsignedTransaction) ([]byte, uint64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	return b, pow.Difficulty(b) / utx.Units(), nil
+	return b, pow.Difficulty(b) / utx.FeeUnits(), nil
 }
 
 func (t *Transaction) Execute(db database.Database, blockTime int64, context *Context) error {

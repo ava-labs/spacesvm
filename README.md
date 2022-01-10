@@ -14,6 +14,15 @@ TODO: Extend on
 * Prefixes (address prefixes reserved)
 * Hashed Value Keys
 * Prefix Expiry (based on weight of all key-values)
+* Load Units vs Fee Units
+* Lifeline Rewards (why run a node -> don't need to mine)
+
+# RPC
+## /public
+* range query
+
+## /private
+* set beneficiary
 
 # Quick start
 

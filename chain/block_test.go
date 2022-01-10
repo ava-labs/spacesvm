@@ -173,9 +173,9 @@ func createTestBlk(
 	if err := parentBlk.init(); err != nil {
 		t.Fatal(err)
 	}
-	vm.EXPECT().GetBlock(parentBlk.ID()).Return(parentBlk, nil)
+	vm.EXPECT().GetStatelessBlock(parentBlk.ID()).Return(parentBlk, nil)
 
-	blk := NewBlock(vm, parentBlk, blkTmpstp, blkCtx)
+	blk := NewBlock(vm, parentBlk, blkTmpstp, nil, blkCtx)
 	if uint64(blk.StatefulBlock.Tmstmp) != uint64(blkTmpstp) {
 		t.Fatalf("blk.StatefulBlock.Tmstmp expected %d, got %d", blkTmpstp, blk.StatefulBlock.Tmstmp)
 	}
