@@ -29,7 +29,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 	// core mining loop inefficient.
 	var (
 		ready    = make(chan struct{})
-		md       miningData
+		md       *miningData
 		graffiti uint64
 		solution chain.UnsignedTransaction
 	)
@@ -140,7 +140,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 					return err
 				}
 
-				md = miningData{
+				md = &miningData{
 					blockID:       blkID,
 					minDifficulty: diff,
 					minCost:       cost,
