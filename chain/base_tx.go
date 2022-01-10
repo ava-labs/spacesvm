@@ -72,7 +72,7 @@ func (b *BaseTx) Copy() *BaseTx {
 	blockID := ids.ID{}
 	copy(blockID[:], b.BlockID[:])
 	prefix := make([]byte, len(b.Prefix))
-	copy(prefix[:], b.Prefix[:])
+	copy(prefix, b.Prefix)
 	return &BaseTx{
 		Sender:   sender,
 		BlockID:  blockID,

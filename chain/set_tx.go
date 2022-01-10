@@ -115,9 +115,9 @@ func (s *SetTx) LoadUnits() uint64 {
 
 func (s *SetTx) Copy() UnsignedTransaction {
 	key := make([]byte, len(s.Key))
-	copy(key[:], s.Key[:])
+	copy(key, s.Key)
 	value := make([]byte, len(s.Value))
-	copy(value[:], s.Value[:])
+	copy(value, s.Value)
 	return &SetTx{
 		BaseTx: s.BaseTx.Copy(),
 		Key:    key,

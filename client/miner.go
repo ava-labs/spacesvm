@@ -36,7 +36,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 	var (
 		ready     = make(chan struct{})
 		md        *miningData
-		agraffiti uint64 //approximate
+		agraffiti uint64 // approximate graffiti (could be set by any thread)
 		solution  chain.UnsignedTransaction
 	)
 
