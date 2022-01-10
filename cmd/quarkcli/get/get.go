@@ -25,7 +25,6 @@ var (
 	requestTimeout time.Duration
 	limit          uint32
 	withPrefix     bool
-	prefixInfo     bool
 )
 
 // NewCommand implements "quark-cli get" command.
@@ -121,20 +120,12 @@ COMMENT
 		false,
 		"'true' for prefix query",
 	)
-	cmd.PersistentFlags().BoolVar(
-		&prefixInfo,
-		"prefix-info",
-		true,
-		"'true' to print out the prefix owner information",
-	)
 	return cmd
 }
 
 // TODO: move all this to a separate client code
 func getFunc(cmd *cobra.Command, args []string) error {
 	pfx, key, rangeEnd := getGetOp(args, withPrefix)
-
-	color.Blue("creating requester with URI %s for prefix %q", uri, pfx)
 	cli := client.New(uri, requestTimeout)
 
 	opts := []client.OpOption{}
@@ -155,13 +146,6 @@ func getFunc(cmd *cobra.Command, args []string) error {
 		fmt.Printf("key: %q, value: %q\n", kv.Key, kv.Value)
 	}
 
-	if prefixInfo {
-		info, err := cli.PrefixInfo(pfx)
-		if err != nil {
-			color.Red("cannot get prefix info %v", err)
-		}
-		color.Blue("prefix %q info %+v", pfx, info)
-	}
 	return nil
 }
 

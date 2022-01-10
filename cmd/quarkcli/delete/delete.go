@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/quarkvm/chain"
@@ -125,8 +124,6 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	pfx, key := getDeleteOp(args)
-
-	color.Blue("creating requester with URI %s for prefix %q", uri, pfx)
 	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.SetTx{
@@ -142,9 +139,7 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 	if prefixInfo {
 		opts = append(opts, client.WithPrefixInfo(pfx))
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	_, err = client.MineSignIssueTx(ctx, cli, utx, priv, opts...)
-	cancel()
+	_, err = client.MineSignIssueTx(context.Background(), cli, utx, priv, opts...)
 	return err
 }
 

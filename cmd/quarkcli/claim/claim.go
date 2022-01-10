@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/quarkvm/chain"
@@ -104,8 +103,6 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	pfx := getClaimOp(args)
-
-	color.Blue("creating requester with URI %s for prefix %q", uri, pfx)
 	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.ClaimTx{
@@ -119,9 +116,7 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	if prefixInfo {
 		opts = append(opts, client.WithPrefixInfo(pfx))
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	_, err = client.MineSignIssueTx(ctx, cli, utx, priv, opts...)
-	cancel()
+	_, err = client.MineSignIssueTx(context.Background(), cli, utx, priv, opts...)
 	return err
 }
 
