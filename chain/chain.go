@@ -15,7 +15,7 @@ const (
 
 	// SetTx params
 	ValueUnitSize = 256             // 256B
-	MaxValueSize  = 512 * units.KiB // (2000 Units)
+	MaxValueSize  = 128 * units.KiB // (500 Units)
 
 	// Claim Params
 	ClaimFeeMultiplier   = 5

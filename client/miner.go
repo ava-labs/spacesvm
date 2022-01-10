@@ -25,7 +25,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 
 		blockID       ids.ID
 		minDifficulty uint64
-		minSurplus    uint64
+		minCost       uint64
 
 		solution chain.UnsignedTransaction
 	)
@@ -60,7 +60,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 				l.RUnlock()
 				return err
 			}
-			if utxd >= minDifficulty && (utxd-minDifficulty)*utx.FeeUnits() >= minSurplus {
+			if utxd >= minDifficulty && (utxd-minDifficulty)*utx.FeeUnits() >= minCost*minDifficulty {
 				l.RUnlock()
 				solution = utx
 				cancel()
@@ -81,15 +81,25 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 			return gctx.Err()
 		}
 
+		// Inline function so that we don't need to copy variables around and/or
+		// make execution context with locks
+		printETA := func() {
+			l.RLock()
+			// Assumes each additional unit of difficulty is ~1ms of compute
+			eta := time.Duration(utx.FeeUnits()*minDifficulty) * time.Millisecond
+			color.Yellow(
+				"mining in progress... (fee units=%d, min surplus=%d, ETA=%v)",
+				utx.FeeUnits(), minDifficulty*minCost, eta,
+			)
+			l.RUnlock()
+		}
+
 		t := time.NewTimer(3 * time.Second)
+		printETA()
 		for {
 			select {
 			case <-t.C:
-				l.RLock()
-				// Assumes each additional unit of difficulty is ~1ms of compute
-				eta := time.Duration(utx.FeeUnits()*minDifficulty) * time.Millisecond
-				color.Yellow("mining in progress...(fee units=%d ETA=%v)", utx.FeeUnits(), eta)
-				l.RUnlock()
+				printETA()
 			case <-gctx.Done():
 				return gctx.Err()
 			}
@@ -107,7 +117,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 				if err != nil {
 					return err
 				}
-				diff, surplus, err := cli.EstimateDifficulty()
+				diff, cost, err := cli.EstimateDifficulty()
 				if err != nil {
 					return err
 				}
@@ -115,7 +125,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 				l.Lock()
 				blockID = blkID
 				minDifficulty = diff
-				minSurplus = surplus
+				minCost = cost
 				l.Unlock()
 
 				if !readyClosed {
