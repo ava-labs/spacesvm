@@ -5,7 +5,6 @@ package client
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -15,20 +14,23 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 )
 
+type miningData struct {
+	blockID       ids.ID
+	minDifficulty uint64
+	minCost       uint64
+}
+
 func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error) {
 	now := time.Now()
 	ctx, cancel := context.WithCancel(ctx)
 	g, gctx := errgroup.WithContext(ctx)
 
+	// We purposely do not lock around any of these values because it makes the
+	// core mining loop inefficient.
 	var (
-		ready         = make(chan struct{})
-		dl            = sync.RWMutex{}
-		blockID       ids.ID
-		minDifficulty uint64
-		minCost       uint64
-
+		ready    = make(chan struct{})
+		md       miningData
 		graffiti uint64
-
 		solution chain.UnsignedTransaction
 	)
 
@@ -41,36 +43,32 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 			return gctx.Err()
 		}
 
-		lastBlk := blockID
+		lastBlk := md.blockID
 		for gctx.Err() == nil {
-			dl.RLock()
-			bID := blockID
-			md := minDifficulty
-			mc := minCost
-			dl.RUnlock()
-
+			cmd := md
 			// Reset graffiti when block has been updated
 			//
 			// Note: We always want to use the newest BlockID when mining to maximize
 			// the probability our transaction will get into a block before it
 			// expires.
-			if bID != lastBlk {
-				lastBlk = bID
+			if cmd.blockID != lastBlk {
+				lastBlk = cmd.blockID
 				graffiti = 0
 			}
 
 			// Try new graffiti
-			utx.SetBlockID(bID)
+			utx.SetBlockID(cmd.blockID)
 			utx.SetGraffiti(graffiti)
 			_, utxd, err := chain.CalcDifficulty(utx)
 			if err != nil {
 				return err
 			}
-			if utxd >= md && (utxd-md)*utx.FeeUnits() >= mc*md {
+			if utxd >= cmd.minDifficulty &&
+				(utxd-cmd.minDifficulty)*utx.FeeUnits() >= cmd.minDifficulty*cmd.minCost {
 				solution = utx
 				color.Green(
 					"mining complete[%d] (difficulty=%d, surplus=%d, t=%v)",
-					graffiti, utxd, (utxd-minDifficulty)*solution.FeeUnits(), time.Since(now),
+					graffiti, utxd, (utxd-cmd.minDifficulty)*solution.FeeUnits(), time.Since(now),
 				)
 				cancel()
 				return nil
@@ -99,13 +97,9 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 				return
 			}
 
-			dl.RLock()
-			md := minDifficulty
-			bID := blockID
-			dl.RUnlock()
-
 			// Assumes each additional unit of difficulty is ~1ms of compute
-			eta := time.Duration(utx.FeeUnits()*md) * time.Millisecond * 2 // overestimate by 2
+			cmd := md
+			eta := time.Duration(utx.FeeUnits()*cmd.minDifficulty) * time.Millisecond * 2 // overestimate by 2
 			diff := time.Since(now)
 			if diff > eta {
 				eta = 0
@@ -114,7 +108,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 			}
 			color.Yellow(
 				"mining in progress[%s/%d]... (ETA=%v)",
-				bID, graffiti, eta,
+				cmd.blockID, graffiti, eta,
 			)
 		}
 
@@ -146,11 +140,11 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 					return err
 				}
 
-				dl.Lock()
-				blockID = blkID
-				minDifficulty = diff
-				minCost = cost
-				dl.Unlock()
+				md = miningData{
+					blockID:       blkID,
+					minDifficulty: diff,
+					minCost:       cost,
+				}
 
 				if !readyClosed {
 					close(ready)
