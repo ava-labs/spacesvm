@@ -121,6 +121,18 @@ func (mr *MockVMMockRecorder) Rejected(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rejected", reflect.TypeOf((*MockVM)(nil).Rejected), arg0)
 }
 
+// SetBeneficiary mocks base method.
+func (m *MockVM) SetBeneficiary(prefix []byte) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetBeneficiary", prefix)
+}
+
+// SetBeneficiary indicates an expected call of SetBeneficiary.
+func (mr *MockVMMockRecorder) SetBeneficiary(prefix interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBeneficiary", reflect.TypeOf((*MockVM)(nil).SetBeneficiary), prefix)
+}
+
 // State mocks base method.
 func (m *MockVM) State() database.Database {
 	m.ctrl.T.Helper()

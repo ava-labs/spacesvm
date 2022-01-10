@@ -196,8 +196,8 @@ type SetBeneficiaryArgs struct {
 	Beneficiary []byte `serialize:"true" json:"beneficiary"`
 }
 
+// TODO: move to admin api
 func (svc *Service) SetBeneficiary(_ *http.Request, args *SetBeneficiaryArgs, _ interface{}) error {
-	// TODO: move to admin api
 	svc.vm.SetBeneficiary(args.Beneficiary)
 	return nil
 }
