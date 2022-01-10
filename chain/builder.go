@@ -31,7 +31,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		log.Debug("block building failed: couldn't get execution context", "err", err)
 		return nil, err
 	}
-	b := NewBlock(vm, parent, nextTime, context)
+	b := NewBlock(vm, parent, nextTime, vm.Beneficiary(), context)
 
 	// Select new transactions
 	parentDB, err := parent.onAccept()
@@ -41,7 +41,18 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	}
 	mempool := vm.Mempool()
 	mempool.Prune(context.RecentBlockIDs) // clean out invalid txs
+
+	// TODO: move all this setup somewhere shared
 	vdb := versiondb.New(parentDB)
+	// Remove all expired prefixes
+	if err := ExpireNext(vdb, parent.Tmstmp, b.Tmstmp); err != nil {
+		return nil, err
+	}
+	// Reward producer (if [b.Reward] is non-nil)
+	if err := Reward(vdb, b.Reward); err != nil {
+		return nil, err
+	}
+
 	b.Txs = []*Transaction{}
 	units := uint64(0)
 	for units < TargetUnits && mempool.Len() > 0 {
@@ -64,6 +75,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		b.Txs = append(b.Txs, next)
 		units += next.LoadUnits()
 	}
+	vdb.Abort()
 
 	// Compute block hash and marshaled representation
 	if err := b.init(); err != nil {

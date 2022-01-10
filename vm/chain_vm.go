@@ -42,6 +42,10 @@ func (vm *VM) Accepted(b *chain.StatelessBlock) {
 	log.Debug("accepted block", "id", b.ID())
 }
 
+func (vm *VM) Beneficiary() []byte {
+	return vm.beneficiary
+}
+
 func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) (*chain.Context, error) {
 	recentBlockIDs := ids.Set{}
 	recentTxIDs := ids.Set{}

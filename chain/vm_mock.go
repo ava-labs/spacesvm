@@ -51,6 +51,20 @@ func (mr *MockVMMockRecorder) Accepted(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Accepted", reflect.TypeOf((*MockVM)(nil).Accepted), arg0)
 }
 
+// Beneficiary mocks base method.
+func (m *MockVM) Beneficiary() []byte {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Beneficiary")
+	ret0, _ := ret[0].([]byte)
+	return ret0
+}
+
+// Beneficiary indicates an expected call of Beneficiary.
+func (mr *MockVMMockRecorder) Beneficiary() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Beneficiary", reflect.TypeOf((*MockVM)(nil).Beneficiary))
+}
+
 // ExecutionContext mocks base method.
 func (m *MockVM) ExecutionContext(currentTime int64, parent *StatelessBlock) (*Context, error) {
 	m.ctrl.T.Helper()

@@ -33,6 +33,7 @@ func TestBlock(t *testing.T) {
 						st: choices.Processing,
 					},
 					2,
+					nil,
 					&Context{NextDifficulty: 1, NextCost: 1},
 					nil,
 					0,
@@ -54,6 +55,7 @@ func TestBlock(t *testing.T) {
 						st: choices.Processing,
 					},
 					1,
+					nil,
 					&Context{NextDifficulty: 1, NextCost: 1},
 					nil,
 					1,
@@ -75,6 +77,7 @@ func TestBlock(t *testing.T) {
 						st: choices.Processing,
 					},
 					int64(futureBound+time.Hour),
+					nil,
 					&Context{NextDifficulty: 1, NextCost: 1},
 					nil,
 					1,
@@ -96,6 +99,7 @@ func TestBlock(t *testing.T) {
 						st: choices.Processing,
 					},
 					2,
+					nil,
 					&Context{NextDifficulty: 1, NextCost: 1},
 					&Context{NextDifficulty: 1, NextCost: 1},
 					1,
@@ -117,6 +121,7 @@ func TestBlock(t *testing.T) {
 						st: choices.Accepted,
 					},
 					2,
+					nil,
 					&Context{NextDifficulty: 1, NextCost: 1},
 					&Context{NextDifficulty: 1, NextCost: 1000},
 					1,
@@ -138,6 +143,7 @@ func TestBlock(t *testing.T) {
 						st: choices.Accepted,
 					},
 					2,
+					nil,
 					&Context{NextDifficulty: 1, NextCost: 1},
 					&Context{NextDifficulty: 1000, NextCost: 1},
 					1,
@@ -160,6 +166,7 @@ func createTestBlk(
 	t *testing.T,
 	parentBlk *StatelessBlock,
 	blkTmpstp int64,
+	beneficiary []byte,
 	blkCtx *Context,
 	execCtx *Context,
 	txsN int,
@@ -175,7 +182,7 @@ func createTestBlk(
 	}
 	vm.EXPECT().GetBlock(parentBlk.ID()).Return(parentBlk, nil)
 
-	blk := NewBlock(vm, parentBlk, blkTmpstp, blkCtx)
+	blk := NewBlock(vm, parentBlk, blkTmpstp, beneficiary, blkCtx)
 	if uint64(blk.StatefulBlock.Tmstmp) != uint64(blkTmpstp) {
 		t.Fatalf("blk.StatefulBlock.Tmstmp expected %d, got %d", blkTmpstp, blk.StatefulBlock.Tmstmp)
 	}

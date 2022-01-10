@@ -25,6 +25,9 @@ const (
 	ClaimTier1Size       = 12
 	ClaimTier1Multiplier = 25
 
+	// Lifeline Params
+	PrefixRenewalDiscount = 5
+
 	// Fee Mechanism Params
 	LookbackWindow = 60                                               // 60 Seconds
 	BlockTarget    = 1                                                // 1 Block per Second

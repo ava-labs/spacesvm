@@ -15,7 +15,11 @@ TODO: Extend on
 * Hashed Value Keys
 * Prefix Expiry (based on weight of all key-values)
 * Load Units vs Fee Units
-* Lifeline Rewards
+* Lifeline Rewards (why run a node -> don't need to mine)
+
+# RPC
+* range query
+* set beneficiary
 
 # Quick start
 

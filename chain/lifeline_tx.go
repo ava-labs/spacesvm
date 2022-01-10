@@ -13,17 +13,22 @@ type LifelineTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 }
 
-func (l *LifelineTx) Execute(db database.Database, blockTime uint64) error {
-	i, has, err := GetPrefixInfo(db, l.Prefix)
+func addLife(db database.Database, prefix []byte) error {
+	i, has, err := GetPrefixInfo(db, prefix)
 	if err != nil {
 		return err
 	}
-	// Cannot add lifeline to missing prefix
+	// Cannot add time to missing prefix
 	if !has {
 		return ErrPrefixMissing
 	}
 	// Lifeline spread across all units
 	lastExpiry := i.Expiry
-	i.Expiry += ExpiryTime / i.Units
-	return PutPrefixInfo(db, l.Prefix, i, lastExpiry)
+	prefixPenalty := prefixUnits(prefix) / PrefixRenewalDiscount
+	i.Expiry += ExpiryTime / i.Units / prefixUnits(prefix) / prefixPenalty
+	return PutPrefixInfo(db, prefix, i, lastExpiry)
+}
+
+func (l *LifelineTx) Execute(db database.Database, blockTime uint64) error {
+	return addLife(db, l.Prefix)
 }

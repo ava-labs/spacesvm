@@ -191,3 +191,12 @@ func (svc *Service) Range(_ *http.Request, args *RangeArgs, reply *RangeReply) (
 	reply.KeyValues = kvs
 	return nil
 }
+
+type SetBeneficiaryArgs struct {
+	Beneficiary []byte `serialize:"true" json:"beneficiary"`
+}
+
+func (svc *Service) SetBeneficiary(_ *http.Request, args *SetBeneficiaryArgs, _ interface{}) error {
+	svc.vm.beneficiary = args.Beneficiary
+	return nil
+}

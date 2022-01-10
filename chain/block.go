@@ -27,6 +27,7 @@ type StatefulBlock struct {
 	Difficulty uint64         `serialize:"true" json:"difficulty"` // difficulty per unit
 	Cost       uint64         `serialize:"true" json:"cost"`
 	Txs        []*Transaction `serialize:"true" json:"txs"`
+	Reward     []byte         `serialize:"true" json:"reward"` // prefix to reward
 }
 
 // Stateless is defined separately from "Block"
@@ -45,7 +46,7 @@ type StatelessBlock struct {
 	onAcceptDB *versiondb.Database
 }
 
-func NewBlock(vm VM, parent snowman.Block, tmstp int64, context *Context) *StatelessBlock {
+func NewBlock(vm VM, parent snowman.Block, tmstp int64, reward []byte, context *Context) *StatelessBlock {
 	return &StatelessBlock{
 		StatefulBlock: &StatefulBlock{
 			Tmstmp:     tmstp,
@@ -53,6 +54,7 @@ func NewBlock(vm VM, parent snowman.Block, tmstp int64, context *Context) *State
 			Hght:       parent.Height() + 1,
 			Difficulty: context.NextDifficulty,
 			Cost:       context.NextCost,
+			Reward:     reward,
 		},
 		vm: vm,
 		st: choices.Processing,
@@ -154,6 +156,11 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 
 	// Remove all expired prefixes
 	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp); err != nil {
+		return nil, nil, err
+	}
+
+	// Reward producer (if [b.Reward] is non-nil)
+	if err := Reward(onAcceptDB, b.Reward); err != nil {
 		return nil, nil, err
 	}
 

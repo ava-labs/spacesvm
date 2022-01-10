@@ -64,6 +64,20 @@ func (mr *MockMempoolMockRecorder) Len() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Len", reflect.TypeOf((*MockMempool)(nil).Len))
 }
 
+// NewTxs mocks base method.
+func (m *MockMempool) NewTxs(arg0 uint64) []*Transaction {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewTxs", arg0)
+	ret0, _ := ret[0].([]*Transaction)
+	return ret0
+}
+
+// NewTxs indicates an expected call of NewTxs.
+func (mr *MockMempoolMockRecorder) NewTxs(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewTxs", reflect.TypeOf((*MockMempool)(nil).NewTxs), arg0)
+}
+
 // PopMax mocks base method.
 func (m *MockMempool) PopMax() (*Transaction, uint64) {
 	m.ctrl.T.Helper()

@@ -85,6 +85,10 @@ type VM struct {
 	minDifficulty uint64
 	minBlockCost  uint64
 
+	// beneficiary is the prefix that will receive rewards if the node produces
+	// a block
+	beneficiary []byte
+
 	stop chan struct{}
 
 	builderStop chan struct{}
