@@ -24,8 +24,7 @@ func init() {
 
 var (
 	privateKeyFile string
-	url            string
-	endpoint       string
+	uri            string
 	requestTimeout time.Duration
 	prefixInfo     bool
 )
@@ -94,16 +93,10 @@ COMMENT
 		"private key file path",
 	)
 	cmd.PersistentFlags().StringVar(
-		&url,
-		"url",
-		"http://127.0.0.1:9650",
-		"RPC URL for VM",
-	)
-	cmd.PersistentFlags().StringVar(
-		&endpoint,
+		&uri,
 		"endpoint",
-		"",
-		"RPC endpoint for VM",
+		"http://127.0.0.1:9650",
+		"RPC Endpoint for VM",
 	)
 	cmd.PersistentFlags().DurationVar(
 		&requestTimeout,
@@ -133,8 +126,8 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 
 	pfx, key := getDeleteOp(args)
 
-	color.Blue("creating requester with URL %s and endpoint %q for prefix %q and key %q", url, endpoint, pfx, key)
-	cli := client.New(url, endpoint, requestTimeout)
+	color.Blue("creating requester with URI %s for prefix %q", uri, pfx)
+	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.SetTx{
 		BaseTx: &chain.BaseTx{

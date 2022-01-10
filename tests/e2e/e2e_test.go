@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"flag"
-	"path"
 	"strings"
 	"syscall"
 	"testing"
@@ -19,7 +18,6 @@ import (
 	"github.com/ava-labs/quarkvm/client"
 	"github.com/ava-labs/quarkvm/parser"
 	"github.com/ava-labs/quarkvm/tests"
-	"github.com/ava-labs/quarkvm/vm"
 	"github.com/fatih/color"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -96,10 +94,10 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	instances = make([]instance, n)
 	for i := range instances {
-		u := clusterInfo.URIs[i]
+		u := clusterInfo.URIs[i] + clusterInfo.Endpoint
 		instances[i] = instance{
 			uri: u,
-			cli: client.New(u, path.Join(clusterInfo.Endpoint, vm.PublicEndpoint), requestTimeout),
+			cli: client.New(u, requestTimeout),
 		}
 	}
 	color.Blue("created clients with %+v", clusterInfo)

@@ -79,8 +79,7 @@ kill 12811
 ```bash
 ./build/quark-cli \
 --private-key-file .quark-cli-pk \
---url http://127.0.0.1:9650 \
---endpoint /ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM  \
+--endpoint http://127.0.0.1:9650/ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM  \
 claim pat
 
 >>>>>
@@ -104,10 +103,10 @@ goos: darwin
 goarch: amd64
 pkg: github.com/ava-labs/quarkvm/pow
 cpu: Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz
-BenchmarkDifficulty1-16       	 1145233	      1047 ns/op
-BenchmarkDifficulty10-16      	  113216	     10335 ns/op
-BenchmarkDifficulty50-16      	   23011	     52336 ns/op
-BenchmarkDifficulty100-16     	   11540	    102029 ns/op
-BenchmarkDifficulty500-16     	    1962	    535265 ns/op
-BenchmarkDifficulty1000-16    	    1132	   1082758 ns/op
+BenchmarkDifficulty1-16       	    1300	    921956 ns/op
+BenchmarkDifficulty10-16      	     100	  11083185 ns/op
+BenchmarkDifficulty50-16      	     100	  50243796 ns/op
+BenchmarkDifficulty100-16     	      12	  84529354 ns/op
+BenchmarkDifficulty500-16     	       7	 251526615 ns/op
+BenchmarkDifficulty1000-16    	       7	 571905766 ns/op
 ```

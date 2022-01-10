@@ -158,7 +158,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			vm:         v,
 			toEngine:   toEngine,
 			httpServer: httpServer,
-			cli:        client.New(httpServer.URL, "", requestTimeout),
+			cli:        client.New(httpServer.URL, requestTimeout),
 			builder:    mb,
 		}
 	}

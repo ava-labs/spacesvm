@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -26,8 +25,7 @@ func init() {
 
 var (
 	privateKeyFile string
-	url            string
-	endpoint       string
+	uri            string
 	requestTimeout time.Duration
 	prefixInfo     bool
 )
@@ -74,16 +72,10 @@ COMMENT
 		"private key file path",
 	)
 	cmd.PersistentFlags().StringVar(
-		&url,
-		"url",
-		"http://127.0.0.1:9650",
-		"RPC URL for VM",
-	)
-	cmd.PersistentFlags().StringVar(
-		&endpoint,
+		&uri,
 		"endpoint",
-		"",
-		"RPC endpoint for VM",
+		"http://127.0.0.1:9650",
+		"RPC Endpoint for VM",
 	)
 	cmd.PersistentFlags().DurationVar(
 		&requestTimeout,
@@ -113,11 +105,8 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 
 	pfx := getClaimOp(args)
 
-	if !strings.HasPrefix(endpoint, "/") {
-		endpoint = "/" + endpoint
-	}
-	color.Blue("creating requester with URL %s and endpoint %q for prefix %q", url, endpoint, pfx)
-	cli := client.New(url, endpoint, requestTimeout)
+	color.Blue("creating requester with URI %s for prefix %q", uri, pfx)
+	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.ClaimTx{
 		BaseTx: &chain.BaseTx{
