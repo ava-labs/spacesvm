@@ -88,6 +88,7 @@ type instance struct {
 	toEngine   chan common.Message
 	httpServer *httptest.Server
 	cli        client.Client // clients for embedded VMs
+	builder    *vm.ManualBuilder
 }
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -140,9 +141,11 @@ var _ = ginkgo.BeforeSuite(func() {
 		)
 		gomega.Ω(err).Should(gomega.BeNil())
 
-		// never trigger periodic batch gossip/block builds
-		// to make testing more deterministic
-		v.SetWorkInterval(24 * time.Hour)
+		var mb *vm.ManualBuilder
+		v.SetBlockBuilder(func() vm.BlockBuilder {
+			mb = v.NewManualBuilder()
+			return mb
+		})
 
 		var hd map[string]*common.HTTPHandler
 		hd, err = v.CreateHandlers()
@@ -155,6 +158,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			toEngine:   toEngine,
 			httpServer: httpServer,
 			cli:        client.New(httpServer.URL, "", requestTimeout),
+			builder:    mb,
 		}
 	}
 
@@ -207,12 +211,15 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		})
 
 		ginkgo.By("send gossip from node 0 to 1", func() {
-			err := instances[0].vm.GossipTxs(false)
+			newTxs := instances[0].vm.Mempool().NewTxs(chain.TargetUnits)
+			gomega.Ω(len(newTxs)).To(gomega.Equal(1))
+
+			err := instances[0].vm.Network().GossipNewTxs(newTxs)
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
 
 		ginkgo.By("receive gossip in the node 1, and signal block build", func() {
-			instances[1].vm.NotifyBlockReady()
+			instances[1].builder.NotifyBuild()
 			<-instances[1].toEngine
 		})
 
@@ -267,7 +274,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		}
 
 		ginkgo.By("mine and accept block with the first ClaimTx", func() {
-			mineAndExpectBlkAccept(instances[0].cli, instances[0].vm, claimTx, instances[0].toEngine)
+			mineAndExpectBlkAccept(instances[0], claimTx)
 		})
 
 		ginkgo.By("check prefix after ClaimTx has been accepted", func() {
@@ -291,7 +298,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		time.Sleep(5 * time.Second)
 
 		ginkgo.By("mine and accept block with a new SetTx", func() {
-			mineAndExpectBlkAccept(instances[0].cli, instances[0].vm, setTx, instances[0].toEngine)
+			mineAndExpectBlkAccept(instances[0], setTx)
 		})
 
 		ginkgo.By("read back from VM with range query", func() {
@@ -320,7 +327,10 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 		// since the block from previous test spec has not been replicated yet
 		ginkgo.By("send gossip from node 0 to 1 should fail on server-side since 1 doesn't have the block yet", func() {
-			err := instances[0].vm.GossipTxs(false)
+			newTxs := instances[0].vm.Mempool().NewTxs(chain.TargetUnits)
+			gomega.Ω(len(newTxs)).To(gomega.Equal(1))
+
+			err := instances[0].vm.Network().GossipNewTxs(newTxs)
 			gomega.Ω(err).Should(gomega.BeNil())
 
 			// mempool in 1 should be empty, since gossip/submit failed
@@ -332,15 +342,13 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 })
 
 func mineAndExpectBlkAccept(
-	cli client.Client,
-	vm *vm.VM,
+	i instance,
 	rtx chain.UnsignedTransaction,
-	toEngine <-chan common.Message,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	diff, cost, err := cli.EstimateDifficulty()
+	diff, cost, err := i.cli.EstimateDifficulty()
 	gomega.Ω(err).Should(gomega.BeNil())
-	utx, err := cli.Mine(ctx, rtx, diff, cost)
+	utx, err := i.cli.Mine(ctx, rtx, diff, cost)
 	cancel()
 	gomega.Ω(err).Should(gomega.BeNil())
 
@@ -356,27 +364,27 @@ func mineAndExpectBlkAccept(
 
 	// or to use VM directly
 	// err = vm.Submit(tx)
-	_, err = cli.IssueTx(tx.Bytes())
+	_, err = i.cli.IssueTx(tx.Bytes())
 	gomega.Ω(err).To(gomega.BeNil())
 
 	// manually signal ready
-	vm.NotifyBlockReady()
+	i.builder.NotifyBuild()
 	// manually ack ready sig as in engine
-	<-toEngine
+	<-i.toEngine
 
-	blk, err := vm.BuildBlock()
+	blk, err := i.vm.BuildBlock()
 	gomega.Ω(err).To(gomega.BeNil())
 
 	gomega.Ω(blk.Verify()).To(gomega.BeNil())
 	gomega.Ω(blk.Status()).To(gomega.Equal(choices.Processing))
 
-	err = vm.SetPreference(blk.ID())
+	err = i.vm.SetPreference(blk.ID())
 	gomega.Ω(err).To(gomega.BeNil())
 
 	gomega.Ω(blk.Accept()).To(gomega.BeNil())
 	gomega.Ω(blk.Status()).To(gomega.Equal(choices.Accepted))
 
-	lastAccepted, err := vm.LastAccepted()
+	lastAccepted, err := i.vm.LastAccepted()
 	gomega.Ω(err).To(gomega.BeNil())
 	gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
 }

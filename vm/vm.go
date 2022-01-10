@@ -31,8 +31,9 @@ import (
 const (
 	Name = "quarkvm"
 
-	defaultWorkInterval     = 100 * time.Millisecond
-	defaultRegossipInterval = time.Second
+	defaultBuildInterval    = 500 * time.Millisecond
+	defaultGossipInterval   = 1 * time.Second
+	defaultRegossipInterval = 30 * time.Second
 
 	defaultPruneLimit        = 128
 	defaultPruneInterval     = time.Minute
@@ -53,16 +54,18 @@ type VM struct {
 	ctx *snow.Context
 	db  database.Database
 
-	workInterval     time.Duration
+	buildInterval    time.Duration
+	gossipInterval   time.Duration
 	regossipInterval time.Duration
 
 	pruneLimit        int
 	pruneInterval     time.Duration
 	fullPruneInterval time.Duration
 
-	mempool     *mempool.Mempool
-	appSender   common.AppSender
-	gossipedTxs *cache.LRU
+	mempool   *mempool.Mempool
+	appSender common.AppSender
+	network   *PushNetwork
+
 	// cache block objects to optimize "getBlock"
 	// only put when a block is accepted
 	// key: block ID, value: *chain.StatelessBlock
@@ -74,8 +77,7 @@ type VM struct {
 	verifiedBlocks map[ids.ID]*chain.StatelessBlock
 
 	toEngine chan<- common.Message
-	// signaled when "BuildBlock" is triggered by the engine
-	blockBuilder chan struct{}
+	builder  BlockBuilder
 
 	preferred    ids.ID
 	lastAccepted *chain.StatelessBlock
@@ -83,15 +85,17 @@ type VM struct {
 	minDifficulty uint64
 	minBlockCost  uint64
 
-	stopc         chan struct{}
-	donecRun      chan struct{}
-	donecRegossip chan struct{}
-	donecPrune    chan struct{}
+	stop chan struct{}
+
+	builderStop chan struct{}
+	doneBuild   chan struct{}
+	doneGossip  chan struct{}
+
+	donePrune chan struct{}
 }
 
 const (
-	gossipedTxsLRUSize = 512
-	blocksLRUSize      = 100
+	blocksLRUSize = 100
 )
 
 // implements "snowmanblock.ChainVM.common.VM"
@@ -110,8 +114,16 @@ func (vm *VM) Initialize(
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
 
+	// Init channels before initializing other structs
+	vm.stop = make(chan struct{})
+	vm.builderStop = make(chan struct{})
+	vm.doneBuild = make(chan struct{})
+	vm.doneGossip = make(chan struct{})
+	vm.donePrune = make(chan struct{})
+
 	// TODO: make this configurable via config
-	vm.workInterval = defaultWorkInterval
+	vm.buildInterval = defaultBuildInterval
+	vm.gossipInterval = defaultGossipInterval
 	vm.regossipInterval = defaultRegossipInterval
 	vm.pruneLimit = defaultPruneLimit
 	vm.pruneInterval = defaultPruneInterval
@@ -122,13 +134,13 @@ func (vm *VM) Initialize(
 
 	vm.mempool = mempool.New(mempoolSize)
 	vm.appSender = appSender
-	vm.gossipedTxs = &cache.LRU{Size: gossipedTxsLRUSize}
-	vm.blocks = &cache.LRU{Size: blocksLRUSize}
+	vm.network = vm.NewPushNetwork()
 
+	vm.blocks = &cache.LRU{Size: blocksLRUSize}
 	vm.verifiedBlocks = make(map[ids.ID]*chain.StatelessBlock)
 
 	vm.toEngine = toEngine
-	vm.blockBuilder = make(chan struct{}, 1)
+	vm.builder = vm.NewTimeBuilder()
 
 	// Try to load last accepted
 	has, err := chain.HasLastAccepted(vm.db)
@@ -170,13 +182,8 @@ func (vm *VM) Initialize(
 		log.Info("initialized quarkvm from genesis", "block", gBlkID)
 	}
 
-	vm.stopc = make(chan struct{})
-	vm.donecRun = make(chan struct{})
-	vm.donecRegossip = make(chan struct{})
-	vm.donecPrune = make(chan struct{})
-
-	go vm.run()
-	go vm.regossip()
+	go vm.builder.Build()
+	go vm.builder.Gossip()
 	go vm.prune()
 	return nil
 }
@@ -193,10 +200,10 @@ func (vm *VM) Bootstrapped() error {
 
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Shutdown() error {
-	close(vm.stopc)
-	<-vm.donecRun
-	<-vm.donecRegossip
-	<-vm.donecPrune
+	close(vm.stop)
+	<-vm.doneBuild
+	<-vm.doneGossip
+	<-vm.donePrune
 	if vm.ctx == nil {
 		return nil
 	}
@@ -319,16 +326,13 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 func (vm *VM) BuildBlock() (snowman.Block, error) {
 	log.Debug("BuildBlock triggered")
 	blk, err := chain.BuildBlock(vm, vm.preferred)
+	vm.builder.HandleGenerateBlock()
 	if err != nil {
 		log.Debug("BuildBlock failed", "error", err)
 		return nil, err
 	}
 
 	log.Debug("BuildBlock success", "blockId", blk.ID())
-	select {
-	case vm.blockBuilder <- struct{}{}:
-	default:
-	}
 	return blk, nil
 }
 
@@ -347,7 +351,6 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 		return []error{err}
 	}
 	vdb := versiondb.New(vm.db)
-	defer vdb.Close() // TODO: need to do everywhere?
 
 	// Expire outdated prefixes before checking submission validity
 	if err := chain.ExpireNext(vdb, sblk.Tmstmp, now); err != nil {
@@ -355,12 +358,12 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 	}
 
 	for _, tx := range txs {
-		if serr := vm.submit(tx, vdb, now, ctx); serr != nil {
+		if err := vm.submit(tx, vdb, now, ctx); err != nil {
 			log.Debug("failed to submit transaction",
 				"tx", tx.ID(),
-				"error", serr,
+				"error", err,
 			)
-			errs = append(errs, serr)
+			errs = append(errs, err)
 			continue
 		}
 		vdb.Abort()

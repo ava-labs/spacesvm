@@ -12,10 +12,8 @@ import (
 type VM interface {
 	State() database.Database
 	Mempool() Mempool
-
 	GetBlock(ids.ID) (snowman.Block, error)
 	ExecutionContext(currentTime int64, parent *StatelessBlock) (*Context, error)
-
 	Verified(*StatelessBlock)
 	Rejected(*StatelessBlock)
 	Accepted(*StatelessBlock)
