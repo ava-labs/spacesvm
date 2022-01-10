@@ -13,13 +13,13 @@ import (
 
 func TestMempool(t *testing.T) {
 	txm := mempool.New(4)
-	for _, i := range []int{1, 2, 3} { // difficulty 2, 3, 0
+	for _, i := range []int{200, 220, 250} {
 		tx := &chain.Transaction{
-			Signature: bytes.Repeat([]byte{'a'}, i*10),
+			Signature: bytes.Repeat([]byte{'a'}, i),
 			UnsignedTransaction: &chain.SetTx{
 				BaseTx: &chain.BaseTx{
-					Prefix:   bytes.Repeat([]byte{'b'}, i*10),
-					Graffiti: 4,
+					Prefix:   bytes.Repeat([]byte{'b'}, i),
+					Graffiti: 28829,
 				},
 			},
 		}
@@ -30,8 +30,8 @@ func TestMempool(t *testing.T) {
 			t.Fatalf("tx %s was not added", tx.ID())
 		}
 	}
-	if _, diff := txm.PeekMax(); diff != 1 {
-		t.Fatalf("difficulty expected 1, got %d", diff)
+	if _, diff := txm.PeekMax(); diff != 3 {
+		t.Fatalf("difficulty expected 3, got %d", diff)
 	}
 	if _, diff := txm.PeekMin(); diff != 0 {
 		t.Fatalf("difficulty expected 0, got %d", diff)
