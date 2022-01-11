@@ -157,11 +157,15 @@ func TestRange(t *testing.T) {
 	}
 
 	for i := 0; i < 5; i++ {
+		id := ids.GenerateTestID()
+		if err := db.Put(PrefixTxValueKey(id), []byte(fmt.Sprintf("bar%05d", i))); err != nil {
+			t.Fatal(err)
+		}
 		if err := PutPrefixKey(
 			db,
 			pfx,
 			[]byte(fmt.Sprintf("hello%05d", i)),
-			[]byte(fmt.Sprintf("bar%05d", i)),
+			id[:],
 		); err != nil {
 			t.Fatal(err)
 		}

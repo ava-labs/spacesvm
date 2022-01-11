@@ -336,7 +336,7 @@ func (vm *VM) GetStatelessBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
 		return nil, err
 	}
 	// If block on disk, it must've been accepted
-	return chain.ParsePopulatedBlock(stBlk, bytes, choices.Accepted, vm)
+	return chain.ParseStatefulBlock(stBlk, bytes, choices.Accepted, vm)
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.Parser"
