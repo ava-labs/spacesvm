@@ -464,11 +464,7 @@ func DeletePrefixKey(db database.Database, prefix []byte, key []byte) error {
 
 func SetTransaction(db database.KeyValueWriter, tx *Transaction) error {
 	k := PrefixTxKey(tx.ID())
-	b, err := Marshal(tx)
-	if err != nil {
-		return err
-	}
-	return db.Put(k, b)
+	return db.Put(k, nil)
 }
 
 func HasTransaction(db database.KeyValueReader, txID ids.ID) (bool, error) {
