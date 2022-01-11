@@ -178,7 +178,7 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 
 	// [keyPrefix] + [delimiter] + [rawPrefix] + [delimiter] + [key]
 	k := PrefixValueKey(prefixInfo.RawPrefix, key)
-	txid, err := db.Get(k)
+	txID, err := db.Get(k)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, false, nil
 	}
@@ -187,12 +187,7 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 	}
 
 	// Lookup stored value
-	txID, err := ids.ToID(txid)
-	if err != nil {
-		return nil, false, err
-	}
-	vk := PrefixTxValueKey(txID)
-	v, err := db.Get(vk)
+	v, err := getLinkedValue(db, txID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -219,8 +214,6 @@ func extractAndStoreValues(db database.KeyValueWriter, block *StatelessBlock) ([
 			if err := db.Put(PrefixTxValueKey(tx.ID()), t.Value); err != nil {
 				return nil, err
 			}
-			backup := make([]byte, len(t.Value))
-			copy(backup, t.Value)
 			t.Value = tx.id[:] // used to properly parse on restore
 		default:
 			oldTxs[i] = tx
@@ -477,7 +470,7 @@ type KeyValue struct {
 	Value []byte `serialize:"true" json:"value"`
 }
 
-func handleCursorValue(db database.KeyValueReader, b []byte) ([]byte, error) {
+func getLinkedValue(db database.KeyValueReader, b []byte) ([]byte, error) {
 	txID, err := ids.ToID(b)
 	if err != nil {
 		return nil, err
@@ -526,7 +519,7 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 
 		comp := bytes.Compare(startKey, curKey)
 		if comp == 0 { // startKey == curKey
-			v, err := handleCursorValue(db, cursor.Value())
+			v, err := getLinkedValue(db, cursor.Value())
 			if err != nil {
 				return nil, err
 			}
@@ -548,7 +541,7 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 			break
 		}
 
-		v, err := handleCursorValue(db, cursor.Value())
+		v, err := getLinkedValue(db, cursor.Value())
 		if err != nil {
 			return nil, err
 		}
