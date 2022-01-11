@@ -28,6 +28,8 @@ type StatefulBlock struct {
 	Cost        uint64         `serialize:"true" json:"cost"`
 	Txs         []*Transaction `serialize:"true" json:"txs"`
 	Beneficiary []byte         `serialize:"true" json:"beneficiary"` // prefix to reward
+
+	Data *Genesis `serialize:"true" json:"data"` // only non-empty at height 0
 }
 
 // Stateless is defined separately from "Block"
@@ -134,6 +136,12 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		return nil, nil, err
 	}
 
+	if b.Hght == 0 && b.Data == nil {
+		return nil, nil, ErrInvalidData
+	}
+	if b.Hght > 0 && b.Data != nil {
+		return nil, nil, ErrInvalidData
+	}
 	if len(b.Txs) == 0 {
 		return nil, nil, ErrNoTxs
 	}

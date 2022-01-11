@@ -43,8 +43,8 @@ func TestIntegration(t *testing.T) {
 var (
 	requestTimeout time.Duration
 	vms            int
-	minDifficulty  uint64
-	minBlockCost   uint64
+	minDifficulty  int64
+	minBlockCost   int64
 )
 
 func init() {
@@ -60,16 +60,16 @@ func init() {
 		3,
 		"number of VMs to create",
 	)
-	flag.Uint64Var(
+	flag.Int64Var(
 		&minDifficulty,
 		"min-difficulty",
-		chain.MinDifficulty,
+		-1,
 		"minimum difficulty for mining",
 	)
-	flag.Uint64Var(
+	flag.Int64Var(
 		&minBlockCost,
 		"min-block-cost",
-		chain.MinBlockCost,
+		-1,
 		"minimum block cost",
 	)
 }
@@ -104,10 +104,18 @@ var _ = ginkgo.BeforeSuite(func() {
 	// create embedded VMs
 	instances = make([]instance, vms)
 
+	defaultGenesis := chain.DefaultGenesis()
+	if minDifficulty >= 0 {
+		defaultGenesis.MinDifficulty = uint64(minDifficulty)
+	}
+	if minBlockCost >= 0 {
+		defaultGenesis.MinBlockCost = uint64(minBlockCost)
+	}
 	blk := &chain.StatefulBlock{
 		Tmstmp:     time.Now().Unix(),
-		Difficulty: minDifficulty,
-		Cost:       minBlockCost,
+		Difficulty: defaultGenesis.MinDifficulty,
+		Cost:       defaultGenesis.MinBlockCost,
+		Data:       defaultGenesis,
 	}
 	genesisBytes, err = chain.Marshal(blk)
 	gomega.Ω(err).Should(gomega.BeNil())

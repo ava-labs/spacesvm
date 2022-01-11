@@ -21,24 +21,24 @@ func init() {
 		filepath.Join(workDir, "genesis.json"),
 		"genesis file path",
 	)
-	genesisCmd.PersistentFlags().Uint64Var(
+	genesisCmd.PersistentFlags().Int64Var(
 		&minDifficulty,
 		"min-difficulty",
-		chain.MinDifficulty,
+		-1,
 		"minimum difficulty for mining",
 	)
-	genesisCmd.PersistentFlags().Uint64Var(
+	genesisCmd.PersistentFlags().Int64Var(
 		&minBlockCost,
 		"min-block-cost",
-		chain.MinBlockCost,
+		-1,
 		"minimum block cost",
 	)
 }
 
 var (
 	genesisFile   string
-	minDifficulty uint64
-	minBlockCost  uint64
+	minDifficulty int64
+	minBlockCost  int64
 )
 
 var genesisCmd = &cobra.Command{
@@ -48,12 +48,18 @@ var genesisCmd = &cobra.Command{
 }
 
 func genesisFunc(cmd *cobra.Command, args []string) error {
-	// Note: genesis block must have the min difficulty and block cost or else
-	// the execution context logic may over/underflow
+	defaultGenesis := chain.DefaultGenesis()
+	if minDifficulty >= 0 {
+		defaultGenesis.MinDifficulty = uint64(minDifficulty)
+	}
+	if minBlockCost >= 0 {
+		defaultGenesis.MinBlockCost = uint64(minBlockCost)
+	}
 	blk := &chain.StatefulBlock{
 		Tmstmp:     time.Now().Unix(),
-		Difficulty: minDifficulty,
-		Cost:       minBlockCost,
+		Difficulty: defaultGenesis.MinDifficulty,
+		Cost:       defaultGenesis.MinBlockCost,
+		Data:       defaultGenesis,
 	}
 	b, err := chain.Marshal(blk)
 	if err != nil {
