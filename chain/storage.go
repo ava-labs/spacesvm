@@ -20,7 +20,9 @@ import (
 // TODO: cleanup mapping diagram
 // 0x0/ (block hashes)
 // 0x1/ (tx hashes)
+//   -> [tx hash]=>nil
 // 0x2/ (tx values)
+//   -> [tx hash]=>value
 // 0x3/ (singleton prefix info)
 //   -> [prefix]:[prefix info/raw prefix]
 // 0x4/ (prefix keys)
