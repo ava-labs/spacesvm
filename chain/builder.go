@@ -43,16 +43,6 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	if err := ExpireNext(vdb, parent.Tmstmp, b.Tmstmp, true); err != nil {
 		return nil, err
 	}
-	// Reset block beneficiary if it does not exist yet
-	if len(b.Beneficiary) > 0 {
-		has, err := HasPrefix(vdb, b.Beneficiary)
-		if err != nil {
-			return nil, err
-		}
-		if !has {
-			b.Beneficiary = nil
-		}
-	}
 	// Reward producer (if [b.Beneficiary] is non-nil)
 	if err := Reward(vdb, b.Beneficiary); err != nil {
 		return nil, err

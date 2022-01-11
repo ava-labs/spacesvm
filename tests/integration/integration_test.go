@@ -275,13 +275,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		}
 
 		ginkgo.By("mine and accept block with the first ClaimTx", func() {
-			bpfx := []byte("junk")
-			instances[0].vm.SetBeneficiary(bpfx)
-
-			blk := mineAndExpectBlkAccept(instances[0], claimTx)
-			gomega.Ω(blk.Beneficiary).Should(gomega.BeEmpty())
-
-			instances[0].vm.SetBeneficiary(nil)
+			mineAndExpectBlkAccept(instances[0], claimTx)
 		})
 
 		ginkgo.By("check prefix after ClaimTx has been accepted", func() {
@@ -309,8 +303,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(err).To(gomega.BeNil())
 			instances[0].vm.SetBeneficiary(pfx)
 
-			blk := mineAndExpectBlkAccept(instances[0], setTx)
-			gomega.Ω(blk.Beneficiary).Should(gomega.Equal(pfx))
+			mineAndExpectBlkAccept(instances[0], setTx)
 
 			i2, err := instances[0].cli.PrefixInfo(pfx)
 			gomega.Ω(err).To(gomega.BeNil())
@@ -365,7 +358,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 func mineAndExpectBlkAccept(
 	i instance,
 	rtx chain.UnsignedTransaction,
-) *chain.StatelessBlock {
+) {
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 	utx, err := i.cli.Mine(ctx, rtx)
 	cancel()
@@ -406,8 +399,6 @@ func mineAndExpectBlkAccept(
 	lastAccepted, err := i.vm.LastAccepted()
 	gomega.Ω(err).To(gomega.BeNil())
 	gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
-
-	return blk.(*chain.StatelessBlock)
 }
 
 var _ common.AppSender = &appSender{}
