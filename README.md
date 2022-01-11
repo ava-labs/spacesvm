@@ -11,11 +11,13 @@ KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin)
 # Features
 TODO: Extend on
 * PoW Transactions (no tokens)
+* No Nonces (replay protection from blockID + txID)
 * Prefixes (address prefixes reserved)
 * Hashed Value Keys
 * Prefix Expiry (based on weight of all key-values)
 * Load Units vs Fee Units
 * Lifeline Rewards (why run a node -> don't need to mine)
+* Block Value Reuse
 
 # RPC
 ## /public
@@ -70,6 +72,21 @@ curl --location --request POST 'http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7
 }'
 <<COMMENT
 {"jsonrpc":"2.0","result":{"success":true},"id":1}
+COMMENT
+
+# resolve a path
+curl --location --request POST 'http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL/public' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "jsonrpc": "2.0",
+    "method": "quarkvm.resolve",
+    "params":{
+      "path": "patrick.avax/twitter"
+    },
+    "id": 1
+}'
+<<COMMENT
+{"jsonrpc":"2.0","result":{"exists":true, "value":"QF9wYXRyaWNrb2dyYWR5"},"id":1}
 COMMENT
 
 # to terminate the cluster

@@ -104,7 +104,7 @@ type VM struct {
 }
 
 const (
-	blocksLRUSize = 100
+	blocksLRUSize = 128
 )
 
 // implements "snowmanblock.ChainVM.common.VM"
@@ -331,12 +331,12 @@ func (vm *VM) GetStatelessBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
 	}
 
 	// not found in memory, fetch from disk if accepted
-	bytes, err := chain.GetBlock(vm.db, blkID)
+	stBlk, bytes, err := chain.GetBlock(vm.db, blkID)
 	if err != nil {
 		return nil, err
 	}
 	// If block on disk, it must've been accepted
-	return chain.ParseBlock(bytes, choices.Accepted, vm)
+	return chain.ParseStatefulBlock(stBlk, bytes, choices.Accepted, vm)
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.Parser"

@@ -70,6 +70,15 @@ func ParseBlock(
 	if _, err := Unmarshal(source, blk); err != nil {
 		return nil, err
 	}
+	return ParseStatefulBlock(blk, source, status, vm)
+}
+
+func ParseStatefulBlock(
+	blk *StatefulBlock,
+	source []byte,
+	status choices.Status,
+	vm VM,
+) (*StatelessBlock, error) {
 	b := &StatelessBlock{
 		StatefulBlock: blk,
 		t:             time.Unix(blk.Tmstmp, 0),

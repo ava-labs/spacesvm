@@ -125,10 +125,10 @@ var _ = ginkgo.Describe("[Ping]", func() {
 })
 
 var _ = ginkgo.Describe("[Claim/SetTx]", func() {
-	ginkgo.It("get currently preferred block ID", func() {
+	ginkgo.It("get currently accepted block ID", func() {
 		for _, inst := range instances {
 			cli := inst.cli
-			_, err := cli.Preferred()
+			_, err := cli.Accepted()
 			gomega.Ω(err).Should(gomega.BeNil())
 		}
 	})

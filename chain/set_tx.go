@@ -28,7 +28,7 @@ type SetTx struct {
 	Value []byte `serialize:"true" json:"value"`
 }
 
-func (s *SetTx) Execute(db database.Database, blockTime uint64) error {
+func (s *SetTx) Execute(db database.Database, blockTime uint64, txID ids.ID) error {
 	// assume prefix is already validated via "BaseTx"
 	if err := parser.CheckKey(s.Key); err != nil {
 		return err
@@ -65,10 +65,10 @@ func (s *SetTx) Execute(db database.Database, blockTime uint64) error {
 			return fmt.Errorf("%w: expected %x got %x", ErrInvalidKey, id[:], s.Key)
 		}
 	}
-	return s.updatePrefix(db, blockTime, i)
+	return s.updatePrefix(db, blockTime, txID, i)
 }
 
-func (s *SetTx) updatePrefix(db database.Database, blockTime uint64, i *PrefixInfo) error {
+func (s *SetTx) updatePrefix(db database.Database, blockTime uint64, txID ids.ID, i *PrefixInfo) error {
 	v, exists, err := GetValue(db, s.Prefix, s.Key)
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime uint64, i *PrefixIn
 			i.Units -= valueUnits(v)
 		}
 		i.Units += valueUnits(s.Value)
-		if err := PutPrefixKey(db, s.Prefix, s.Key, s.Value); err != nil {
+		if err := PutPrefixKey(db, s.Prefix, s.Key, txID[:]); err != nil {
 			return err
 		}
 	}

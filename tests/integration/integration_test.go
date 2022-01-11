@@ -187,10 +187,10 @@ var _ = ginkgo.Describe("[Ping]", func() {
 })
 
 var _ = ginkgo.Describe("[ClaimTx]", func() {
-	ginkgo.It("get currently preferred block ID", func() {
+	ginkgo.It("get currently accepted block ID", func() {
 		for _, inst := range instances {
 			cli := inst.cli
-			_, err := cli.Preferred()
+			_, err := cli.Accepted()
 			gomega.Ω(err).Should(gomega.BeNil())
 		}
 	})
@@ -327,6 +327,13 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 			gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
+		})
+
+		ginkgo.By("read back from VM with resolve", func() {
+			exists, value, err := instances[0].cli.Resolve(string(pfx) + "/" + string(k))
+			gomega.Ω(err).To(gomega.BeNil())
+			gomega.Ω(exists).To(gomega.BeTrue())
+			gomega.Ω(value).To(gomega.Equal(v))
 		})
 	})
 

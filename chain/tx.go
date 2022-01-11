@@ -29,6 +29,15 @@ func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
 	}
 }
 
+func (t *Transaction) Copy() *Transaction {
+	sig := make([]byte, len(t.Signature))
+	copy(sig, t.Signature)
+	return &Transaction{
+		UnsignedTransaction: t.UnsignedTransaction.Copy(),
+		Signature:           sig,
+	}
+}
+
 func UnsignedBytes(utx UnsignedTransaction) ([]byte, error) {
 	b, err := Marshal(utx)
 	if err != nil {
@@ -109,7 +118,7 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 	if !pk.Verify(t.unsignedBytes, t.Signature) {
 		return ErrInvalidSignature
 	}
-	if err := t.UnsignedTransaction.Execute(db, uint64(blockTime)); err != nil {
+	if err := t.UnsignedTransaction.Execute(db, uint64(blockTime), t.id); err != nil {
 		return err
 	}
 	return SetTransaction(db, t)

@@ -24,11 +24,11 @@ type Client interface {
 	Ping() (bool, error)
 	// Returns the corresponding prefix information.
 	PrefixInfo(pfx []byte) (*chain.PrefixInfo, error)
-	// Preferred fetches the ID of the currently preferred block.
-	Preferred() (ids.ID, error)
-	// Checks the validity of the block.
+	// Accepted fetches the ID of the last accepted block.
+	Accepted() (ids.ID, error)
+	// Checks the validity of the blockID.
 	// Returns "true" if the block is valid.
-	CheckBlock(blkID ids.ID) (bool, error)
+	ValidBlockID(blkID ids.ID) (bool, error)
 	// Requests for the estimated difficulty from VM.
 	EstimateDifficulty() (uint64, uint64, error)
 	// Issues the transaction and returns the transaction ID.
@@ -39,10 +39,10 @@ type Client interface {
 	PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error)
 	// Range runs range-query and returns the results.
 	Range(pfx, key []byte, opts ...OpOption) (kvs []chain.KeyValue, err error)
+	// Resolve returns the value associated with a path
+	Resolve(path string) (exists bool, value []byte, err error)
 	// Performs Proof-of-Work (PoW) by enumerating the graffiti.
-	Mine(
-		ctx context.Context, utx chain.UnsignedTransaction,
-	) (chain.UnsignedTransaction, error)
+	Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error)
 }
 
 // New creates a new client object.
@@ -85,11 +85,11 @@ func (cli *client) PrefixInfo(pfx []byte) (*chain.PrefixInfo, error) {
 	return resp.Info, nil
 }
 
-func (cli *client) Preferred() (ids.ID, error) {
-	resp := new(vm.CurrBlockReply)
+func (cli *client) Accepted() (ids.ID, error) {
+	resp := new(vm.LastAcceptedReply)
 	if err := cli.req.SendRequest(
-		"currBlock",
-		&vm.CurrBlockArgs{},
+		"lastAccepted",
+		nil,
 		resp,
 	); err != nil {
 		color.Red("failed to get curr block %v", err)
@@ -98,7 +98,7 @@ func (cli *client) Preferred() (ids.ID, error) {
 	return resp.BlockID, nil
 }
 
-func (cli *client) CheckBlock(blkID ids.ID) (bool, error) {
+func (cli *client) ValidBlockID(blkID ids.ID) (bool, error) {
 	resp := new(vm.ValidBlockIDReply)
 	if err := cli.req.SendRequest(
 		"validBlockID",
@@ -191,6 +191,20 @@ done:
 		}
 	}
 	return false, ctx.Err()
+}
+
+func (cli *client) Resolve(path string) (exists bool, value []byte, err error) {
+	resp := new(vm.ResolveReply)
+	if err = cli.req.SendRequest(
+		"resolve",
+		&vm.ResolveArgs{
+			Path: path,
+		},
+		resp,
+	); err != nil {
+		return false, nil, err
+	}
+	return resp.Exists, resp.Value, nil
 }
 
 type Op struct {

@@ -12,6 +12,7 @@ import (
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 var (
@@ -85,14 +86,12 @@ func (svc *PublicService) CheckTx(_ *http.Request, args *CheckTxArgs, reply *Che
 	return nil
 }
 
-type CurrBlockArgs struct{}
-
-type CurrBlockReply struct {
+type LastAcceptedReply struct {
 	BlockID ids.ID `serialize:"true" json:"blockId"`
 }
 
-func (svc *PublicService) CurrBlock(_ *http.Request, args *CurrBlockArgs, reply *CurrBlockReply) error {
-	reply.BlockID = svc.vm.preferred
+func (svc *PublicService) LastAccepted(_ *http.Request, _ *struct{}, reply *LastAcceptedReply) error {
+	reply.BlockID = svc.vm.lastAccepted.ID()
 	return nil
 }
 
@@ -190,4 +189,29 @@ func (svc *PublicService) Range(_ *http.Request, args *RangeArgs, reply *RangeRe
 	}
 	reply.KeyValues = kvs
 	return nil
+}
+
+type ResolveArgs struct {
+	Path string `serialize:"true" json:"path"`
+}
+
+type ResolveReply struct {
+	Exists bool   `serialize:"true" json:"exists"`
+	Value  []byte `serialize:"true" json:"value"`
+}
+
+func (svc *PublicService) Resolve(_ *http.Request, args *ResolveArgs, reply *ResolveReply) error {
+	pfx, key, _, err := parser.ParsePrefixKey(
+		[]byte(args.Path),
+		parser.WithCheckPrefix(),
+		parser.WithCheckKey(),
+	)
+	if err != nil {
+		return err
+	}
+
+	v, exists, err := chain.GetValue(svc.vm.db, pfx, key)
+	reply.Exists = exists
+	reply.Value = v
+	return err
 }

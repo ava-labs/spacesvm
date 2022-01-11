@@ -9,6 +9,7 @@ import (
 	"errors"
 	"math"
 
+	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
@@ -20,28 +21,38 @@ import (
 // TODO: cleanup mapping diagram
 // 0x0/ (block hashes)
 // 0x1/ (tx hashes)
-// 0x2/ (singleton prefix info)
+//   -> [tx hash]=>nil
+// 0x2/ (tx values)
+//   -> [tx hash]=>value
+// 0x3/ (singleton prefix info)
 //   -> [prefix]:[prefix info/raw prefix]
-// 0x3/ (prefix keys)
+// 0x4/ (prefix keys)
 //   -> [raw prefix]
 //     -> [key]
-// 0x4/ (prefix expiry queue)
+// 0x5/ (prefix expiry queue)
 //   -> [raw prefix]
-// 0x5/ (prefix pruning queue)
+// 0x6/ (prefix pruning queue)
 //   -> [raw prefix]
 
 const (
 	blockPrefix   = 0x0
 	txPrefix      = 0x1
-	infoPrefix    = 0x2
-	keyPrefix     = 0x3
-	expiryPrefix  = 0x4
-	pruningPrefix = 0x5
+	txValuePrefix = 0x2
+	infoPrefix    = 0x3
+	keyPrefix     = 0x4
+	expiryPrefix  = 0x5
+	pruningPrefix = 0x6
 
 	shortIDLen = 20
+
+	linkedTxLRUSize = 512
 )
 
-var lastAccepted = []byte("last_accepted")
+var (
+	lastAccepted = []byte("last_accepted")
+
+	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
+)
 
 // [blockPrefix] + [delimiter] + [blockID]
 func PrefixBlockKey(blockID ids.ID) (k []byte) {
@@ -56,6 +67,15 @@ func PrefixBlockKey(blockID ids.ID) (k []byte) {
 func PrefixTxKey(txID ids.ID) (k []byte) {
 	k = make([]byte, 2+len(txID))
 	k[0] = txPrefix
+	k[1] = parser.Delimiter
+	copy(k[2:], txID[:])
+	return k
+}
+
+// [txValuePrefix] + [delimiter] + [txID]
+func PrefixTxValueKey(txID ids.ID) (k []byte) {
+	k = make([]byte, 2+len(txID))
+	k[0] = txValuePrefix
 	k[1] = parser.Delimiter
 	copy(k[2:], txID[:])
 	return k
@@ -167,11 +187,73 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 
 	// [keyPrefix] + [delimiter] + [rawPrefix] + [delimiter] + [key]
 	k := PrefixValueKey(prefixInfo.RawPrefix, key)
-	v, err := db.Get(k)
+	txID, err := db.Get(k)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, false, nil
 	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	// Lookup stored value
+	v, err := getLinkedValue(db, txID)
+	if err != nil {
+		return nil, false, err
+	}
 	return v, true, err
+}
+
+// linkValues extracts all *SetTx.Value in [block] and replaces them with the
+// corresponding txID where they were found. The extracted value is then
+// written to disk.
+func linkValues(db database.KeyValueWriter, block *StatelessBlock) ([]*Transaction, error) {
+	ogTxs := make([]*Transaction, len(block.Txs))
+	for i, tx := range block.Txs {
+		switch t := tx.UnsignedTransaction.(type) {
+		case *SetTx:
+			if len(t.Value) == 0 {
+				ogTxs[i] = tx
+				continue
+			}
+
+			// Copy transaction for later
+			cptx := tx.Copy()
+			if err := cptx.Init(); err != nil {
+				return nil, err
+			}
+			ogTxs[i] = cptx
+
+			if err := db.Put(PrefixTxValueKey(tx.ID()), t.Value); err != nil {
+				return nil, err
+			}
+			t.Value = tx.id[:] // used to properly parse on restore
+		default:
+			ogTxs[i] = tx
+		}
+	}
+	return ogTxs, nil
+}
+
+// restoreValues restores the unlinked values associated with all *SetTx.Value
+// in [block].
+func restoreValues(db database.KeyValueReader, block *StatefulBlock) error {
+	for _, tx := range block.Txs {
+		if t, ok := tx.UnsignedTransaction.(*SetTx); ok {
+			if len(t.Value) == 0 {
+				continue
+			}
+			txID, err := ids.ToID(t.Value)
+			if err != nil {
+				return err
+			}
+			b, err := db.Get(PrefixTxValueKey(txID))
+			if err != nil {
+				return err
+			}
+			t.Value = b
+		}
+	}
+	return nil
 }
 
 func SetLastAccepted(db database.KeyValueWriter, block *StatelessBlock) error {
@@ -179,7 +261,21 @@ func SetLastAccepted(db database.KeyValueWriter, block *StatelessBlock) error {
 	if err := db.Put(lastAccepted, bid[:]); err != nil {
 		return err
 	}
-	return db.Put(PrefixBlockKey(bid), block.Bytes())
+	ogTxs, err := linkValues(db, block)
+	if err != nil {
+		return err
+	}
+	sbytes, err := Marshal(block.StatefulBlock)
+	if err != nil {
+		return err
+	}
+	if err := db.Put(PrefixBlockKey(bid), sbytes); err != nil {
+		return err
+	}
+	// Restore the original transactions in the block in case it is cached for
+	// later use.
+	block.Txs = ogTxs
+	return nil
 }
 
 func HasLastAccepted(db database.Database) (bool, error) {
@@ -197,8 +293,23 @@ func GetLastAccepted(db database.KeyValueReader) (ids.ID, error) {
 	return ids.ToID(v)
 }
 
-func GetBlock(db database.KeyValueReader, bid ids.ID) ([]byte, error) {
-	return db.Get(PrefixBlockKey(bid))
+func GetBlock(db database.KeyValueReader, bid ids.ID) (*StatefulBlock, []byte, error) {
+	b, err := db.Get(PrefixBlockKey(bid))
+	if err != nil {
+		return nil, nil, err
+	}
+	blk := new(StatefulBlock)
+	if _, err := Unmarshal(b, blk); err != nil {
+		return nil, nil, err
+	}
+	if err := restoreValues(db, blk); err != nil {
+		return nil, nil, err
+	}
+	fb, err := Marshal(blk)
+	if err != nil {
+		return nil, nil, err
+	}
+	return blk, fb, nil
 }
 
 // ExpireNext queries "expiryPrefix" key space to find expiring keys,
@@ -361,11 +472,7 @@ func DeletePrefixKey(db database.Database, prefix []byte, key []byte) error {
 
 func SetTransaction(db database.KeyValueWriter, tx *Transaction) error {
 	k := PrefixTxKey(tx.ID())
-	b, err := Marshal(tx)
-	if err != nil {
-		return err
-	}
-	return db.Put(k, b)
+	return db.Put(k, nil)
 }
 
 func HasTransaction(db database.KeyValueReader, txID ids.ID) (bool, error) {
@@ -376,6 +483,24 @@ func HasTransaction(db database.KeyValueReader, txID ids.ID) (bool, error) {
 type KeyValue struct {
 	Key   []byte `serialize:"true" json:"key"`
 	Value []byte `serialize:"true" json:"value"`
+}
+
+func getLinkedValue(db database.KeyValueReader, b []byte) ([]byte, error) {
+	bh := string(b)
+	if v, ok := linkedTxCache.Get(bh); ok {
+		return v.([]byte), nil
+	}
+	txID, err := ids.ToID(b)
+	if err != nil {
+		return nil, err
+	}
+	vk := PrefixTxValueKey(txID)
+	v, err := db.Get(vk)
+	if err != nil {
+		return nil, err
+	}
+	linkedTxCache.Put(bh, v)
+	return v, nil
 }
 
 // Range reads keys from the store.
@@ -414,9 +539,13 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 
 		comp := bytes.Compare(startKey, curKey)
 		if comp == 0 { // startKey == curKey
+			v, err := getLinkedValue(db, cursor.Value())
+			if err != nil {
+				return nil, err
+			}
 			kvs = append(kvs, KeyValue{
 				Key:   formattedKey,
-				Value: cursor.Value(),
+				Value: v,
 			})
 			continue
 		}
@@ -432,9 +561,13 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 			break
 		}
 
+		v, err := getLinkedValue(db, cursor.Value())
+		if err != nil {
+			return nil, err
+		}
 		kvs = append(kvs, KeyValue{
 			Key:   formattedKey,
-			Value: cursor.Value(),
+			Value: v,
 		})
 	}
 	return kvs, nil

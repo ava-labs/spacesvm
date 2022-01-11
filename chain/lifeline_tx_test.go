@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
+	"github.com/ava-labs/avalanchego/ids"
 )
 
 func TestLifelineTx(t *testing.T) {
@@ -47,7 +48,7 @@ func TestLifelineTx(t *testing.T) {
 		},
 	}
 	for i, tv := range tt {
-		err := tv.utx.Execute(db, tv.blockTime)
+		err := tv.utx.Execute(db, tv.blockTime, ids.ID{})
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
 		}
