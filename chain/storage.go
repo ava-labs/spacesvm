@@ -179,6 +179,9 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 	// [keyPrefix] + [delimiter] + [rawPrefix] + [delimiter] + [key]
 	k := PrefixValueKey(prefixInfo.RawPrefix, key)
 	txid, err := db.Get(k)
+	if errors.Is(err, database.ErrNotFound) {
+		return nil, false, nil
+	}
 	if err != nil {
 		return nil, false, err
 	}
@@ -192,9 +195,6 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 	v, err := db.Get(vk)
 	if err != nil {
 		return nil, false, err
-	}
-	if errors.Is(err, database.ErrNotFound) {
-		return nil, false, nil
 	}
 	return v, true, err
 }
@@ -481,6 +481,19 @@ type KeyValue struct {
 	Value []byte `serialize:"true" json:"value"`
 }
 
+func handleCursorValue(db database.KeyValueReader, b []byte) ([]byte, error) {
+	txID, err := ids.ToID(b)
+	if err != nil {
+		return nil, err
+	}
+	vk := PrefixTxValueKey(txID)
+	v, err := db.Get(vk)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
 // Range reads keys from the store.
 func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (kvs []KeyValue, err error) {
 	prefixInfo, exists, err := GetPrefixInfo(db, prefix)
@@ -517,9 +530,13 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 
 		comp := bytes.Compare(startKey, curKey)
 		if comp == 0 { // startKey == curKey
+			v, err := handleCursorValue(db, cursor.Value())
+			if err != nil {
+				return nil, err
+			}
 			kvs = append(kvs, KeyValue{
 				Key:   formattedKey,
-				Value: cursor.Value(),
+				Value: v,
 			})
 			continue
 		}
@@ -535,9 +552,13 @@ func Range(db database.Database, prefix []byte, key []byte, opts ...OpOption) (k
 			break
 		}
 
+		v, err := handleCursorValue(db, cursor.Value())
+		if err != nil {
+			return nil, err
+		}
 		kvs = append(kvs, KeyValue{
 			Key:   formattedKey,
-			Value: cursor.Value(),
+			Value: v,
 		})
 	}
 	return kvs, nil

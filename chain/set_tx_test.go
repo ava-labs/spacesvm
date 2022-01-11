@@ -238,7 +238,7 @@ func TestSetTx(t *testing.T) {
 				t.Fatalf("#%d: ExpireNext errored %v", i, err)
 			}
 		}
-		// Set value at right place (normally done in block)
+		// Set linked value (normally done in block processing)
 		id := ids.GenerateTestID()
 		switch tp := tv.utx.(type) {
 		case *SetTx:
