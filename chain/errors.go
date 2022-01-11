@@ -15,6 +15,7 @@ var (
 	ErrInvalidCost            = errors.New("invalid block cost")
 	ErrInsufficientSurplus    = errors.New("insufficient surplus difficulty")
 	ErrParentBlockNotVerified = errors.New("parent block not verified or accepted")
+	ErrInvalidData            = errors.New("data is invalid")
 
 	// Tx Correctness
 	ErrInvalidSender     = errors.New("invalid sender")

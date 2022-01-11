@@ -32,6 +32,7 @@ func init() {
 		c.RegisterType(&Transaction{}),
 		c.RegisterType(&StatefulBlock{}),
 		c.RegisterType(&PrefixInfo{}),
+		c.RegisterType(&Genesis{}),
 		codecManager.RegisterCodec(codecVersion, c),
 	)
 	if errs.Errored() {
