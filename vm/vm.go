@@ -54,8 +54,9 @@ var (
 )
 
 type VM struct {
-	ctx *snow.Context
-	db  database.Database
+	ctx          *snow.Context
+	db           database.Database
+	bootstrapped bool
 
 	buildInterval    time.Duration
 	gossipInterval   time.Duration
@@ -203,6 +204,8 @@ func (vm *VM) Bootstrapping() error {
 
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Bootstrapped() error {
+	log.Debug("chain boostrapped")
+	vm.bootstrapped = true
 	return nil
 }
 
