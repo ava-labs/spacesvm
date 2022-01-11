@@ -199,33 +199,34 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 	return v, true, err
 }
 
-func executeFuncs(f []func()) {
-	for _, tf := range f {
-		tf()
-	}
-}
-
-func extractAndStoreValues(db database.KeyValueWriter, block *StatelessBlock) ([]func(), error) {
-	f := []func(){}
-	for _, tx := range block.Txs {
+func extractAndStoreValues(db database.KeyValueWriter, block *StatelessBlock) ([]*Transaction, error) {
+	oldTxs := make([]*Transaction, len(block.Txs))
+	for i, tx := range block.Txs {
 		switch t := tx.UnsignedTransaction.(type) {
 		case *SetTx:
 			if len(t.Value) == 0 {
+				oldTxs[i] = tx
 				continue
 			}
+
+			// Copy transaction for later
+			cptx := tx.Copy()
+			if err := cptx.Init(); err != nil {
+				return nil, err
+			}
+			oldTxs[i] = cptx
+
 			if err := db.Put(PrefixTxValueKey(tx.ID()), t.Value); err != nil {
-				executeFuncs(f)
 				return nil, err
 			}
 			backup := make([]byte, len(t.Value))
 			copy(backup, t.Value)
 			t.Value = tx.id[:] // used to properly parse on restore
-			f = append(f, func() {
-				t.Value = backup
-			})
+		default:
+			oldTxs[i] = tx
 		}
 	}
-	return f, nil
+	return oldTxs, nil
 }
 
 func restoreValues(db database.KeyValueReader, block *StatefulBlock) error {
@@ -254,14 +255,18 @@ func SetLastAccepted(db database.KeyValueWriter, block *StatelessBlock) error {
 	if err := db.Put(lastAccepted, bid[:]); err != nil {
 		return err
 	}
-	f, err := extractAndStoreValues(db, block)
+	oldTxs, err := extractAndStoreValues(db, block)
 	if err != nil {
 		return err
 	}
-	if err := db.Put(PrefixBlockKey(bid), block.Bytes()); err != nil {
+	nbytes, err := Marshal(block)
+	if err != nil {
 		return err
 	}
-	executeFuncs(f)
+	if err := db.Put(PrefixBlockKey(bid), nbytes); err != nil {
+		return err
+	}
+	block.Txs = oldTxs
 	return nil
 }
 

@@ -29,6 +29,15 @@ func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
 	}
 }
 
+func (t *Transaction) Copy() *Transaction {
+	sig := make([]byte, len(t.Signature))
+	copy(sig, t.Signature)
+	return &Transaction{
+		UnsignedTransaction: t.UnsignedTransaction.Copy(),
+		Signature:           sig,
+	}
+}
+
 func UnsignedBytes(utx UnsignedTransaction) ([]byte, error) {
 	b, err := Marshal(utx)
 	if err != nil {
