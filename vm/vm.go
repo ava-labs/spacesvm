@@ -54,8 +54,9 @@ var (
 )
 
 type VM struct {
-	ctx *snow.Context
-	db  database.Database
+	ctx          *snow.Context
+	db           database.Database
+	bootstrapped bool
 
 	buildInterval    time.Duration
 	gossipInterval   time.Duration
@@ -203,6 +204,8 @@ func (vm *VM) Bootstrapping() error {
 
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Bootstrapped() error {
+	log.Debug("chain boostrapped")
+	vm.bootstrapped = true
 	return nil
 }
 
@@ -386,7 +389,7 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 	vdb := versiondb.New(vm.db)
 
 	// Expire outdated prefixes before checking submission validity
-	if err := chain.ExpireNext(vdb, blk.Tmstmp, now); err != nil {
+	if err := chain.ExpireNext(vdb, blk.Tmstmp, now, true); err != nil {
 		return []error{err}
 	}
 

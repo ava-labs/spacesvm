@@ -9,6 +9,7 @@ import (
 )
 
 type VM interface {
+	IsBootstrapped() bool
 	State() database.Database
 	Mempool() Mempool
 	GetStatelessBlock(ids.ID) (*StatelessBlock, error)

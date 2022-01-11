@@ -11,6 +11,10 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 )
 
+func (vm *VM) IsBootstrapped() bool {
+	return vm.bootstrapped
+}
+
 func (vm *VM) State() database.Database {
 	return vm.db
 }

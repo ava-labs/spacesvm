@@ -75,7 +75,7 @@ func TestClaimTx(t *testing.T) {
 	for i, tv := range tt {
 		if i > 0 {
 			// Expire old prefixes between txs
-			if err := ExpireNext(db, tt[i-1].blockTime, tv.blockTime); err != nil {
+			if err := ExpireNext(db, tt[i-1].blockTime, tv.blockTime, true); err != nil {
 				t.Fatalf("#%d: ExpireNext errored %v", i, err)
 			}
 		}
@@ -99,7 +99,7 @@ func TestClaimTx(t *testing.T) {
 	}
 
 	// Cleanup DB after all txs submitted
-	if err := ExpireNext(db, 0, ExpiryTime*10); err != nil {
+	if err := ExpireNext(db, 0, ExpiryTime*10, true); err != nil {
 		t.Fatal(err)
 	}
 	pruned, err := PruneNext(db, 100)

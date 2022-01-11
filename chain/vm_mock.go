@@ -94,6 +94,20 @@ func (mr *MockVMMockRecorder) GetStatelessBlock(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatelessBlock", reflect.TypeOf((*MockVM)(nil).GetStatelessBlock), arg0)
 }
 
+// IsBootstrapped mocks base method.
+func (m *MockVM) IsBootstrapped() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsBootstrapped")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsBootstrapped indicates an expected call of IsBootstrapped.
+func (mr *MockVMMockRecorder) IsBootstrapped() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsBootstrapped", reflect.TypeOf((*MockVM)(nil).IsBootstrapped))
+}
+
 // Mempool mocks base method.
 func (m *MockVM) Mempool() Mempool {
 	m.ctrl.T.Helper()
