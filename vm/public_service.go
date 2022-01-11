@@ -12,6 +12,7 @@ import (
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 var (
@@ -190,4 +191,29 @@ func (svc *PublicService) Range(_ *http.Request, args *RangeArgs, reply *RangeRe
 	}
 	reply.KeyValues = kvs
 	return nil
+}
+
+type ResolveArgs struct {
+	Path string `serialize:"true" json:"path"`
+}
+
+type ResolveReply struct {
+	Exists bool   `serialize:"true" json:"exists"`
+	Value  []byte `serialize:"true" json:"value"`
+}
+
+func (svc *PublicService) Resolve(_ *http.Request, args *ResolveArgs, reply *ResolveReply) error {
+	pfx, key, _, err := parser.ParsePrefixKey(
+		[]byte(args.Path),
+		parser.WithCheckPrefix(),
+		parser.WithCheckKey(),
+	)
+	if err != nil {
+		return err
+	}
+
+	v, exists, err := chain.GetValue(svc.vm.db, pfx, key)
+	reply.Exists = exists
+	reply.Value = v
+	return err
 }

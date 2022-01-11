@@ -39,6 +39,8 @@ type Client interface {
 	PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error)
 	// Range runs range-query and returns the results.
 	Range(pfx, key []byte, opts ...OpOption) (kvs []chain.KeyValue, err error)
+	// Resolve returns the value associated with a path
+	Resolve(path string) (exists bool, value []byte, err error)
 	// Performs Proof-of-Work (PoW) by enumerating the graffiti.
 	Mine(
 		ctx context.Context, utx chain.UnsignedTransaction,
@@ -191,6 +193,20 @@ done:
 		}
 	}
 	return false, ctx.Err()
+}
+
+func (cli *client) Resolve(path string) (exists bool, value []byte, err error) {
+	resp := new(vm.ResolveReply)
+	if err = cli.req.SendRequest(
+		"resolve",
+		&vm.ResolveArgs{
+			Path: path,
+		},
+		resp,
+	); err != nil {
+		return false, nil, err
+	}
+	return resp.Exists, resp.Value, nil
 }
 
 type Op struct {

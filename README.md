@@ -74,6 +74,21 @@ curl --location --request POST 'http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7
 {"jsonrpc":"2.0","result":{"success":true},"id":1}
 COMMENT
 
+# resolve a path
+curl --location --request POST 'http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL/public' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "jsonrpc": "2.0",
+    "method": "quarkvm.resolve",
+    "params":{
+      "path": "patrick.avax/twitter"
+    },
+    "id": 1
+}'
+<<COMMENT
+{"jsonrpc":"2.0","result":{"exists":true, "value":"QF9wYXRyaWNrb2dyYWR5"},"id":1}
+COMMENT
+
 # to terminate the cluster
 kill 12811
 ```

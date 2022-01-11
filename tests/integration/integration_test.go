@@ -328,6 +328,13 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 			gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
 		})
+
+		ginkgo.By("read back from VM with resolve", func() {
+			exists, value, err := instances[0].cli.Resolve(string(pfx) + "/" + string(k))
+			gomega.Ω(err).To(gomega.BeNil())
+			gomega.Ω(exists).To(gomega.BeTrue())
+			gomega.Ω(value).To(gomega.Equal(v))
+		})
 	})
 
 	ginkgo.It("fail Gossip ClaimTx to a stale node when missing previous blocks", func() {
