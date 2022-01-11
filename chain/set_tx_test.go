@@ -240,8 +240,7 @@ func TestSetTx(t *testing.T) {
 		}
 		// Set linked value (normally done in block processing)
 		id := ids.GenerateTestID()
-		switch tp := tv.utx.(type) {
-		case *SetTx:
+		if tp, ok := tv.utx.(*SetTx); ok {
 			if len(tp.Value) > 0 {
 				if err := db.Put(PrefixTxValueKey(id), tp.Value); err != nil {
 					t.Fatal(err)

@@ -224,8 +224,7 @@ func extractAndStoreValues(db database.KeyValueWriter, block *StatelessBlock) ([
 
 func restoreValues(db database.KeyValueReader, block *StatefulBlock) error {
 	for _, tx := range block.Txs {
-		switch t := tx.UnsignedTransaction.(type) {
-		case *SetTx:
+		if t, ok := tx.UnsignedTransaction.(*SetTx); ok {
 			if len(t.Value) == 0 {
 				continue
 			}
