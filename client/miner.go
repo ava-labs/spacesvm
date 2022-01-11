@@ -148,7 +148,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 		for {
 			select {
 			case <-t.C:
-				blkID, err := cli.Preferred()
+				blkID, err := cli.Accepted()
 				if err != nil {
 					return err
 				}

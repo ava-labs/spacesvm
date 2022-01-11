@@ -86,14 +86,12 @@ func (svc *PublicService) CheckTx(_ *http.Request, args *CheckTxArgs, reply *Che
 	return nil
 }
 
-type CurrBlockArgs struct{}
-
-type CurrBlockReply struct {
+type LastAcceptedReply struct {
 	BlockID ids.ID `serialize:"true" json:"blockId"`
 }
 
-func (svc *PublicService) CurrBlock(_ *http.Request, args *CurrBlockArgs, reply *CurrBlockReply) error {
-	reply.BlockID = svc.vm.preferred
+func (svc *PublicService) LastAccepted(_ *http.Request, _ *struct{}, reply *LastAcceptedReply) error {
+	reply.BlockID = svc.vm.lastAccepted.ID()
 	return nil
 }
 
