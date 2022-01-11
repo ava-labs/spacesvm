@@ -9,6 +9,7 @@ import (
 	"errors"
 	"math"
 
+	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
@@ -43,9 +44,15 @@ const (
 	pruningPrefix = 0x6
 
 	shortIDLen = 20
+
+	linkedTxLRUSize = 512
 )
 
-var lastAccepted = []byte("last_accepted")
+var (
+	lastAccepted = []byte("last_accepted")
+
+	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
+)
 
 // [blockPrefix] + [delimiter] + [blockID]
 func PrefixBlockKey(blockID ids.ID) (k []byte) {
@@ -196,13 +203,16 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 	return v, true, err
 }
 
-func extractAndStoreValues(db database.KeyValueWriter, block *StatelessBlock) ([]*Transaction, error) {
-	oldTxs := make([]*Transaction, len(block.Txs))
+// linkValues extracts all *SetTx.Value in [block] and replaces them with the
+// corresponding txID where they were found. The extracted value is then
+// written to disk.
+func linkValues(db database.KeyValueWriter, block *StatelessBlock) ([]*Transaction, error) {
+	ogTxs := make([]*Transaction, len(block.Txs))
 	for i, tx := range block.Txs {
 		switch t := tx.UnsignedTransaction.(type) {
 		case *SetTx:
 			if len(t.Value) == 0 {
-				oldTxs[i] = tx
+				ogTxs[i] = tx
 				continue
 			}
 
@@ -211,19 +221,21 @@ func extractAndStoreValues(db database.KeyValueWriter, block *StatelessBlock) ([
 			if err := cptx.Init(); err != nil {
 				return nil, err
 			}
-			oldTxs[i] = cptx
+			ogTxs[i] = cptx
 
 			if err := db.Put(PrefixTxValueKey(tx.ID()), t.Value); err != nil {
 				return nil, err
 			}
 			t.Value = tx.id[:] // used to properly parse on restore
 		default:
-			oldTxs[i] = tx
+			ogTxs[i] = tx
 		}
 	}
-	return oldTxs, nil
+	return ogTxs, nil
 }
 
+// restoreValues restores the unlinked values associated with all *SetTx.Value
+// in [block].
 func restoreValues(db database.KeyValueReader, block *StatefulBlock) error {
 	for _, tx := range block.Txs {
 		if t, ok := tx.UnsignedTransaction.(*SetTx); ok {
@@ -249,18 +261,20 @@ func SetLastAccepted(db database.KeyValueWriter, block *StatelessBlock) error {
 	if err := db.Put(lastAccepted, bid[:]); err != nil {
 		return err
 	}
-	oldTxs, err := extractAndStoreValues(db, block)
+	ogTxs, err := linkValues(db, block)
 	if err != nil {
 		return err
 	}
-	nbytes, err := Marshal(block)
+	sbytes, err := Marshal(block.StatefulBlock)
 	if err != nil {
 		return err
 	}
-	if err := db.Put(PrefixBlockKey(bid), nbytes); err != nil {
+	if err := db.Put(PrefixBlockKey(bid), sbytes); err != nil {
 		return err
 	}
-	block.Txs = oldTxs
+	// Restore the original transactions in the block in case it is cached for
+	// later use.
+	block.Txs = ogTxs
 	return nil
 }
 
@@ -472,6 +486,10 @@ type KeyValue struct {
 }
 
 func getLinkedValue(db database.KeyValueReader, b []byte) ([]byte, error) {
+	bh := string(b)
+	if v, ok := linkedTxCache.Get(bh); ok {
+		return v.([]byte), nil
+	}
 	txID, err := ids.ToID(b)
 	if err != nil {
 		return nil, err
@@ -481,6 +499,7 @@ func getLinkedValue(db database.KeyValueReader, b []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	linkedTxCache.Put(bh, v)
 	return v, nil
 }
 

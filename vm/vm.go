@@ -104,7 +104,7 @@ type VM struct {
 }
 
 const (
-	blocksLRUSize = 100
+	blocksLRUSize = 128
 )
 
 // implements "snowmanblock.ChainVM.common.VM"
