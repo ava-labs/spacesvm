@@ -152,7 +152,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	onAcceptDB := versiondb.New(parentState)
 
 	// Remove all expired prefixes
-	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp); err != nil {
+	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp, b.vm.IsBootstrapped()); err != nil {
 		return nil, nil, err
 	}
 	// Reward producer (if [b.Beneficiary] is non-nil)

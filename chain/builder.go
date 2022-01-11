@@ -40,7 +40,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	vdb := versiondb.New(parentDB)
 
 	// Remove all expired prefixes
-	if err := ExpireNext(vdb, parent.Tmstmp, b.Tmstmp); err != nil {
+	if err := ExpireNext(vdb, parent.Tmstmp, b.Tmstmp, true); err != nil {
 		return nil, err
 	}
 	// Reward producer (if [b.Beneficiary] is non-nil)
