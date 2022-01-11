@@ -7,7 +7,9 @@ import (
 	"bytes"
 
 	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto"
+
 	"github.com/ava-labs/quarkvm/parser"
 )
 
@@ -17,7 +19,7 @@ type ClaimTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 }
 
-func (c *ClaimTx) Execute(db database.Database, blockTime uint64) error {
+func (c *ClaimTx) Execute(db database.Database, blockTime uint64, _ ids.ID) error {
 	// Restrict address prefix to be owned by pk
 	// [33]byte prefix is reserved for pubkey
 	if len(c.Prefix) == crypto.SECP256K1RPKLen && !bytes.Equal(c.Sender[:], c.Prefix) {

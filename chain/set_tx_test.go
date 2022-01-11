@@ -238,7 +238,17 @@ func TestSetTx(t *testing.T) {
 				t.Fatalf("#%d: ExpireNext errored %v", i, err)
 			}
 		}
-		err := tv.utx.Execute(db, uint64(tv.blockTime))
+		// Set value at right place (normally done in block)
+		id := ids.GenerateTestID()
+		switch tp := tv.utx.(type) {
+		case *SetTx:
+			if len(tp.Value) > 0 {
+				if err := db.Put(PrefixTxValueKey(id), tp.Value); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		err := tv.utx.Execute(db, uint64(tv.blockTime), id)
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
 		}

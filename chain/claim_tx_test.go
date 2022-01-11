@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto"
 )
 
@@ -79,7 +80,7 @@ func TestClaimTx(t *testing.T) {
 				t.Fatalf("#%d: ExpireNext errored %v", i, err)
 			}
 		}
-		err := tv.tx.Execute(db, uint64(tv.blockTime))
+		err := tv.tx.Execute(db, uint64(tv.blockTime), ids.ID{})
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
 		}

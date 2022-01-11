@@ -20,23 +20,25 @@ import (
 // TODO: cleanup mapping diagram
 // 0x0/ (block hashes)
 // 0x1/ (tx hashes)
-// 0x2/ (singleton prefix info)
+// 0x2/ (tx values)
+// 0x3/ (singleton prefix info)
 //   -> [prefix]:[prefix info/raw prefix]
-// 0x3/ (prefix keys)
+// 0x4/ (prefix keys)
 //   -> [raw prefix]
 //     -> [key]
-// 0x4/ (prefix expiry queue)
+// 0x5/ (prefix expiry queue)
 //   -> [raw prefix]
-// 0x5/ (prefix pruning queue)
+// 0x6/ (prefix pruning queue)
 //   -> [raw prefix]
 
 const (
 	blockPrefix   = 0x0
 	txPrefix      = 0x1
-	infoPrefix    = 0x2
-	keyPrefix     = 0x3
-	expiryPrefix  = 0x4
-	pruningPrefix = 0x5
+	txValuePrefix = 0x2
+	infoPrefix    = 0x3
+	keyPrefix     = 0x4
+	expiryPrefix  = 0x5
+	pruningPrefix = 0x6
 
 	shortIDLen = 20
 )
@@ -56,6 +58,15 @@ func PrefixBlockKey(blockID ids.ID) (k []byte) {
 func PrefixTxKey(txID ids.ID) (k []byte) {
 	k = make([]byte, 2+len(txID))
 	k[0] = txPrefix
+	k[1] = parser.Delimiter
+	copy(k[2:], txID[:])
+	return k
+}
+
+// [txValuePrefix] + [delimiter] + [txID]
+func PrefixTxValueKey(txID ids.ID) (k []byte) {
+	k = make([]byte, 2+len(txID))
+	k[0] = txValuePrefix
 	k[1] = parser.Delimiter
 	copy(k[2:], txID[:])
 	return k
@@ -167,11 +178,75 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 
 	// [keyPrefix] + [delimiter] + [rawPrefix] + [delimiter] + [key]
 	k := PrefixValueKey(prefixInfo.RawPrefix, key)
-	v, err := db.Get(k)
+	txid, err := db.Get(k)
+	if err != nil {
+		return nil, false, err
+	}
+
+	// Lookup stored value
+	txID, err := ids.ToID(txid)
+	if err != nil {
+		return nil, false, err
+	}
+	vk := PrefixTxValueKey(txID)
+	v, err := db.Get(vk)
+	if err != nil {
+		return nil, false, err
+	}
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, false, nil
 	}
 	return v, true, err
+}
+
+func executeFuncs(f []func()) {
+	for _, tf := range f {
+		tf()
+	}
+}
+
+func extractAndStoreValues(db database.KeyValueWriter, block *StatelessBlock) ([]func(), error) {
+	f := []func(){}
+	for _, tx := range block.Txs {
+		switch t := tx.UnsignedTransaction.(type) {
+		case *SetTx:
+			if len(t.Value) == 0 {
+				continue
+			}
+			if err := db.Put(PrefixTxValueKey(tx.ID()), t.Value); err != nil {
+				executeFuncs(f)
+				return nil, err
+			}
+			backup := make([]byte, len(t.Value))
+			copy(backup, t.Value)
+			t.Value = tx.id[:] // used to properly parse on restore
+			f = append(f, func() {
+				t.Value = backup
+			})
+		}
+	}
+	return f, nil
+}
+
+func restoreValues(db database.KeyValueReader, block *StatefulBlock) error {
+	for _, tx := range block.Txs {
+		switch t := tx.UnsignedTransaction.(type) {
+		case *SetTx:
+			if len(t.Value) == 0 {
+				continue
+			}
+			txID, err := ids.ToID(t.Value)
+			if err != nil {
+				return err
+			}
+			b, err := db.Get(PrefixTxValueKey(txID))
+			if err != nil {
+				return err
+			}
+			t.Value = b
+		}
+	}
+	return nil
 }
 
 func SetLastAccepted(db database.KeyValueWriter, block *StatelessBlock) error {
@@ -179,7 +254,15 @@ func SetLastAccepted(db database.KeyValueWriter, block *StatelessBlock) error {
 	if err := db.Put(lastAccepted, bid[:]); err != nil {
 		return err
 	}
-	return db.Put(PrefixBlockKey(bid), block.Bytes())
+	f, err := extractAndStoreValues(db, block)
+	if err != nil {
+		return err
+	}
+	if err := db.Put(PrefixBlockKey(bid), block.Bytes()); err != nil {
+		return err
+	}
+	executeFuncs(f)
+	return nil
 }
 
 func HasLastAccepted(db database.Database) (bool, error) {
@@ -197,8 +280,23 @@ func GetLastAccepted(db database.KeyValueReader) (ids.ID, error) {
 	return ids.ToID(v)
 }
 
-func GetBlock(db database.KeyValueReader, bid ids.ID) ([]byte, error) {
-	return db.Get(PrefixBlockKey(bid))
+func GetBlock(db database.KeyValueReader, bid ids.ID) (*StatefulBlock, []byte, error) {
+	b, err := db.Get(PrefixBlockKey(bid))
+	if err != nil {
+		return nil, nil, err
+	}
+	blk := new(StatefulBlock)
+	if _, err := Unmarshal(b, blk); err != nil {
+		return nil, nil, err
+	}
+	if err := restoreValues(db, blk); err != nil {
+		return nil, nil, err
+	}
+	fb, err := Marshal(blk)
+	if err != nil {
+		return nil, nil, err
+	}
+	return blk, fb, nil
 }
 
 // ExpireNext queries "expiryPrefix" key space to find expiring keys,

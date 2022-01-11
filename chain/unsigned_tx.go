@@ -19,5 +19,5 @@ type UnsignedTransaction interface {
 	LoadUnits() uint64 // units that should impact fee rate
 
 	ExecuteBase() error
-	Execute(database.Database, uint64) error
+	Execute(database.Database, uint64, ids.ID) error
 }

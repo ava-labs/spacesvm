@@ -5,6 +5,7 @@ package chain
 
 import (
 	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/avalanchego/ids"
 )
 
 var _ UnsignedTransaction = &LifelineTx{}
@@ -28,7 +29,7 @@ func addLife(db database.KeyValueReaderWriter, prefix []byte) error {
 	return PutPrefixInfo(db, prefix, i, lastExpiry)
 }
 
-func (l *LifelineTx) Execute(db database.Database, blockTime uint64) error {
+func (l *LifelineTx) Execute(db database.Database, blockTime uint64, _ ids.ID) error {
 	return addLife(db, l.Prefix)
 }
 

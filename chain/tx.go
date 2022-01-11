@@ -109,7 +109,7 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 	if !pk.Verify(t.unsignedBytes, t.Signature) {
 		return ErrInvalidSignature
 	}
-	if err := t.UnsignedTransaction.Execute(db, uint64(blockTime)); err != nil {
+	if err := t.UnsignedTransaction.Execute(db, uint64(blockTime), t.id); err != nil {
 		return err
 	}
 	return SetTransaction(db, t)
