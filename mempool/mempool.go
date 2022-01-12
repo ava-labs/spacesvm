@@ -18,8 +18,8 @@ type Mempool struct {
 	mu      sync.RWMutex
 	g       *chain.Genesis
 	maxSize int
-	maxHeap *internalTxHeap
-	minHeap *internalTxHeap
+	maxHeap *txHeap
+	minHeap *txHeap
 
 	// Pending is a channel of length one, which the mempool ensures has an item on
 	// it as long as there is an unissued transaction remaining in [txs]
@@ -34,8 +34,8 @@ func New(g *chain.Genesis, maxSize int) *Mempool {
 	return &Mempool{
 		g:       g,
 		maxSize: maxSize,
-		maxHeap: newInternalTxHeap(maxSize, false),
-		minHeap: newInternalTxHeap(maxSize, true),
+		maxHeap: newTxHeap(maxSize, false),
+		minHeap: newTxHeap(maxSize, true),
 		Pending: make(chan struct{}, 1),
 	}
 }
