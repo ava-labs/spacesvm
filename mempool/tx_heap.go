@@ -11,8 +11,8 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 )
 
-// txEntry is used to track the work transactions pay to be included in
-// the mempool.
+// txEntry is used to track the work transactions pay to be included in the
+// mempool.
 type txEntry struct {
 	id         ids.ID
 	tx         *chain.Transaction
@@ -20,37 +20,37 @@ type txEntry struct {
 	index      int
 }
 
-// internalTxHeap is used to track pending transactions by [difficulty]
-type internalTxHeap struct {
+// txHeap is used to track pending transactions by [difficulty]
+type txHeap struct {
 	isMinHeap bool
 	items     []*txEntry
 	lookup    map[ids.ID]*txEntry
 }
 
-func newInternalTxHeap(items int, isMinHeap bool) *internalTxHeap {
-	return &internalTxHeap{
+func newTxHeap(items int, isMinHeap bool) *txHeap {
+	return &txHeap{
 		isMinHeap: isMinHeap,
 		items:     make([]*txEntry, 0, items),
 		lookup:    map[ids.ID]*txEntry{},
 	}
 }
 
-func (th internalTxHeap) Len() int { return len(th.items) }
+func (th txHeap) Len() int { return len(th.items) }
 
-func (th internalTxHeap) Less(i, j int) bool {
+func (th txHeap) Less(i, j int) bool {
 	if th.isMinHeap {
 		return th.items[i].difficulty < th.items[j].difficulty
 	}
 	return th.items[i].difficulty > th.items[j].difficulty
 }
 
-func (th internalTxHeap) Swap(i, j int) {
+func (th txHeap) Swap(i, j int) {
 	th.items[i], th.items[j] = th.items[j], th.items[i]
 	th.items[i].index = i
 	th.items[j].index = j
 }
 
-func (th *internalTxHeap) Push(x interface{}) {
+func (th *txHeap) Push(x interface{}) {
 	entry, ok := x.(*txEntry)
 	if !ok {
 		panic(fmt.Errorf("unexpected %T, expected *txEntry", x))
@@ -62,7 +62,7 @@ func (th *internalTxHeap) Push(x interface{}) {
 	th.lookup[entry.id] = entry
 }
 
-func (th *internalTxHeap) Pop() interface{} {
+func (th *txHeap) Pop() interface{} {
 	n := len(th.items)
 	item := th.items[n-1]
 	th.items[n-1] = nil // avoid memory leak
@@ -71,12 +71,12 @@ func (th *internalTxHeap) Pop() interface{} {
 	return item
 }
 
-func (th *internalTxHeap) Get(id ids.ID) (*txEntry, bool) {
+func (th *txHeap) Get(id ids.ID) (*txEntry, bool) {
 	entry, ok := th.lookup[id]
 	return entry, ok
 }
 
-func (th *internalTxHeap) Has(id ids.ID) bool {
+func (th *txHeap) Has(id ids.ID) bool {
 	_, has := th.Get(id)
 	return has
 }
