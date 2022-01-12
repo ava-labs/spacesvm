@@ -25,6 +25,7 @@ var (
 	ErrInvalidDelimiter = errors.New("prefix/key has unexpected delimiters; only one sub-key is supported")
 
 	delimiterSlice = []byte{Delimiter}
+	noPrefixEnd    = []byte{0}
 )
 
 // CheckPrefix returns an error if the prefix format is invalid.
@@ -54,8 +55,6 @@ func CheckKey(k []byte) error {
 		return nil
 	}
 }
-
-var noPrefixEnd = []byte{0}
 
 // ParsePrefixKey parses the given string with delimiter to split prefix and key.
 // "end" is the range end that can be used for the prefix query with "k".
@@ -91,24 +90,18 @@ func ParsePrefixKey(s []byte, opts ...OpOption) (pfx []byte, k []byte, end []byt
 }
 
 // GetRangeEnd returns next lexicographical key (range end) for prefix queries
-func GetRangeEnd(k []byte) (end []byte) {
-	end = make([]byte, len(k))
-	copy(end, k)
-	pfxEndExist := false
-	for i := len(end) - 1; i >= 0; i-- {
-		if end[i] < 0xff {
-			end[i]++
-			end = end[:i+1]
-			pfxEndExist = true
-			break
+func GetRangeEnd(k []byte) []byte {
+	for i := len(k) - 1; i >= 0; i-- {
+		if v := k[i]; v < 0xff {
+			end := make([]byte, i+1)
+			copy(end, k[:i])
+			end[i] = v + 1
+			return end
 		}
 	}
-	if !pfxEndExist {
-		// next prefix does not exist (e.g., 0xffff);
-		// default to special end key
-		end = noPrefixEnd
-	}
-	return end
+	// next prefix does not exist (e.g., 0xffff);
+	// default to special end key
+	return noPrefixEnd
 }
 
 type Op struct {
