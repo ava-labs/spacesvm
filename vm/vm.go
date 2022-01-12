@@ -169,7 +169,7 @@ func (vm *VM) Initialize(
 		log.Error("genesis block failed verification", "err", err)
 		return err
 	}
-	vm.genesis = genesisBlk.Data
+	vm.genesis = genesisBlk.Genesis
 	vm.mempool = mempool.New(vm.genesis, mempoolSize)
 
 	if has { //nolint:nestif

@@ -67,6 +67,8 @@ var (
 
 	clusterInfo tests.ClusterInfo
 	instances   []instance
+
+	genesis *chain.Genesis
 )
 
 type instance struct {
@@ -100,6 +102,8 @@ var _ = ginkgo.BeforeSuite(func() {
 			cli: client.New(u, requestTimeout),
 		}
 	}
+	genesis, err = instances[0].cli.Genesis()
+	gomega.Ω(err).Should(gomega.BeNil())
 	color.Blue("created clients with %+v", clusterInfo)
 })
 
@@ -214,7 +218,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 		})
 
-		v2 := bytes.Repeat([]byte("a"), chain.ValueUnitSize*20+1)
+		v2 := bytes.Repeat([]byte("a"), genesis.ValueUnitSize*20+1)
 		ginkgo.By("mine and issue large SetTx overwrite to a different node (if available)", func() {
 			setTx := &chain.SetTx{
 				BaseTx: &chain.BaseTx{

@@ -59,7 +59,7 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 		Tmstmp:     time.Now().Unix(),
 		Difficulty: defaultGenesis.MinDifficulty,
 		Cost:       defaultGenesis.MinBlockCost,
-		Data:       defaultGenesis,
+		Genesis:    defaultGenesis,
 	}
 	b, err := chain.Marshal(blk)
 	if err != nil {
