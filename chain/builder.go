@@ -13,8 +13,9 @@ import (
 )
 
 func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
-	log.Debug("attempting block building")
+	g := vm.Genesis()
 
+	log.Debug("attempting block building")
 	nextTime := time.Now().Unix()
 	parent, err := vm.GetStatelessBlock(preferred)
 	if err != nil {
@@ -54,13 +55,13 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		}
 	}
 	// Reward producer (if [b.Beneficiary] is non-nil)
-	if err := Reward(vdb, b.Beneficiary); err != nil {
+	if err := Reward(g, vdb, b.Beneficiary); err != nil {
 		return nil, err
 	}
 
 	b.Txs = []*Transaction{}
 	units := uint64(0)
-	for units < TargetUnits && mempool.Len() > 0 {
+	for units < g.TargetUnits && mempool.Len() > 0 {
 		next, diff := mempool.PopMax()
 		if diff < b.Difficulty {
 			mempool.Add(next)
@@ -69,7 +70,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		}
 		// Verify that changes pass
 		tvdb := versiondb.New(vdb)
-		if err := next.Execute(tvdb, b.Tmstmp, context); err != nil {
+		if err := next.Execute(g, tvdb, b.Tmstmp, context); err != nil {
 			log.Debug("skipping tx: failed verification", "err", err)
 			continue
 		}
@@ -78,7 +79,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		}
 		// Wait to add prefix until after verification
 		b.Txs = append(b.Txs, next)
-		units += next.LoadUnits()
+		units += next.LoadUnits(g)
 	}
 	vdb.Abort()
 

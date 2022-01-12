@@ -207,6 +207,7 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 // corresponding txID where they were found. The extracted value is then
 // written to disk.
 func linkValues(db database.KeyValueWriter, block *StatelessBlock) ([]*Transaction, error) {
+	g := block.vm.Genesis()
 	ogTxs := make([]*Transaction, len(block.Txs))
 	for i, tx := range block.Txs {
 		switch t := tx.UnsignedTransaction.(type) {
@@ -218,7 +219,7 @@ func linkValues(db database.KeyValueWriter, block *StatelessBlock) ([]*Transacti
 
 			// Copy transaction for later
 			cptx := tx.Copy()
-			if err := cptx.Init(); err != nil {
+			if err := cptx.Init(g); err != nil {
 				return nil, err
 			}
 			ogTxs[i] = cptx

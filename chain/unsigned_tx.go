@@ -15,9 +15,10 @@ type UnsignedTransaction interface {
 	SetGraffiti(graffiti uint64)
 	GetSender() [crypto.SECP256K1RPKLen]byte
 	GetBlockID() ids.ID
-	FeeUnits() uint64  // number of units to mine tx
-	LoadUnits() uint64 // units that should impact fee rate
+
+	FeeUnits(*Genesis) uint64  // number of units to mine tx
+	LoadUnits(*Genesis) uint64 // units that should impact fee rate
 
 	ExecuteBase() error
-	Execute(database.Database, uint64, ids.ID) error
+	Execute(*Genesis, database.Database, uint64, ids.ID) error
 }

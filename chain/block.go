@@ -94,8 +94,9 @@ func ParseStatefulBlock(
 		return nil, err
 	}
 	b.id = id
+	g := vm.Genesis()
 	for _, tx := range blk.Txs {
-		if err := tx.Init(); err != nil {
+		if err := tx.Init(g); err != nil {
 			return nil, err
 		}
 	}
@@ -116,8 +117,9 @@ func (b *StatelessBlock) init() error {
 	}
 	b.id = id
 	b.t = time.Unix(b.StatefulBlock.Tmstmp, 0)
+	g := b.vm.Genesis()
 	for _, tx := range b.StatefulBlock.Txs {
-		if err := tx.Init(); err != nil {
+		if err := tx.Init(g); err != nil {
 			return err
 		}
 	}
@@ -130,6 +132,8 @@ func (b *StatelessBlock) ID() ids.ID { return b.id }
 // verify checks the correctness of a block and then returns the
 // *versiondb.Database computed during execution.
 func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) {
+	g := b.vm.Genesis()
+
 	parent, err := b.vm.GetStatelessBlock(b.Prnt)
 	if err != nil {
 		log.Debug("could not get parent", "id", b.Prnt)
@@ -173,7 +177,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		return nil, nil, err
 	}
 	// Reward producer (if [b.Beneficiary] is non-nil)
-	if err := Reward(onAcceptDB, b.Beneficiary); err != nil {
+	if err := Reward(g, onAcceptDB, b.Beneficiary); err != nil {
 		return nil, nil, err
 	}
 
@@ -181,10 +185,10 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	log.Debug("build context", "height", b.Hght, "difficulty", b.Difficulty, "cost", b.Cost)
 	surplusWork := uint64(0)
 	for _, tx := range b.Txs {
-		if err := tx.Execute(onAcceptDB, b.Tmstmp, context); err != nil {
+		if err := tx.Execute(g, onAcceptDB, b.Tmstmp, context); err != nil {
 			return nil, nil, err
 		}
-		surplusWork += (tx.Difficulty() - b.Difficulty) * tx.FeeUnits()
+		surplusWork += (tx.Difficulty() - b.Difficulty) * tx.FeeUnits(g)
 	}
 	// Ensure enough work is performed to compensate for block production speed
 	requiredSurplus := b.Difficulty * b.Cost

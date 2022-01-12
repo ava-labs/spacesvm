@@ -46,8 +46,8 @@ func UnsignedBytes(utx UnsignedTransaction) ([]byte, error) {
 	return b, nil
 }
 
-func (t *Transaction) Init() error {
-	utx, diff, err := CalcDifficulty(t.UnsignedTransaction)
+func (t *Transaction) Init(g *Genesis) error {
+	utx, diff, err := CalcDifficulty(g, t.UnsignedTransaction)
 	if err != nil {
 		return err
 	}
@@ -83,15 +83,15 @@ func (t *Transaction) ID() ids.ID { return t.id }
 func (t *Transaction) Difficulty() uint64 { return t.difficulty }
 
 // Used during mining
-func CalcDifficulty(utx UnsignedTransaction) ([]byte, uint64, error) {
+func CalcDifficulty(g *Genesis, utx UnsignedTransaction) ([]byte, uint64, error) {
 	b, err := UnsignedBytes(utx)
 	if err != nil {
 		return nil, 0, err
 	}
-	return b, pow.Difficulty(b) / utx.FeeUnits(), nil
+	return b, pow.Difficulty(b) / utx.FeeUnits(g), nil
 }
 
-func (t *Transaction) Execute(db database.Database, blockTime int64, context *Context) error {
+func (t *Transaction) Execute(g *Genesis, db database.Database, blockTime int64, context *Context) error {
 	if err := t.UnsignedTransaction.ExecuteBase(); err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (t *Transaction) Execute(db database.Database, blockTime int64, context *Co
 	if !pk.Verify(t.unsignedBytes, t.Signature) {
 		return ErrInvalidSignature
 	}
-	if err := t.UnsignedTransaction.Execute(db, uint64(blockTime), t.id); err != nil {
+	if err := t.UnsignedTransaction.Execute(g, db, uint64(blockTime), t.id); err != nil {
 		return err
 	}
 	return SetTransaction(db, t)
