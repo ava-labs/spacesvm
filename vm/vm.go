@@ -321,12 +321,12 @@ func (vm *VM) GetStatelessBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
 	}
 
 	// not found in memory, fetch from disk if accepted
-	stBlk, bytes, err := chain.GetBlock(vm.db, blkID)
+	stBlk, err := chain.GetBlock(vm.db, blkID)
 	if err != nil {
 		return nil, err
 	}
 	// If block on disk, it must've been accepted
-	return chain.ParseStatefulBlock(stBlk, bytes, choices.Accepted, vm)
+	return chain.ParseStatefulBlock(stBlk, nil, choices.Accepted, vm)
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.Parser"
