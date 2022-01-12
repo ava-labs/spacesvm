@@ -62,6 +62,9 @@ go build \
 ./cmd/quarkvm
 find /tmp/avalanchego-v${VERSION}
 
+echo "building quark-cli"
+go build -v -o /tmp/quark-cli ./cmd/quarkcli
+
 echo "creating VM genesis file"
 rm -f /tmp/quarkvm.genesis
 /tmp/quark-cli genesis --genesis-file /tmp/quarkvm.genesis
@@ -72,9 +75,6 @@ go build -v -o /tmp/runner .
 popd
 
 if [[ ${E2E} == true ]]; then
-  echo "building quark-cli"
-  go build -v -o /tmp/quark-cli ./cmd/quarkcli
-
   echo "building e2e.test"
   # to install the ginkgo binary (required for test build and run)
   go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.0.0-rc2
