@@ -176,6 +176,7 @@ func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 	th.mu.Lock()
 	defer th.mu.Unlock()
 
+	//nolint:prealloc // The final size of [selected] is unknown.
 	var (
 		units    uint64
 		selected []*chain.Transaction
