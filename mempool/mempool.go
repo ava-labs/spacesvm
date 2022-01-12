@@ -70,7 +70,7 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 	// Note: we do this after adding the new transaction in case it is the new
 	// lowest paying transaction
 	if th.Len() > th.maxSize {
-		t := th.PopMin()
+		t, _ := th.PopMin()
 		if t.ID() == txID {
 			return false
 		}
@@ -88,49 +88,44 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 // Assumes there is non-zero items in [Mempool]
 func (th *Mempool) PeekMax() (*chain.Transaction, uint64) {
 	th.mu.RLock()
+	defer th.mu.RUnlock()
+
 	txEntry := th.maxHeap.items[0]
-	th.mu.RUnlock()
 	return txEntry.tx, txEntry.difficulty
 }
 
 // Assumes there is non-zero items in [Mempool]
 func (th *Mempool) PeekMin() (*chain.Transaction, uint64) {
 	th.mu.RLock()
+	defer th.mu.RUnlock()
+
 	txEntry := th.minHeap.items[0]
-	th.mu.RUnlock()
 	return txEntry.tx, txEntry.difficulty
 }
 
 // Assumes there is non-zero items in [Mempool]
-func (th *Mempool) PopMax() (*chain.Transaction, uint64) {
-	th.mu.RLock()
+func (th *Mempool) PopMax() (*chain.Transaction, uint64) { // O(log N)
+	th.mu.Lock()
+	defer th.mu.Unlock()
+
 	item := th.maxHeap.items[0]
-	th.mu.RUnlock()
-	return th.Remove(item.id), item.difficulty
+	return th.remove(item.id), item.difficulty
 }
 
 // Assumes there is non-zero items in [Mempool]
-func (th *Mempool) PopMin() *chain.Transaction {
-	return th.Remove(th.minHeap.items[0].id)
+func (th *Mempool) PopMin() (*chain.Transaction, uint64) { // O(log N)
+	th.mu.Lock()
+	defer th.mu.Unlock()
+
+	item := th.minHeap.items[0]
+	return th.remove(item.id), item.difficulty
 }
 
 func (th *Mempool) Remove(id ids.ID) *chain.Transaction { // O(log N)
 	th.mu.Lock()
 	defer th.mu.Unlock()
 
-	maxEntry, ok := th.maxHeap.Get(id) // O(1)
-	if !ok {
-		return nil
-	}
-	heap.Remove(th.maxHeap, maxEntry.index) // O(log N)
-
-	minEntry, ok := th.minHeap.Get(id) // O(1)
-	if !ok {
-		// This should never happen, as that would mean the heaps are out of
-		// sync.
-		return nil
-	}
-	return heap.Remove(th.minHeap, minEntry.index).(*txEntry).tx // O(log N)
+	return th.remove(id)
 }
 
 // Prune removes all transactions that are not found in "validHashes".
@@ -143,6 +138,7 @@ func (th *Mempool) Prune(validHashes ids.Set) {
 		}
 	}
 	th.mu.RUnlock()
+
 	for _, txID := range toRemove { // O(K * log N)
 		th.Remove(txID)
 	}
@@ -151,10 +147,14 @@ func (th *Mempool) Prune(validHashes ids.Set) {
 func (th *Mempool) Len() int {
 	th.mu.RLock()
 	defer th.mu.RUnlock()
+
 	return th.maxHeap.Len()
 }
 
 func (th *Mempool) Get(id ids.ID) (*chain.Transaction, bool) {
+	th.mu.RLock()
+	defer th.mu.RUnlock()
+
 	txEntry, ok := th.maxHeap.Get(id)
 	if !ok {
 		return nil, false
@@ -174,8 +174,10 @@ func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 	th.mu.Lock()
 	defer th.mu.Unlock()
 
-	units := uint64(0)
-	selected := []*chain.Transaction{}
+	var (
+		units    uint64
+		selected []*chain.Transaction
+	)
 	for i, tx := range th.newTxs {
 		// It is possible that a block may have been accepted that contains some
 		// new transactions before [NewTxs] is called.
@@ -192,6 +194,23 @@ func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 	}
 	th.newTxs = nil
 	return selected
+}
+
+// remove assuming the write lock is held and takes O(log N) time to run.
+func (th *Mempool) remove(id ids.ID) *chain.Transaction {
+	maxEntry, ok := th.maxHeap.Get(id) // O(1)
+	if !ok {
+		return nil
+	}
+	heap.Remove(th.maxHeap, maxEntry.index) // O(log N)
+
+	minEntry, ok := th.minHeap.Get(id) // O(1)
+	if !ok {
+		// This should never happen, as that would mean the heaps are out of
+		// sync.
+		return nil
+	}
+	return heap.Remove(th.minHeap, minEntry.index).(*txEntry).tx // O(log N)
 }
 
 // addPending makes sure that an item is in the Pending channel.
