@@ -194,7 +194,7 @@ func newLocalNetwork(
 		cfg.NodeConfigs[i].ConfigFile = []byte(fmt.Sprintf(`{
 	"network-peer-list-gossip-frequency":"250ms",
 	"network-max-reconnect-delay":"1s",
-	"public-ip":"127.0.0.1",
+	"public-ip":"0.0.0.0",
 	"health-check-frequency":"2s",
 	"api-admin-enabled":true,
 	"api-ipcs-enabled":true,
