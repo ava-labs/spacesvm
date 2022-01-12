@@ -185,7 +185,7 @@ func (th *Mempool) PopMin() *chain.Transaction {
 	return th.Remove(th.minHeap.items[0].id)
 }
 
-func (th *Mempool) Remove(id ids.ID) *chain.Transaction { // O(N)
+func (th *Mempool) Remove(id ids.ID) *chain.Transaction { // O(log N)
 	th.mu.Lock()
 	defer th.mu.Unlock()
 
@@ -193,7 +193,7 @@ func (th *Mempool) Remove(id ids.ID) *chain.Transaction { // O(N)
 	if !ok {
 		return nil
 	}
-	heap.Remove(th.maxHeap, maxEntry.index) // O(N)
+	heap.Remove(th.maxHeap, maxEntry.index) // O(log N)
 
 	minEntry, ok := th.minHeap.Get(id) // O(1)
 	if !ok {
@@ -201,7 +201,7 @@ func (th *Mempool) Remove(id ids.ID) *chain.Transaction { // O(N)
 		// sync.
 		return nil
 	}
-	return heap.Remove(th.minHeap, minEntry.index).(*txEntry).tx // O(N)
+	return heap.Remove(th.minHeap, minEntry.index).(*txEntry).tx // O(log N)
 }
 
 // Prune removes all transactions that are not found in "validHashes".
@@ -214,7 +214,7 @@ func (th *Mempool) Prune(validHashes ids.Set) {
 		}
 	}
 	th.mu.RUnlock()
-	for _, txID := range toRemove { // O(N*K)
+	for _, txID := range toRemove { // O(K * log N)
 		th.Remove(txID)
 	}
 }
