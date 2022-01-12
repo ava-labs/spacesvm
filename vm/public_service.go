@@ -140,6 +140,23 @@ func (svc *PublicService) DifficultyEstimate(
 	return nil
 }
 
+type ClaimedArgs struct {
+	Prefix []byte `serialize:"true" json:"prefix"`
+}
+
+type ClaimedReply struct {
+	Claimed bool `serialize:"true" json:"claimed"`
+}
+
+func (svc *PublicService) Claimed(_ *http.Request, args *ClaimedArgs, reply *ClaimedReply) error {
+	has, err := chain.HasPrefix(svc.vm.db, args.Prefix)
+	if err != nil {
+		return err
+	}
+	reply.Claimed = has
+	return nil
+}
+
 type PrefixInfoArgs struct {
 	Prefix []byte `serialize:"true" json:"prefix"`
 }

@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/quarkvm/pow"
 )
 
 const (
@@ -57,20 +58,13 @@ func (cli *client) Mine(
 				return gctx.Err()
 			}
 
-			lastBlk := md.blockID
 			for gctx.Err() == nil {
 				cmd := md
-				// Reset graffiti when block has been updated
-				//
-				// Note: We always want to use the newest BlockID when mining to maximize
-				// the probability our transaction will get into a block before it
-				// expires.
-				if cmd.blockID != lastBlk {
-					lastBlk = cmd.blockID
-					graffiti = j
-				}
 
 				// Try new graffiti
+				//
+				// We don't reset the graffiti when reseting the blockID we are using
+				// to make estimating our current hash rate easier.
 				jutx.SetBlockID(cmd.blockID)
 				jutx.SetGraffiti(graffiti)
 				_, utxd, err := chain.CalcDifficulty(gen, jutx)
@@ -114,19 +108,27 @@ func (cli *client) Mine(
 
 			// Assumes each additional unit of difficulty is ~1ms of compute
 			cmd := md
-			eta := time.Duration(utx.FeeUnits(gen)*cmd.minDifficulty) * time.Millisecond
-			eta = (eta / time.Duration(concurrency)) * etaMultiplier // account for threads and overestimate
+			ag := agraffiti
+			elapsed := time.Since(now)
+			es := elapsed.Seconds()
+			hr := float64(ag) / es
+			if hr == 0 || es < 2 {
+				return
+			}
+			td := (utx.FeeUnits(gen) + cmd.minCost) * cmd.minDifficulty
+			rh := float64(pow.ExpectedHashes(td))
+			eta := time.Duration(rh/hr) * time.Second * etaMultiplier
 			diff := time.Since(now)
 			if diff > eta {
 				color.Yellow(
-					"mining in progress[%s/%d]... (elapsed=%v, threads=%d)",
-					cmd.blockID, agraffiti, time.Since(now).Round(durPrecision), concurrency,
+					"mining in progress[%s/%d]... (elapsed=%v, threads=%d, h/s=%f)",
+					cmd.blockID, agraffiti, diff.Round(durPrecision), concurrency, hr,
 				)
 			} else {
 				eta -= diff
 				color.Yellow(
-					"mining in progress[%s/%d]... (elapsed=%v, est. remaining=%v, threads=%d)",
-					cmd.blockID, agraffiti, time.Since(now).Round(durPrecision), eta.Round(durPrecision), concurrency,
+					"mining in progress[%s/%d]... (elapsed=%v, est. remaining=%v, threads=%d, h/s=%f)",
+					cmd.blockID, agraffiti, diff.Round(durPrecision), eta.Round(durPrecision), concurrency, hr,
 				)
 			}
 		}
@@ -166,6 +168,7 @@ func (cli *client) Mine(
 				}
 
 				if !readyClosed {
+					color.Blue("starting mining (difficulty=%d, minCost=%d)", md.minDifficulty, md.minCost)
 					close(ready)
 					readyClosed = true
 				}

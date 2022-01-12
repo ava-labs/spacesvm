@@ -24,6 +24,8 @@ type Client interface {
 	Ping() (bool, error)
 	// Returns the VM genesis.
 	Genesis() (*chain.Genesis, error)
+	// Returns if a prefix is already claimed
+	Claimed(pfx []byte) (bool, error)
 	// Returns the corresponding prefix information.
 	PrefixInfo(pfx []byte) (*chain.PrefixInfo, error)
 	// Accepted fetches the ID of the last accepted block.
@@ -83,6 +85,18 @@ func (cli *client) Genesis() (*chain.Genesis, error) {
 		resp,
 	)
 	return resp.Genesis, err
+}
+
+func (cli *client) Claimed(pfx []byte) (bool, error) {
+	resp := new(vm.ClaimedReply)
+	if err := cli.req.SendRequest(
+		"claimed",
+		&vm.ClaimedArgs{Prefix: pfx},
+		resp,
+	); err != nil {
+		return false, err
+	}
+	return resp.Claimed, nil
 }
 
 func (cli *client) PrefixInfo(pfx []byte) (*chain.PrefixInfo, error) {

@@ -38,7 +38,7 @@ func TestClaimTx(t *testing.T) {
 	defer db.Close()
 
 	g := DefaultGenesis()
-	ExpiryTime := int64(g.ExpiryTime)
+	ClaimReward := int64(g.ClaimReward)
 	tt := []struct {
 		tx        *ClaimTx
 		blockTime int64
@@ -61,17 +61,17 @@ func TestClaimTx(t *testing.T) {
 		},
 		{ // successful new claim
 			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
-			blockTime: ExpiryTime * 2,
+			blockTime: ClaimReward * 2,
 			err:       nil,
 		},
 		{ // successful new claim by different owner
 			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
-			blockTime: ExpiryTime * 4,
+			blockTime: ClaimReward * 4,
 			err:       nil,
 		},
 		{ // invalid claim due to expiration by different owner
 			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
-			blockTime: ExpiryTime*4 + 3,
+			blockTime: ClaimReward*4 + 3,
 			err:       ErrPrefixNotExpired,
 		},
 	}
@@ -102,7 +102,7 @@ func TestClaimTx(t *testing.T) {
 	}
 
 	// Cleanup DB after all txs submitted
-	if err := ExpireNext(db, 0, ExpiryTime*10, true); err != nil {
+	if err := ExpireNext(db, 0, ClaimReward*10, true); err != nil {
 		t.Fatal(err)
 	}
 	pruned, err := PruneNext(db, 100)
