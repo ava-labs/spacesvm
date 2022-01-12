@@ -24,7 +24,7 @@ func (vm *VM) lookback(currTime int64, lastID ids.ID, f func(b *chain.StatelessB
 		return err
 	}
 	// Include at least parent block in the window, regardless of how old
-	for curr != nil && (currTime-curr.Tmstmp <= chain.LookbackWindow || curr.ID() == lastID) {
+	for curr != nil && (currTime-curr.Tmstmp <= vm.genesis.LookbackWindow || curr.ID() == lastID) {
 		if cont, err := f(curr); !cont || err != nil {
 			return err
 		}

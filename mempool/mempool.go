@@ -87,6 +87,7 @@ func (th *internalTxHeap) Has(id ids.ID) bool {
 
 type Mempool struct {
 	mu      sync.RWMutex
+	g       *chain.Genesis
 	maxSize int
 	maxHeap *internalTxHeap
 	minHeap *internalTxHeap
@@ -100,8 +101,9 @@ type Mempool struct {
 
 // New creates a new [Mempool]. [maxSize] must be > 0 or else the
 // implementation may panic.
-func New(maxSize int) *Mempool {
+func New(g *chain.Genesis, maxSize int) *Mempool {
 	return &Mempool{
+		g:       g,
 		maxSize: maxSize,
 		maxHeap: newInternalTxHeap(maxSize, false),
 		minHeap: newInternalTxHeap(maxSize, true),
@@ -250,13 +252,13 @@ func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 		if !th.maxHeap.Has(tx.ID()) {
 			continue
 		}
-		if tx.LoadUnits()+units > maxUnits {
+		if tx.LoadUnits(th.g)+units > maxUnits {
 			// Note: this algorithm preserves the ordering of new transactions
 			th.newTxs = th.newTxs[i:]
 			return selected
 		}
 		selected = append(selected, tx)
-		units += tx.LoadUnits()
+		units += tx.LoadUnits(th.g)
 	}
 	th.newTxs = nil
 	return selected

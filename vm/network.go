@@ -83,14 +83,14 @@ func (n *PushNetwork) RegossipTxs() error {
 	txs := []*chain.Transaction{}
 	units := uint64(0)
 	// Gossip at most the target units of a block at once
-	for n.vm.mempool.Len() > 0 && units < chain.TargetUnits {
+	for n.vm.mempool.Len() > 0 && units < n.vm.genesis.TargetUnits {
 		tx, _ := n.vm.mempool.PopMax()
 
 		// Note: when regossiping, we force resend eventhough we may have done it
 		// recently.
 		n.gossipedTxs.Put(tx.ID(), nil)
 		txs = append(txs, tx)
-		units += tx.LoadUnits()
+		units += tx.LoadUnits(n.vm.genesis)
 	}
 
 	return n.sendTxs(txs)

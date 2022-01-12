@@ -11,6 +11,10 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 )
 
+func (vm *VM) Genesis() *chain.Genesis {
+	return vm.genesis
+}
+
 func (vm *VM) IsBootstrapped() bool {
 	return vm.bootstrapped
 }
@@ -68,7 +72,7 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		recentBlockIDs.Add(b.ID())
 		for _, tx := range b.StatefulBlock.Txs {
 			recentTxIDs.Add(tx.ID())
-			recentUnits += tx.LoadUnits()
+			recentUnits += tx.LoadUnits(vm.genesis)
 		}
 		difficulties = append(difficulties, b.Difficulty)
 		costs = append(costs, b.Cost)
@@ -81,10 +85,10 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 	// compute new block cost
 	secondsSinceLast := currTime - lastBlock.Tmstmp
 	nextCost := lastBlock.Cost
-	if secondsSinceLast < chain.BlockTarget {
-		nextCost += uint64(chain.BlockTarget - secondsSinceLast)
+	if secondsSinceLast < vm.genesis.BlockTarget {
+		nextCost += uint64(vm.genesis.BlockTarget - secondsSinceLast)
 	} else {
-		possibleDiff := uint64(secondsSinceLast - chain.BlockTarget)
+		possibleDiff := uint64(secondsSinceLast - vm.genesis.BlockTarget)
 		// TODO: clean this up
 		if nextCost >= vm.minBlockCost && possibleDiff < nextCost-vm.minBlockCost {
 			nextCost -= possibleDiff
@@ -95,10 +99,10 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 
 	// compute new min difficulty
 	nextDifficulty := lastBlock.Difficulty
-	if recentUnits > chain.TargetUnits {
+	if recentUnits > vm.genesis.TargetUnits {
 		nextDifficulty++
-	} else if recentUnits < chain.TargetUnits {
-		elapsedWindows := uint64(secondsSinceLast/chain.LookbackWindow) + 1 // account for current window being less
+	} else if recentUnits < vm.genesis.TargetUnits {
+		elapsedWindows := uint64(secondsSinceLast/vm.genesis.LookbackWindow) + 1 // account for current window being less
 		if nextDifficulty >= vm.minDifficulty && elapsedWindows < nextDifficulty-vm.minDifficulty {
 			nextDifficulty -= elapsedWindows
 		} else {

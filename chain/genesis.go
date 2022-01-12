@@ -3,7 +3,10 @@
 
 package chain
 
-import "github.com/ava-labs/avalanchego/utils/units"
+import (
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/units"
+)
 
 type Genesis struct {
 	// Tx params
@@ -26,8 +29,8 @@ type Genesis struct {
 	PrefixRenewalDiscount uint64 `serialize:"true" json:"prefixRenewalDiscount"`
 
 	// Fee Mechanism Params
-	LookbackWindow int    `serialize:"true" json:"lookbackWindow"`
-	BlockTarget    int    `serialize:"true" json:"blockTarget"`
+	LookbackWindow int64  `serialize:"true" json:"lookbackWindow"`
+	BlockTarget    int64  `serialize:"true" json:"blockTarget"`
 	TargetUnits    uint64 `serialize:"true" json:"targetUnits"`
 	MinDifficulty  uint64 `serialize:"true" json:"minDifficulty"`
 	MinBlockCost   uint64 `serialize:"true" json:"minBlockCost"`
@@ -61,4 +64,32 @@ func DefaultGenesis() *Genesis {
 		MinDifficulty:  100,           // ~100ms per unit (~5s for easiest claim)
 		MinBlockCost:   1,             // Minimum Unit Overhead
 	}
+}
+
+func VerifyGenesis(b *StatelessBlock) error {
+	if b.Prnt != (ids.ID{}) {
+		return ErrInvalidGenesis
+	}
+	if b.Hght != 0 {
+		return ErrInvalidGenesis
+	}
+	if b.Tmstmp != 0 {
+		return ErrInvalidGenesis
+	}
+	if b.Data == nil {
+		return ErrInvalidGenesis
+	}
+	if b.Difficulty != b.Data.MinDifficulty {
+		return ErrInvalidGenesis
+	}
+	if b.Cost != b.Data.MinBlockCost {
+		return ErrInvalidGenesis
+	}
+	if len(b.Txs) > 0 {
+		return ErrInvalidGenesis
+	}
+	if len(b.Beneficiary) > 0 {
+		return ErrInvalidGenesis
+	}
+	return nil
 }

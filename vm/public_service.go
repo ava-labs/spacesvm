@@ -52,7 +52,7 @@ func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *Iss
 	}
 
 	// otherwise, unexported tx.id field is empty
-	if err := tx.Init(); err != nil {
+	if err := tx.Init(svc.vm.genesis); err != nil {
 		reply.Success = false
 		return err
 	}

@@ -51,8 +51,10 @@ var (
 )
 
 type VM struct {
-	ctx          *snow.Context
-	db           database.Database
+	ctx     *snow.Context
+	db      database.Database
+	genesis *chain.Genesis
+
 	bootstrapped bool
 
 	buildInterval    time.Duration
@@ -135,10 +137,6 @@ func (vm *VM) Initialize(
 	vm.pruneInterval = defaultPruneInterval
 	vm.fullPruneInterval = defaultFullPruneInterval
 
-	// TODO: make this configurable via genesis
-	vm.minDifficulty, vm.minBlockCost = defaultMinimumDifficulty, defaultMinBlockCost
-
-	vm.mempool = mempool.New(mempoolSize)
 	vm.appSender = appSender
 	vm.network = vm.NewPushNetwork()
 
@@ -154,6 +152,26 @@ func (vm *VM) Initialize(
 		log.Error("could not determine if have last accepted")
 		return err
 	}
+
+	// Parse genesis data
+	genesisBlk, err := chain.ParseBlock(
+		genesisBytes,
+		choices.Accepted,
+		vm,
+	)
+	if err != nil {
+		log.Error("unable to init genesis block", "err", err)
+		return err
+	}
+
+	// Validate and set genesis
+	if err := chain.VerifyGenesis(genesisBlk); err != nil {
+		log.Error("genesis block failed verification", "err", err)
+		return err
+	}
+	vm.genesis = genesisBlk.Data
+	vm.mempool = mempool.New(vm.genesis, mempoolSize)
+
 	if has { //nolint:nestif
 		blkID, err := chain.GetLastAccepted(vm.db)
 		if err != nil {
@@ -170,15 +188,6 @@ func (vm *VM) Initialize(
 		vm.preferred, vm.lastAccepted = blkID, blk
 		log.Info("initialized quarkvm from last accepted", "block", blkID)
 	} else {
-		genesisBlk, err := chain.ParseBlock(
-			genesisBytes,
-			choices.Accepted,
-			vm,
-		)
-		if err != nil {
-			log.Error("unable to init genesis block", "err", err)
-			return err
-		}
 		if err := chain.SetLastAccepted(vm.db, genesisBlk); err != nil {
 			log.Error("could not set genesis as last accepted", "err", err)
 			return err
@@ -405,13 +414,13 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 }
 
 func (vm *VM) submit(tx *chain.Transaction, db database.Database, blkTime int64, ctx *chain.Context) error {
-	if err := tx.Init(); err != nil {
+	if err := tx.Init(vm.genesis); err != nil {
 		return err
 	}
 	if err := tx.ExecuteBase(); err != nil {
 		return err
 	}
-	if err := tx.Execute(db, blkTime, ctx); err != nil {
+	if err := tx.Execute(vm.genesis, db, blkTime, ctx); err != nil {
 		return err
 	}
 	vm.mempool.Add(tx)
