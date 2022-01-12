@@ -9,9 +9,9 @@ import (
 )
 
 type Context struct {
-	RecentBlockIDs ids.Set
-	RecentTxIDs    ids.Set
-	RecentUnits    uint64
+	RecentBlockIDs  ids.Set
+	RecentTxIDs     ids.Set
+	RecentLoadUnits uint64
 
 	Difficulties []uint64
 	Costs        []uint64
