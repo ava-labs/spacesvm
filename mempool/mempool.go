@@ -69,7 +69,7 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 	//
 	// Note: we do this after adding the new transaction in case it is the new
 	// lowest paying transaction
-	if th.Len() >= th.maxSize {
+	if th.Len() > th.maxSize {
 		t := th.PopMin()
 		if t.ID() == txID {
 			return false
@@ -165,6 +165,7 @@ func (th *Mempool) Get(id ids.ID) (*chain.Transaction, bool) {
 func (th *Mempool) Has(id ids.ID) bool {
 	th.mu.RLock()
 	defer th.mu.RUnlock()
+
 	return th.maxHeap.Has(id)
 }
 

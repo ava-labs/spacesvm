@@ -13,8 +13,8 @@ import (
 
 func TestMempool(t *testing.T) {
 	g := chain.DefaultGenesis()
-	txm := mempool.New(g, 4)
-	for _, i := range []int{200, 220, 250} {
+	txm := mempool.New(g, 3)
+	for _, i := range []int{100, 200, 220, 250} {
 		tx := &chain.Transaction{
 			Signature: bytes.Repeat([]byte{'a'}, i),
 			UnsignedTransaction: &chain.SetTx{
@@ -36,5 +36,8 @@ func TestMempool(t *testing.T) {
 	}
 	if _, diff := txm.PeekMin(); diff != 0 {
 		t.Fatalf("difficulty expected 0, got %d", diff)
+	}
+	if length := txm.Len(); length != 3 {
+		t.Fatalf("length expected 3, got %d", length)
 	}
 }
