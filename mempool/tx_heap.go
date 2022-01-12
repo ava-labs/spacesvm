@@ -31,7 +31,7 @@ func newTxHeap(items int, isMinHeap bool) *txHeap {
 	return &txHeap{
 		isMinHeap: isMinHeap,
 		items:     make([]*txEntry, 0, items),
-		lookup:    map[ids.ID]*txEntry{},
+		lookup:    make(map[ids.ID]*txEntry, items),
 	}
 }
 
