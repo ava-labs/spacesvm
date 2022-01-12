@@ -22,6 +22,8 @@ import (
 type Client interface {
 	// Pings the VM.
 	Ping() (bool, error)
+	// Returns the VM genesis.
+	Genesis() (*chain.Genesis, error)
 	// Returns the corresponding prefix information.
 	PrefixInfo(pfx []byte) (*chain.PrefixInfo, error)
 	// Accepted fetches the ID of the last accepted block.
@@ -42,7 +44,7 @@ type Client interface {
 	// Resolve returns the value associated with a path
 	Resolve(path string) (exists bool, value []byte, err error)
 	// Performs Proof-of-Work (PoW) by enumerating the graffiti.
-	Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error)
+	Mine(ctx context.Context, gen *chain.Genesis, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error)
 }
 
 // New creates a new client object.
@@ -64,13 +66,23 @@ func (cli *client) Ping() (bool, error) {
 	resp := new(vm.PingReply)
 	err := cli.req.SendRequest(
 		"ping",
-		&vm.PingArgs{},
+		nil,
 		resp,
 	)
 	if err != nil {
 		return false, err
 	}
 	return resp.Success, nil
+}
+
+func (cli *client) Genesis() (*chain.Genesis, error) {
+	resp := new(vm.GenesisReply)
+	err := cli.req.SendRequest(
+		"genesis",
+		nil,
+		resp,
+	)
+	return resp.Genesis, err
 }
 
 func (cli *client) PrefixInfo(pfx []byte) (*chain.PrefixInfo, error) {

@@ -24,15 +24,22 @@ type PublicService struct {
 	vm *VM
 }
 
-type PingArgs struct{}
-
 type PingReply struct {
 	Success bool `serialize:"true" json:"success"`
 }
 
-func (svc *PublicService) Ping(_ *http.Request, args *PingArgs, reply *PingReply) (err error) {
+func (svc *PublicService) Ping(_ *http.Request, _ *struct{}, reply *PingReply) (err error) {
 	log.Info("ping")
 	reply.Success = true
+	return nil
+}
+
+type GenesisReply struct {
+	Genesis *chain.Genesis `serialize:"true" json:"genesis"`
+}
+
+func (svc *PublicService) Genesis(_ *http.Request, _ *struct{}, reply *GenesisReply) (err error) {
+	reply.Genesis = svc.vm.Genesis()
 	return nil
 }
 

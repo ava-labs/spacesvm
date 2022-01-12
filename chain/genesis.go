@@ -67,7 +67,7 @@ func DefaultGenesis() *Genesis {
 }
 
 func VerifyGenesis(b *StatelessBlock) error {
-	if b.Prnt != (ids.ID{}) {
+	if b.Prnt != ids.Empty {
 		return ErrInvalidGenesis
 	}
 	if b.Hght != 0 {
