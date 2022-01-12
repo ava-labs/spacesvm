@@ -156,7 +156,7 @@ func (vm *VM) Initialize(
 	vm.genesis = genesisBlk.Genesis
 	vm.mempool = mempool.New(vm.genesis, vm.config.MempoolSize)
 
-	if has { //nolint:nestif
+	if has {
 		blkID, err := chain.GetLastAccepted(vm.db)
 		if err != nil {
 			log.Error("could not get last accepted", "err", err)
