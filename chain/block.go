@@ -29,7 +29,7 @@ type StatefulBlock struct {
 	Txs         []*Transaction `serialize:"true" json:"txs"`
 	Beneficiary []byte         `serialize:"true" json:"beneficiary"` // prefix to reward
 
-	Data *Genesis `serialize:"true" json:"data"` // only non-empty at height 0
+	Data *Genesis `serialize:"true,omitempty" json:"data"` // only non-empty at height 0
 }
 
 // Stateless is defined separately from "Block"
