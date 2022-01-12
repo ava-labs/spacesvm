@@ -93,5 +93,5 @@ func (b *StatelessBlock) VerifyGenesis() (*Genesis, error) {
 	if len(b.Beneficiary) > 0 {
 		return nil, ErrInvalidGenesisBeneficiary
 	}
-	return b.genesis, nil
+	return &b.genesis, nil
 }

@@ -38,7 +38,7 @@ type StatefulBlock struct {
 type StatelessBlock struct {
 	*StatefulBlock `serialize:"true" json:"block"`
 
-	genesis *Genesis
+	genesis Genesis
 	id      ids.ID
 	st      choices.Status
 	t       time.Time
@@ -97,10 +97,10 @@ func ParseStatefulBlock(
 	b.id = id
 	g := vm.Genesis()
 	if len(blk.Genesis) > 0 {
-		if _, err := Unmarshal(blk.Genesis, b.genesis); err != nil {
+		if _, err := Unmarshal(blk.Genesis, &b.genesis); err != nil {
 			return nil, err
 		}
-		g = b.genesis
+		g = &b.genesis
 	}
 	for _, tx := range blk.Txs {
 		if err := tx.Init(g); err != nil {
