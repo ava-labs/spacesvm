@@ -29,7 +29,9 @@ jobs:
         run: scripts/tests.integration.sh
       - name: Run e2e tests
         shell: bash
-        run: scripts/tests.e2e.sh 1.7.3
+        run: scripts/run.sh 1.7.3
+        env:
+          E2E: true
       - name: Run GoReleaser for cross-platform builds
         uses: goreleaser/goreleaser-action@v2
         with:

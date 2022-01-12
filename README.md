@@ -32,18 +32,18 @@ At its core, the Avalanche protocol still maintains the immutable ordered sequen
 
 ## Run `quarkvm` with local network
 
-[`scripts/tests.e2e.sh`](scripts/tests.e2e.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego) to set up a local network, creates `quarkvm` genesis file, and run e2e tests.
+[`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego) to set up a local networkand creates a `quarkvm` genesis file. To build and run E2E tests, you need to set the variable `E2E` before it: `E2E=true ./scripts/run.sh 1.7.3`
 
 See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made:
 
 ```bash
+# to startup a cluster
+cd ${HOME}/go/src/github.com/ava-labs/quarkvm
+./scripts/run.sh 1.7.3
+
 # to run full e2e tests and shut down cluster afterwards
 cd ${HOME}/go/src/github.com/ava-labs/quarkvm
-./scripts/tests.e2e.sh 1.7.3
-
-# to run full e2e tests and keep the cluster alive
-cd ${HOME}/go/src/github.com/ava-labs/quarkvm
-SHUTDOWN=false ./scripts/tests.e2e.sh 1.7.3
+E2E=true ./scripts/run.sh 1.7.3
 ```
 
 ```bash
