@@ -57,20 +57,13 @@ func (cli *client) Mine(
 				return gctx.Err()
 			}
 
-			lastBlk := md.blockID
 			for gctx.Err() == nil {
 				cmd := md
-				// Reset graffiti when block has been updated
-				//
-				// Note: We always want to use the newest BlockID when mining to maximize
-				// the probability our transaction will get into a block before it
-				// expires.
-				if cmd.blockID != lastBlk {
-					lastBlk = cmd.blockID
-					graffiti = j
-				}
 
 				// Try new graffiti
+				//
+				// We don't reset the graffiti when reseting the blockID we are using
+				// to make estimating our current hash rate easier.
 				jutx.SetBlockID(cmd.blockID)
 				jutx.SetGraffiti(graffiti)
 				_, utxd, err := chain.CalcDifficulty(gen, jutx)
@@ -114,19 +107,25 @@ func (cli *client) Mine(
 
 			// Assumes each additional unit of difficulty is ~1ms of compute
 			cmd := md
-			eta := time.Duration(utx.FeeUnits(gen)*cmd.minDifficulty) * time.Millisecond
-			eta = (eta / time.Duration(concurrency)) * etaMultiplier // account for threads and overestimate
+			ag := agraffiti
+			elapsed := time.Since(now)
+			hr := float64(ag) / elapsed.Seconds()
+			if hr == 0 {
+				return
+			}
+			td := float64((utx.FeeUnits(gen) + cmd.minCost) * cmd.minDifficulty)
+			eta := time.Duration(td/hr) * time.Second
 			diff := time.Since(now)
 			if diff > eta {
 				color.Yellow(
 					"mining in progress[%s/%d]... (elapsed=%v, threads=%d)",
-					cmd.blockID, agraffiti, time.Since(now).Round(durPrecision), concurrency,
+					cmd.blockID, agraffiti, diff.Round(durPrecision), concurrency,
 				)
 			} else {
 				eta -= diff
 				color.Yellow(
 					"mining in progress[%s/%d]... (elapsed=%v, est. remaining=%v, threads=%d)",
-					cmd.blockID, agraffiti, time.Since(now).Round(durPrecision), eta.Round(durPrecision), concurrency,
+					cmd.blockID, agraffiti, diff.Round(durPrecision), eta.Round(durPrecision), concurrency,
 				)
 			}
 		}

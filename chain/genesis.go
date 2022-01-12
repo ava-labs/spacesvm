@@ -60,7 +60,7 @@ func DefaultGenesis() *Genesis {
 		PrefixRenewalDiscount: 5,
 
 		// Reward Params
-		ClaimReward:        60 * 60 * 24 * 15, // 30 Days
+		ClaimReward:        60 * 60 * 24 * 15, // 15 Days
 		LifelineUnitReward: 60 * 60 * 6,       // 6 Hours Per Fee Unit (1 ms of work)
 		BeneficiaryReward:  60 * 60 * 6,       // 6 Hours
 

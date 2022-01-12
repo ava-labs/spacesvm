@@ -19,7 +19,7 @@ type LifelineTx struct {
 	Units uint64 `serialize:"true" json:"units"`
 }
 
-func addLife(g *Genesis, db database.KeyValueReaderWriter, prefix []byte, reward uint64) error {
+func addLife(_ *Genesis, db database.KeyValueReaderWriter, prefix []byte, reward uint64) error {
 	i, has, err := GetPrefixInfo(db, prefix)
 	if err != nil {
 		return err
