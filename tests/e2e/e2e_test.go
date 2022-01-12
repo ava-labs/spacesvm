@@ -218,7 +218,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 		})
 
-		v2 := bytes.Repeat([]byte("a"), genesis.ValueUnitSize*20+1)
+		v2 := bytes.Repeat([]byte("a"), int(genesis.ValueUnitSize)*20+1)
 		ginkgo.By("mine and issue large SetTx overwrite to a different node (if available)", func() {
 			setTx := &chain.SetTx{
 				BaseTx: &chain.BaseTx{
