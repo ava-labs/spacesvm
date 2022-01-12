@@ -2,11 +2,14 @@
 set -e
 
 # e.g.,
-# ./scripts/tests.e2e.sh 1.7.3
+# ./scripts/run.sh 1.7.3
 #
-# to keep the cluster alive
-# SHUTDOWN=false ./scripts/tests.e2e.sh 1.7.3
-if ! [[ "$0" =~ scripts/tests.e2e.sh ]]; then
+# to shut the cluster down
+# SHUTDOWN=false ./scripts/run.sh 1.7.3
+
+# to run E2E tests
+# E2E=true ./scripts/run.sh 1.7.3
+if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255
 fi
@@ -18,8 +21,9 @@ if [[ -z "${VERSION}" ]]; then
   exit 255
 fi
 
-SHUTDOWN=${SHUTDOWN:-true}
-if [[ ${SHUTDOWN} == true ]]; then
+SHUTDOWN=${SHUTDOWN:-false}
+E2E=${E2E:-false}
+if [[ ${SHUTDOWN} == true || ${E2E} == true ]]; then
   _SHUTDOWN_FLAG="--shutdown"
 else
   _SHUTDOWN_FLAG=""
@@ -58,9 +62,6 @@ go build \
 ./cmd/quarkvm
 find /tmp/avalanchego-v${VERSION}
 
-echo "building quark-cli"
-go build -v -o /tmp/quark-cli ./cmd/quarkcli
-
 echo "creating VM genesis file"
 rm -f /tmp/quarkvm.genesis
 /tmp/quark-cli genesis --genesis-file /tmp/quarkvm.genesis
@@ -70,11 +71,16 @@ pushd ./tests/runner
 go build -v -o /tmp/runner .
 popd
 
-echo "building e2e.test"
-# to install the ginkgo binary (required for test build and run)
-go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.0.0-rc2
-ACK_GINKGO_RC=true ginkgo build ./tests/e2e
-./tests/e2e/e2e.test --help
+if [[ ${E2E} == true ]]; then
+  echo "building quark-cli"
+  go build -v -o /tmp/quark-cli ./cmd/quarkcli
+
+  echo "building e2e.test"
+  # to install the ginkgo binary (required for test build and run)
+  go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.0.0-rc2
+  ACK_GINKGO_RC=true ginkgo build ./tests/e2e
+  ./tests/e2e/e2e.test --help
+fi
 
 echo "launch local test cluster in the background"
 /tmp/runner \
@@ -103,10 +109,12 @@ else
   exit 255
 fi
 
-echo "running e2e tests against the local cluster with shutdown flag '${_SHUTDOWN_FLAG}'"
-./tests/e2e/e2e.test \
---ginkgo.v \
---cluster-info-path /tmp/avalanchego-v${VERSION}/output.yaml \
-${_SHUTDOWN_FLAG}
+if [[ ${E2E} == true ]]; then
+  echo "running e2e tests against the local cluster with shutdown flag '${_SHUTDOWN_FLAG}'"
+  ./tests/e2e/e2e.test \
+  --ginkgo.v \
+  --cluster-info-path /tmp/avalanchego-v${VERSION}/output.yaml \
+  ${_SHUTDOWN_FLAG}
 
-echo "ALL SUCCESS!"
+  echo "ALL SUCCESS!"
+fi
