@@ -25,7 +25,6 @@ var (
 	ErrInvalidDelimiter = errors.New("prefix/key has unexpected delimiters; only one sub-key is supported")
 
 	delimiterSlice = []byte{Delimiter}
-	noPrefixEnd    = []byte{0}
 )
 
 // CheckPrefix returns an error if the prefix format is invalid.
@@ -101,7 +100,7 @@ func GetRangeEnd(k []byte) []byte {
 	}
 	// next prefix does not exist (e.g., 0xffff);
 	// default to special end key
-	return noPrefixEnd
+	return nil
 }
 
 type Op struct {
