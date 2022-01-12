@@ -141,7 +141,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	}
 
 	if b.Hght > 0 && b.Genesis != nil {
-		return nil, nil, ErrInvalidData
+		return nil, nil, ErrInvalidGenesis
 	}
 	if len(b.Txs) == 0 {
 		return nil, nil, ErrNoTxs

@@ -29,7 +29,9 @@ type miningData struct {
 }
 
 // TODO: properly benchmark and optimize
-func (cli *client) Mine(ctx context.Context, gen *chain.Genesis, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error) {
+func (cli *client) Mine(
+	ctx context.Context, gen *chain.Genesis, utx chain.UnsignedTransaction,
+) (chain.UnsignedTransaction, error) {
 	now := time.Now()
 	g, gctx := errgroup.WithContext(ctx)
 
