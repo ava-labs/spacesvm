@@ -190,7 +190,7 @@ func TestSetTx(t *testing.T) {
 					BlockID: ids.GenerateTestID(),
 				},
 				Key:   []byte("bar"),
-				Value: bytes.Repeat([]byte{'b'}, g.MaxValueSize+1),
+				Value: bytes.Repeat([]byte{'b'}, int(g.MaxValueSize)+1),
 			},
 			blockTime: 1,
 			err:       ErrValueTooBig,

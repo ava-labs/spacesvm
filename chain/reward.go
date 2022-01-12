@@ -11,7 +11,7 @@ import (
 
 func Reward(g *Genesis, db database.KeyValueReaderWriter, prefix []byte) error {
 	// If there is no one to reward, do nothing
-	if prefix == nil {
+	if len(prefix) == 0 {
 		return nil
 	}
 	if err := parser.CheckPrefix(prefix); err != nil {

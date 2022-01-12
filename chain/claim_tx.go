@@ -57,10 +57,10 @@ func (c *ClaimTx) Execute(g *Genesis, db database.Database, blockTime uint64, _ 
 // [prefixUnits] should only be called on a prefix that is valid
 func prefixUnits(g *Genesis, p []byte) uint64 {
 	desirability := uint64(parser.MaxKeySize - len(p))
-	if len(p) > g.ClaimTier2Size {
+	if uint64(len(p)) > g.ClaimTier2Size {
 		return desirability * g.ClaimTier3Multiplier
 	}
-	if len(p) > g.ClaimTier1Size {
+	if uint64(len(p)) > g.ClaimTier1Size {
 		return desirability * g.ClaimTier2Multiplier
 	}
 	return desirability * g.ClaimTier1Multiplier

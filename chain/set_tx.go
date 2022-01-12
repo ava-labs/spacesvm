@@ -33,7 +33,7 @@ func (s *SetTx) Execute(g *Genesis, db database.Database, blockTime uint64, txID
 	if err := parser.CheckKey(s.Key); err != nil {
 		return err
 	}
-	if len(s.Value) > g.MaxValueSize {
+	if uint64(len(s.Value)) > g.MaxValueSize {
 		return ErrValueTooBig
 	}
 
@@ -100,7 +100,7 @@ func (s *SetTx) updatePrefix(g *Genesis, db database.Database, blockTime uint64,
 }
 
 func valueUnits(g *Genesis, b []byte) uint64 {
-	return uint64(len(b)/g.ValueUnitSize + 1)
+	return uint64(len(b))/g.ValueUnitSize + 1
 }
 
 func (s *SetTx) FeeUnits(g *Genesis) uint64 {
