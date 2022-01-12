@@ -140,9 +140,6 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		return nil, nil, err
 	}
 
-	if b.Hght == 0 && b.Data == nil {
-		return nil, nil, ErrInvalidData
-	}
 	if b.Hght > 0 && b.Data != nil {
 		return nil, nil, ErrInvalidData
 	}

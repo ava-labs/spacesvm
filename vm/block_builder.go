@@ -9,7 +9,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/timer"
-	"github.com/ava-labs/quarkvm/chain"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -194,7 +193,7 @@ func (b *TimeBuilder) Gossip() {
 	for {
 		select {
 		case <-g.C:
-			newTxs := b.vm.mempool.NewTxs(chain.TargetUnits)
+			newTxs := b.vm.mempool.NewTxs(b.vm.genesis.TargetUnits)
 			_ = b.vm.network.GossipNewTxs(newTxs) // handles case where there are none
 		case <-rg.C:
 			_ = b.vm.network.RegossipTxs()
