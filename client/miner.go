@@ -110,8 +110,9 @@ func (cli *client) Mine(
 			cmd := md
 			ag := agraffiti
 			elapsed := time.Since(now)
-			hr := float64(ag) / elapsed.Seconds()
-			if hr == 0 {
+			es := elapsed.Seconds()
+			hr := float64(ag) / es
+			if hr == 0 || es < 2 {
 				return
 			}
 			td := (utx.FeeUnits(gen) + cmd.minCost) * cmd.minDifficulty
