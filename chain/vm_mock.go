@@ -79,6 +79,20 @@ func (mr *MockVMMockRecorder) ExecutionContext(currentTime, parent interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecutionContext", reflect.TypeOf((*MockVM)(nil).ExecutionContext), currentTime, parent)
 }
 
+// Genesis mocks base method.
+func (m *MockVM) Genesis() *Genesis {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Genesis")
+	ret0, _ := ret[0].(*Genesis)
+	return ret0
+}
+
+// Genesis indicates an expected call of Genesis.
+func (mr *MockVMMockRecorder) Genesis() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Genesis", reflect.TypeOf((*MockVM)(nil).Genesis))
+}
+
 // GetStatelessBlock mocks base method.
 func (m *MockVM) GetStatelessBlock(arg0 ids.ID) (*StatelessBlock, error) {
 	m.ctrl.T.Helper()

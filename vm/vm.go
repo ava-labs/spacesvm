@@ -42,9 +42,6 @@ const (
 	defaultPruneInterval     = time.Minute
 	defaultFullPruneInterval = time.Second
 
-	defaultMinimumDifficulty = chain.MinDifficulty
-	defaultMinBlockCost      = chain.MinBlockCost
-
 	mempoolSize = 1024
 )
 

@@ -14,21 +14,21 @@ type Genesis struct {
 	MaxValueSize  int `serialize:"true" json:"maxValueSize"`
 
 	// Claim Params
-	ClaimFeeMultiplier   int `serialize:"true" json:"claimFeeMultiplier"`
-	ExpiryTime           int `serialize:"true" json:"expiryTime"`
-	ClaimTier3Multiplier int `serialize:"true" json:"claimTier3Multiplier"`
-	ClaimTier2Size       int `serialize:"true" json:"claimTier2Size"`
-	ClaimTier2Multiplier int `serialize:"true" json:"claimTier2Multiplier"`
-	ClaimTier1Size       int `serialize:"true" json:"claimTier1Size"`
-	ClaimTier1Multiplier int `serialize:"true" json:"claimTier1Multiplier"`
+	ClaimFeeMultiplier   uint64 `serialize:"true" json:"claimFeeMultiplier"`
+	ExpiryTime           uint64 `serialize:"true" json:"expiryTime"`
+	ClaimTier3Multiplier uint64 `serialize:"true" json:"claimTier3Multiplier"`
+	ClaimTier2Size       int    `serialize:"true" json:"claimTier2Size"`
+	ClaimTier2Multiplier uint64 `serialize:"true" json:"claimTier2Multiplier"`
+	ClaimTier1Size       int    `serialize:"true" json:"claimTier1Size"`
+	ClaimTier1Multiplier uint64 `serialize:"true" json:"claimTier1Multiplier"`
 
 	// Lifeline Params
-	PrefixRenewalDiscount int `serialize:"true" json:"prefixRenewalDiscount"`
+	PrefixRenewalDiscount uint64 `serialize:"true" json:"prefixRenewalDiscount"`
 
 	// Fee Mechanism Params
 	LookbackWindow int    `serialize:"true" json:"lookbackWindow"`
 	BlockTarget    int    `serialize:"true" json:"blockTarget"`
-	TargetUnits    int    `serialize:"true" json:"targetUnits"`
+	TargetUnits    uint64 `serialize:"true" json:"targetUnits"`
 	MinDifficulty  uint64 `serialize:"true" json:"minDifficulty"`
 	MinBlockCost   uint64 `serialize:"true" json:"minBlockCost"`
 }
@@ -55,10 +55,10 @@ func DefaultGenesis() *Genesis {
 		PrefixRenewalDiscount: 5,
 
 		// Fee Mechanism Params
-		LookbackWindow: 60,                // 60 Seconds
-		BlockTarget:    1,                 // 1 Block per Second
-		TargetUnits:    10 * 512 * 60 / 1, // 5012 Units Per Block (~1.2MB of SetTx)
-		MinDifficulty:  100,               // ~100ms per unit (~5s for easiest claim)
-		MinBlockCost:   1,                 // Minimum Unit Overhead
+		LookbackWindow: 60,            // 60 Seconds
+		BlockTarget:    1,             // 1 Block per Second
+		TargetUnits:    10 * 512 * 60, // 5012 Units Per Block (~1.2MB of SetTx)
+		MinDifficulty:  100,           // ~100ms per unit (~5s for easiest claim)
+		MinBlockCost:   1,             // Minimum Unit Overhead
 	}
 }
