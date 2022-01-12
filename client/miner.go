@@ -114,7 +114,7 @@ func (cli *client) Mine(
 				return
 			}
 			td := float64((utx.FeeUnits(gen) + cmd.minCost) * cmd.minDifficulty)
-			eta := time.Duration(td/hr) * time.Second
+			eta := time.Duration(td/hr) * time.Second * etaMultiplier
 			diff := time.Since(now)
 			if diff > eta {
 				color.Yellow(
@@ -163,6 +163,8 @@ func (cli *client) Mine(
 					minDifficulty: diff,
 					minCost:       cost,
 				}
+
+				color.Blue("starting mining (difficulty=%d, minCost=%d)", md.minDifficulty, md.minCost)
 
 				if !readyClosed {
 					close(ready)
