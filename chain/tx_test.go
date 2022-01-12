@@ -16,6 +16,7 @@ func TestTransaction(t *testing.T) {
 	t.Parallel()
 
 	found := ids.NewSet(3)
+	g := DefaultGenesis()
 	for i := range []int{0, 1, 2} {
 		tx := &Transaction{
 			UnsignedTransaction: &ClaimTx{
@@ -24,7 +25,7 @@ func TestTransaction(t *testing.T) {
 				},
 			},
 		}
-		if err := tx.Init(); err != nil {
+		if err := tx.Init(g); err != nil {
 			t.Fatal(err)
 		}
 		if found.Contains(tx.ID()) {
@@ -37,6 +38,7 @@ func TestTransaction(t *testing.T) {
 func TestTransactionErrInvalidSignature(t *testing.T) {
 	t.Parallel()
 
+	g := DefaultGenesis()
 	tt := []struct {
 		createTx   func() *Transaction
 		blockTime  int64
@@ -64,7 +66,7 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 	}
 	for i, tv := range tt {
 		tx := tv.createTx()
-		err := tx.Execute(memdb.New(), tv.blockTime, tv.ctx)
+		err := tx.Execute(g, memdb.New(), tv.blockTime, tv.ctx)
 		if !errors.Is(err, tv.executeErr) {
 			t.Fatalf("#%d: unexpected tx.Execute error %v, expected %v", i, err, tv.executeErr)
 		}
@@ -92,7 +94,7 @@ func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
 			},
 		},
 	}
-	if err := tx.Init(); err != nil {
+	if err := tx.Init(DefaultGenesis()); err != nil {
 		t.Fatal(err)
 	}
 
