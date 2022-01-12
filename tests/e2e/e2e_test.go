@@ -146,8 +146,13 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 					Prefix: pfx,
 				},
 			}
+
+			claimed, err := instances[0].cli.Claimed(pfx)
+			gomega.Ω(err).Should(gomega.BeNil())
+			gomega.Ω(claimed).Should(gomega.BeFalse())
+
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.MineSignIssueTx(
+			_, err = client.MineSignIssueTx(
 				ctx,
 				instances[0].cli,
 				claimTx,
@@ -157,6 +162,10 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
+
+			claimed, err = instances[0].cli.Claimed(pfx)
+			gomega.Ω(err).Should(gomega.BeNil())
+			gomega.Ω(claimed).Should(gomega.BeTrue())
 		})
 
 		ginkgo.By("check prefix to check if ClaimTx has been accepted from all nodes", func() {
