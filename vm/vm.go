@@ -44,7 +44,7 @@ var (
 type VM struct {
 	ctx     *snow.Context
 	db      database.Database
-	config  *Config
+	config  Config
 	genesis *chain.Genesis
 
 	bootstrapped bool
