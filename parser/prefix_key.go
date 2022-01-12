@@ -65,7 +65,7 @@ func ParsePrefixKey(s []byte, opts ...OpOption) (pfx []byte, k []byte, end []byt
 		pfx = s
 	case idx == len(s)-1: // "foo/"
 		pfx = s[:len(s)-1]
-	default: // "a/b", then "a" becomes prefix, "b" becomes prefix
+	default: // "a/b", then "a" becomes prefix, "b" becomes key
 		splits := bytes.Split(s, delimiterSlice)
 		pfx = splits[0]
 		k = splits[1]
