@@ -6,7 +6,6 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -48,20 +47,14 @@ var genesisCmd = &cobra.Command{
 }
 
 func genesisFunc(cmd *cobra.Command, args []string) error {
-	defaultGenesis := chain.DefaultGenesis()
+	genesis := chain.DefaultGenesis()
 	if minDifficulty >= 0 {
-		defaultGenesis.MinDifficulty = uint64(minDifficulty)
+		genesis.MinDifficulty = uint64(minDifficulty)
 	}
 	if minBlockCost >= 0 {
-		defaultGenesis.MinBlockCost = uint64(minBlockCost)
+		genesis.MinBlockCost = uint64(minBlockCost)
 	}
-	blk := &chain.StatefulBlock{
-		Tmstmp:     time.Now().Unix(),
-		Difficulty: defaultGenesis.MinDifficulty,
-		Cost:       defaultGenesis.MinBlockCost,
-		Genesis:    defaultGenesis,
-	}
-	b, err := chain.Marshal(blk)
+	b, err := chain.Marshal(genesis)
 	if err != nil {
 		return err
 	}

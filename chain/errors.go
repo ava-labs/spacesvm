@@ -8,18 +8,7 @@ import (
 )
 
 var (
-	// Genesis Correctness
-	ErrMissingGenesis            = errors.New("genesis is missing")
-	ErrInvalidGenesisParent      = errors.New("genesis block parent is incorrect")
-	ErrInvalidGenesisHeight      = errors.New("genesis block height is incorrect")
-	ErrInvalidGenesisTimestamp   = errors.New("genesis block timestamp is incorrect")
-	ErrInvalidGenesisDifficulty  = errors.New("genesis block difficulty is incorrect")
-	ErrInvalidGenesisCost        = errors.New("genesis block cost is incorrect")
-	ErrInvalidGenesisTxs         = errors.New("genesis block txs is incorrect")
-	ErrInvalidGenesisBeneficiary = errors.New("genesis block beneficiary is incorrect")
-
 	// Block Correctness
-	ErrInvalidGenesis         = errors.New("invalid genesis")
 	ErrTimestampTooEarly      = errors.New("block timestamp too early")
 	ErrTimestampTooLate       = errors.New("block timestamp too late")
 	ErrNoTxs                  = errors.New("no transactions")

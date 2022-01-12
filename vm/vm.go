@@ -138,20 +138,9 @@ func (vm *VM) Initialize(
 	}
 
 	// Parse genesis data
-	genesisBlk, err := chain.ParseBlock(
-		genesisBytes,
-		choices.Accepted,
-		vm,
-	)
-	if err != nil {
-		log.Error("unable to init genesis block", "err", err)
-		return err
-	}
-
-	// Validate and set genesis
-	vm.genesis, err = genesisBlk.VerifyGenesis()
-	if err != nil {
-		log.Error("genesis block failed verification", "err", err)
+	vm.genesis = new(chain.Genesis)
+	if _, err := chain.Unmarshal(genesisBytes, vm.genesis); err != nil {
+		log.Error("could not unmarshal genesis bytes")
 		return err
 	}
 	vm.mempool = mempool.New(vm.genesis, vm.config.MempoolSize)
@@ -172,6 +161,17 @@ func (vm *VM) Initialize(
 		vm.preferred, vm.lastAccepted = blkID, blk
 		log.Info("initialized quarkvm from last accepted", "block", blkID)
 	} else {
+		genesisBlk, err := chain.ParseStatefulBlock(
+			vm.genesis.StatefulBlock(),
+			nil,
+			choices.Accepted,
+			vm,
+		)
+		if err != nil {
+			log.Error("unable to init genesis block", "err", err)
+			return err
+		}
+
 		if err := chain.SetLastAccepted(vm.db, genesisBlk); err != nil {
 			log.Error("could not set genesis as last accepted", "err", err)
 			return err

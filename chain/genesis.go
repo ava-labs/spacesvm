@@ -4,9 +4,6 @@
 package chain
 
 import (
-	"time"
-
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/units"
 )
 
@@ -68,30 +65,9 @@ func DefaultGenesis() *Genesis {
 	}
 }
 
-func (b *StatelessBlock) VerifyGenesis() (*Genesis, error) {
-	if b.Prnt != ids.Empty {
-		return nil, ErrInvalidGenesisParent
+func (g *Genesis) StatefulBlock() *StatefulBlock {
+	return &StatefulBlock{
+		Difficulty: g.MinDifficulty,
+		Cost:       g.MinBlockCost,
 	}
-	if b.Hght != 0 {
-		return nil, ErrInvalidGenesisHeight
-	}
-	if b.Tmstmp == 0 || time.Now().Unix()-b.Tmstmp < 0 {
-		return nil, ErrInvalidGenesisTimestamp
-	}
-	if b.Genesis == nil {
-		return nil, ErrMissingGenesis
-	}
-	if b.Difficulty != b.genesis.MinDifficulty {
-		return nil, ErrInvalidGenesisDifficulty
-	}
-	if b.Cost != b.genesis.MinBlockCost {
-		return nil, ErrInvalidGenesisCost
-	}
-	if len(b.Txs) > 0 {
-		return nil, ErrInvalidGenesisTxs
-	}
-	if len(b.Beneficiary) > 0 {
-		return nil, ErrInvalidGenesisBeneficiary
-	}
-	return &b.genesis, nil
 }
