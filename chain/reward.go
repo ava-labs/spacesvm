@@ -17,5 +17,5 @@ func Reward(g *Genesis, db database.KeyValueReaderWriter, prefix []byte) error {
 	if err := parser.CheckPrefix(prefix); err != nil {
 		return err
 	}
-	return addLife(g, db, prefix)
+	return addLife(g, db, prefix, g.BeneficiaryReward)
 }

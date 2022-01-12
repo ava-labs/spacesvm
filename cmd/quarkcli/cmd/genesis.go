@@ -13,6 +13,15 @@ import (
 	"github.com/ava-labs/quarkvm/chain"
 )
 
+var (
+	genesisFile string
+
+	minDifficulty     int64
+	minBlockCost      int64
+	claimReward       int64
+	beneficiaryReward int64
+)
+
 func init() {
 	genesisCmd.PersistentFlags().StringVar(
 		&genesisFile,
@@ -32,13 +41,19 @@ func init() {
 		-1,
 		"minimum block cost",
 	)
+	genesisCmd.PersistentFlags().Int64Var(
+		&claimReward,
+		"claim-reward",
+		-1,
+		"seconds until a prefix will expire after being claimed",
+	)
+	genesisCmd.PersistentFlags().Int64Var(
+		&beneficiaryReward,
+		"beneficiary-reward",
+		-1,
+		"seconds added to the lifetime of a beneficiary prefix when a block is produced",
+	)
 }
-
-var (
-	genesisFile   string
-	minDifficulty int64
-	minBlockCost  int64
-)
 
 var genesisCmd = &cobra.Command{
 	Use:   "genesis [options]",
@@ -53,6 +68,12 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	}
 	if minBlockCost >= 0 {
 		genesis.MinBlockCost = uint64(minBlockCost)
+	}
+	if claimReward >= 0 {
+		genesis.ClaimReward = uint64(claimReward)
+	}
+	if beneficiaryReward >= 0 {
+		genesis.BeneficiaryReward = uint64(beneficiaryReward)
 	}
 	b, err := chain.Marshal(genesis)
 	if err != nil {

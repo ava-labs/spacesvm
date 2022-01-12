@@ -17,7 +17,7 @@ type Genesis struct {
 
 	// Claim Params
 	ClaimFeeMultiplier   uint64 `serialize:"true" json:"claimFeeMultiplier"`
-	ExpiryTime           uint64 `serialize:"true" json:"expiryTime"`
+	ClaimReward          uint64 `serialize:"true" json:"claimReward"`
 	ClaimTier3Multiplier uint64 `serialize:"true" json:"claimTier3Multiplier"`
 	ClaimTier2Size       uint64 `serialize:"true" json:"claimTier2Size"`
 	ClaimTier2Multiplier uint64 `serialize:"true" json:"claimTier2Multiplier"`
@@ -26,6 +26,7 @@ type Genesis struct {
 
 	// Lifeline Params
 	PrefixRenewalDiscount uint64 `serialize:"true" json:"prefixRenewalDiscount"`
+	BeneficiaryReward     uint64 `serialize:"true" json:"beneficiaryReward"`
 
 	// Fee Mechanism Params
 	LookbackWindow int64  `serialize:"true" json:"lookbackWindow"`
@@ -46,7 +47,7 @@ func DefaultGenesis() *Genesis {
 
 		// Claim Params
 		ClaimFeeMultiplier:   5,
-		ExpiryTime:           60 * 60 * 24 * 30, // 30 Days
+		ClaimReward:          60 * 60 * 24 * 30, // 30 Days
 		ClaimTier3Multiplier: 1,
 		ClaimTier2Size:       36,
 		ClaimTier2Multiplier: 5,
@@ -55,6 +56,7 @@ func DefaultGenesis() *Genesis {
 
 		// Lifeline Params
 		PrefixRenewalDiscount: 5,
+		BeneficiaryReward:     60 * 60 * 6, // 6 Hours
 
 		// Fee Mechanism Params
 		LookbackWindow: 60,            // 60 Seconds

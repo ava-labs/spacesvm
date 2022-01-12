@@ -14,7 +14,7 @@ type LifelineTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 }
 
-func addLife(g *Genesis, db database.KeyValueReaderWriter, prefix []byte) error {
+func addLife(g *Genesis, db database.KeyValueReaderWriter, prefix []byte, reward uint64) error {
 	i, has, err := GetPrefixInfo(db, prefix)
 	if err != nil {
 		return err
@@ -25,12 +25,12 @@ func addLife(g *Genesis, db database.KeyValueReaderWriter, prefix []byte) error 
 	}
 	// Lifeline spread across all units
 	lastExpiry := i.Expiry
-	i.Expiry += g.ExpiryTime / i.Units
+	i.Expiry += reward / i.Units
 	return PutPrefixInfo(db, prefix, i, lastExpiry)
 }
 
 func (l *LifelineTx) Execute(g *Genesis, db database.Database, blockTime uint64, _ ids.ID) error {
-	return addLife(g, db, l.Prefix)
+	return addLife(g, db, l.Prefix, g.ClaimReward)
 }
 
 func (l *LifelineTx) FeeUnits(g *Genesis) uint64 {

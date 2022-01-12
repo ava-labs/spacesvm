@@ -40,7 +40,7 @@ func (c *ClaimTx) Execute(g *Genesis, db database.Database, blockTime uint64, _ 
 		Owner:       c.Sender,
 		Created:     blockTime,
 		LastUpdated: blockTime,
-		Expiry:      blockTime + g.ExpiryTime,
+		Expiry:      blockTime + g.ClaimReward,
 		Units:       1,
 	}
 	if err := PutPrefixInfo(db, c.Prefix, newInfo, 0); err != nil {

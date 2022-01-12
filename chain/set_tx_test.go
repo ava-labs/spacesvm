@@ -228,7 +228,7 @@ func TestSetTx(t *testing.T) {
 				},
 				Key: []byte("bar"),
 			},
-			blockTime: int64(g.ExpiryTime) * 2,
+			blockTime: int64(g.ClaimReward) * 2,
 			err:       ErrPrefixMissing,
 		},
 	}
