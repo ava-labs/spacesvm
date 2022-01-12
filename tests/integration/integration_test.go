@@ -81,7 +81,8 @@ var (
 	// when used with embedded VMs
 	genesisBytes []byte
 	instances    []instance
-	genesis      *chain.Genesis
+
+	genesis *chain.Genesis
 )
 
 type instance struct {
