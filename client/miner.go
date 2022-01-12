@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/quarkvm/pow"
 )
 
 const (
@@ -113,19 +114,20 @@ func (cli *client) Mine(
 			if hr == 0 {
 				return
 			}
-			td := float64((utx.FeeUnits(gen) + cmd.minCost) * cmd.minDifficulty)
-			eta := time.Duration(td/hr) * time.Second * etaMultiplier
+			td := (utx.FeeUnits(gen) + cmd.minCost) * cmd.minDifficulty
+			rh := float64(pow.ExpectedHashes(td))
+			eta := time.Duration(rh/hr) * time.Second * etaMultiplier
 			diff := time.Since(now)
 			if diff > eta {
 				color.Yellow(
-					"mining in progress[%s/%d]... (elapsed=%v, threads=%d)",
-					cmd.blockID, agraffiti, diff.Round(durPrecision), concurrency,
+					"mining in progress[%s/%d]... (elapsed=%v, threads=%d, h/s=%f)",
+					cmd.blockID, agraffiti, diff.Round(durPrecision), concurrency, hr,
 				)
 			} else {
 				eta -= diff
 				color.Yellow(
-					"mining in progress[%s/%d]... (elapsed=%v, est. remaining=%v, threads=%d)",
-					cmd.blockID, agraffiti, diff.Round(durPrecision), eta.Round(durPrecision), concurrency,
+					"mining in progress[%s/%d]... (elapsed=%v, est. remaining=%v, threads=%d, h/s=%f)",
+					cmd.blockID, agraffiti, diff.Round(durPrecision), eta.Round(durPrecision), concurrency, hr,
 				)
 			}
 		}
@@ -164,9 +166,8 @@ func (cli *client) Mine(
 					minCost:       cost,
 				}
 
-				color.Blue("starting mining (difficulty=%d, minCost=%d)", md.minDifficulty, md.minCost)
-
 				if !readyClosed {
+					color.Blue("starting mining (difficulty=%d, minCost=%d)", md.minDifficulty, md.minCost)
 					close(ready)
 					readyClosed = true
 				}
