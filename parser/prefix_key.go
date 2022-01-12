@@ -1,6 +1,7 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Package parser defines storage key parsing operations.
 package parser
 
 import (
@@ -9,9 +10,9 @@ import (
 )
 
 const (
-	MaxPrefixSize = 256
-	MaxKeySize    = 256
-	Delimiter     = byte(0x2f) // '/'
+	MaxPrefixSize      = 256
+	MaxKeySize         = 256
+	Delimiter     byte = '/'
 )
 
 var (
@@ -22,34 +23,36 @@ var (
 	ErrKeyTooBig    = errors.New("key too big")
 
 	ErrInvalidDelimiter = errors.New("prefix/key has unexpected delimiters; only one sub-key is supported")
+
+	delimiterSlice = []byte{Delimiter}
 )
 
 // CheckPrefix returns an error if the prefix format is invalid.
 func CheckPrefix(pfx []byte) error {
-	if len(pfx) == 0 {
+	switch {
+	case len(pfx) == 0:
 		return ErrPrefixEmpty
-	}
-	if len(pfx) > MaxPrefixSize {
+	case len(pfx) > MaxPrefixSize:
 		return ErrPrefixTooBig
-	}
-	if bytes.Contains(pfx, []byte{Delimiter}) {
+	case bytes.Contains(pfx, delimiterSlice):
 		return ErrInvalidDelimiter
+	default:
+		return nil
 	}
-	return nil
 }
 
 // CheckKey returns an error if the key format is invalid.
 func CheckKey(k []byte) error {
-	if len(k) == 0 {
+	switch {
+	case len(k) == 0:
 		return ErrKeyEmpty
-	}
-	if len(k) > MaxKeySize {
+	case len(k) > MaxKeySize:
 		return ErrKeyTooBig
-	}
-	if bytes.Contains(k, []byte{Delimiter}) {
+	case bytes.Contains(k, delimiterSlice):
 		return ErrInvalidDelimiter
+	default:
+		return nil
 	}
-	return nil
 }
 
 var noPrefixEnd = []byte{0}
@@ -64,7 +67,7 @@ func ParsePrefixKey(s []byte, opts ...OpOption) (pfx []byte, k []byte, end []byt
 	case idx == len(s)-1: // "foo/"
 		pfx = s[:len(s)-1]
 	default: // "a/b", then "a" becomes prefix, "b" becomes prefix
-		splits := bytes.Split(s, []byte{Delimiter})
+		splits := bytes.Split(s, delimiterSlice)
 		pfx = splits[0]
 		k = splits[1]
 	}
