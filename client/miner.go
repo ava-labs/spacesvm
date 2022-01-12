@@ -29,7 +29,7 @@ type miningData struct {
 }
 
 // TODO: properly benchmark and optimize
-func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error) {
+func (cli *client) Mine(ctx context.Context, gen *chain.Genesis, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error) {
 	now := time.Now()
 	g, gctx := errgroup.WithContext(ctx)
 
@@ -71,16 +71,16 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 				// Try new graffiti
 				jutx.SetBlockID(cmd.blockID)
 				jutx.SetGraffiti(graffiti)
-				_, utxd, err := chain.CalcDifficulty(jutx)
+				_, utxd, err := chain.CalcDifficulty(gen, jutx)
 				if err != nil {
 					return err
 				}
 				if utxd >= cmd.minDifficulty &&
-					(utxd-cmd.minDifficulty)*jutx.FeeUnits() >= cmd.minDifficulty*cmd.minCost {
+					(utxd-cmd.minDifficulty)*jutx.FeeUnits(gen) >= cmd.minDifficulty*cmd.minCost {
 					solution = jutx
 					color.Green(
 						"mining complete[%d] (difficulty=%d, surplus=%d, elapsed=%v)",
-						graffiti, utxd, (utxd-cmd.minDifficulty)*solution.FeeUnits(), time.Since(now).Round(durPrecision),
+						graffiti, utxd, (utxd-cmd.minDifficulty)*solution.FeeUnits(gen), time.Since(now).Round(durPrecision),
 					)
 					return ErrSolution
 				}
@@ -112,7 +112,7 @@ func (cli *client) Mine(ctx context.Context, utx chain.UnsignedTransaction) (cha
 
 			// Assumes each additional unit of difficulty is ~1ms of compute
 			cmd := md
-			eta := time.Duration(utx.FeeUnits()*cmd.minDifficulty) * time.Millisecond
+			eta := time.Duration(utx.FeeUnits(gen)*cmd.minDifficulty) * time.Millisecond
 			eta = (eta / time.Duration(concurrency)) * etaMultiplier // account for threads and overestimate
 			diff := time.Since(now)
 			if diff > eta {
