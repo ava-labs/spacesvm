@@ -19,7 +19,7 @@ func (vm *VM) pruneCall() bool {
 
 	vdb := versiondb.New(vm.db)
 	defer vdb.Abort()
-	removals, err := chain.PruneNext(vdb, vm.pruneLimit)
+	removals, err := chain.PruneNext(vdb, vm.config.PruneLimit)
 	if err != nil {
 		log.Warn("unable to prune next range", "error", err)
 		return false
@@ -31,7 +31,7 @@ func (vm *VM) pruneCall() bool {
 	if err := vm.lastAccepted.SetChildrenDB(vm.db); err != nil {
 		log.Error("unable to update child databases of last accepted block", "error", err)
 	}
-	return removals == vm.pruneLimit
+	return removals == vm.config.PruneLimit
 }
 
 func (vm *VM) prune() {
@@ -39,7 +39,7 @@ func (vm *VM) prune() {
 	defer close(vm.donePrune)
 
 	// should retry less aggressively
-	t := time.NewTimer(vm.pruneInterval)
+	t := time.NewTimer(vm.config.PruneInterval)
 	defer t.Stop()
 
 	for {
@@ -49,9 +49,9 @@ func (vm *VM) prune() {
 			return
 		}
 		if vm.pruneCall() {
-			t.Reset(vm.fullPruneInterval)
+			t.Reset(vm.config.FullPruneInterval)
 		} else {
-			t.Reset(vm.pruneInterval)
+			t.Reset(vm.config.PruneInterval)
 		}
 	}
 }

@@ -5,6 +5,7 @@
 package vm
 
 import (
+	ejson "encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -33,16 +34,6 @@ const (
 	Name            = "quarkvm"
 	PublicEndpoint  = "/public"
 	PrivateEndpoint = "/private"
-
-	defaultBuildInterval    = 500 * time.Millisecond
-	defaultGossipInterval   = 1 * time.Second
-	defaultRegossipInterval = 30 * time.Second
-
-	defaultPruneLimit        = 128
-	defaultPruneInterval     = time.Minute
-	defaultFullPruneInterval = time.Second
-
-	mempoolSize = 1024
 )
 
 var (
@@ -53,17 +44,10 @@ var (
 type VM struct {
 	ctx     *snow.Context
 	db      database.Database
+	config  *Config
 	genesis *chain.Genesis
 
 	bootstrapped bool
-
-	buildInterval    time.Duration
-	gossipInterval   time.Duration
-	regossipInterval time.Duration
-
-	pruneLimit        int
-	pruneInterval     time.Duration
-	fullPruneInterval time.Duration
 
 	mempool   *mempool.Mempool
 	appSender common.AppSender
@@ -84,9 +68,6 @@ type VM struct {
 
 	preferred    ids.ID
 	lastAccepted *chain.StatelessBlock
-
-	minDifficulty uint64
-	minBlockCost  uint64
 
 	// beneficiary is the prefix that will receive rewards if the node produces
 	// a block
@@ -119,6 +100,17 @@ func (vm *VM) Initialize(
 ) error {
 	log.Info("initializing quarkvm", "version", version.Version)
 
+	// Load config
+	vm.config.SetDefaults()
+	if len(configBytes) > 0 {
+		if err := ejson.Unmarshal(configBytes, &vm.config); err != nil {
+			return fmt.Errorf("failed to unmarshal config %s: %w", string(configBytes), err)
+		}
+		if len(vm.config.Beneficiary) > 0 {
+			vm.beneficiary = []byte(vm.config.Beneficiary)
+		}
+	}
+
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
 
@@ -128,14 +120,6 @@ func (vm *VM) Initialize(
 	vm.doneBuild = make(chan struct{})
 	vm.doneGossip = make(chan struct{})
 	vm.donePrune = make(chan struct{})
-
-	// TODO: make this configurable via config
-	vm.buildInterval = defaultBuildInterval
-	vm.gossipInterval = defaultGossipInterval
-	vm.regossipInterval = defaultRegossipInterval
-	vm.pruneLimit = defaultPruneLimit
-	vm.pruneInterval = defaultPruneInterval
-	vm.fullPruneInterval = defaultFullPruneInterval
 
 	vm.appSender = appSender
 	vm.network = vm.NewPushNetwork()
@@ -170,7 +154,7 @@ func (vm *VM) Initialize(
 		return err
 	}
 	vm.genesis = genesisBlk.Genesis
-	vm.mempool = mempool.New(vm.genesis, mempoolSize)
+	vm.mempool = mempool.New(vm.genesis, vm.config.MempoolSize)
 
 	if has { //nolint:nestif
 		blkID, err := chain.GetLastAccepted(vm.db)
