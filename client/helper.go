@@ -27,7 +27,12 @@ func MineSignIssueTx(
 	ret := &Op{}
 	ret.applyOpts(opts)
 
-	utx, err := cli.Mine(ctx, rtx)
+	g, err := cli.Genesis()
+	if err != nil {
+		return ids.Empty, err
+	}
+
+	utx, err := cli.Mine(ctx, g, rtx)
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -46,13 +51,13 @@ func MineSignIssueTx(
 	}
 
 	tx := chain.NewTx(utx, sig)
-	if err := tx.Init(); err != nil {
+	if err := tx.Init(g); err != nil {
 		return ids.Empty, err
 	}
 
 	color.Yellow(
 		"issuing tx %s (fee units=%d, load units=%d, difficulty=%d, blkID=%s)",
-		tx.ID(), tx.FeeUnits(), tx.LoadUnits(), tx.Difficulty(), tx.GetBlockID(),
+		tx.ID(), tx.FeeUnits(g), tx.LoadUnits(g), tx.Difficulty(), tx.GetBlockID(),
 	)
 	txID, err = cli.IssueTx(tx.Bytes())
 	if err != nil {

@@ -28,12 +28,12 @@ type SetTx struct {
 	Value []byte `serialize:"true" json:"value"`
 }
 
-func (s *SetTx) Execute(db database.Database, blockTime uint64, txID ids.ID) error {
+func (s *SetTx) Execute(g *Genesis, db database.Database, blockTime uint64, txID ids.ID) error {
 	// assume prefix is already validated via "BaseTx"
 	if err := parser.CheckKey(s.Key); err != nil {
 		return err
 	}
-	if len(s.Value) > MaxValueSize {
+	if uint64(len(s.Value)) > g.MaxValueSize {
 		return ErrValueTooBig
 	}
 
@@ -65,10 +65,10 @@ func (s *SetTx) Execute(db database.Database, blockTime uint64, txID ids.ID) err
 			return fmt.Errorf("%w: expected %x got %x", ErrInvalidKey, id[:], s.Key)
 		}
 	}
-	return s.updatePrefix(db, blockTime, txID, i)
+	return s.updatePrefix(g, db, blockTime, txID, i)
 }
 
-func (s *SetTx) updatePrefix(db database.Database, blockTime uint64, txID ids.ID, i *PrefixInfo) error {
+func (s *SetTx) updatePrefix(g *Genesis, db database.Database, blockTime uint64, txID ids.ID, i *PrefixInfo) error {
 	v, exists, err := GetValue(db, s.Prefix, s.Key)
 	if err != nil {
 		return err
@@ -79,15 +79,15 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime uint64, txID ids.ID
 		if !exists {
 			return ErrKeyMissing
 		}
-		i.Units -= valueUnits(v)
+		i.Units -= valueUnits(g, v)
 		if err := DeletePrefixKey(db, s.Prefix, s.Key); err != nil {
 			return err
 		}
 	} else {
 		if exists {
-			i.Units -= valueUnits(v)
+			i.Units -= valueUnits(g, v)
 		}
-		i.Units += valueUnits(s.Value)
+		i.Units += valueUnits(g, s.Value)
 		if err := PutPrefixKey(db, s.Prefix, s.Key, txID[:]); err != nil {
 			return err
 		}
@@ -99,18 +99,18 @@ func (s *SetTx) updatePrefix(db database.Database, blockTime uint64, txID ids.ID
 	return PutPrefixInfo(db, s.Prefix, i, lastExpiry)
 }
 
-func valueUnits(b []byte) uint64 {
-	return uint64(len(b)/ValueUnitSize + 1)
+func valueUnits(g *Genesis, b []byte) uint64 {
+	return uint64(len(b))/g.ValueUnitSize + 1
 }
 
-func (s *SetTx) FeeUnits() uint64 {
+func (s *SetTx) FeeUnits(g *Genesis) uint64 {
 	// We don't subtract by 1 here because we want to charge extra for any
 	// value-based interaction (even if it is small or a delete).
-	return s.BaseTx.FeeUnits() + valueUnits(s.Value)
+	return s.BaseTx.FeeUnits(g) + valueUnits(g, s.Value)
 }
 
-func (s *SetTx) LoadUnits() uint64 {
-	return s.FeeUnits()
+func (s *SetTx) LoadUnits(g *Genesis) uint64 {
+	return s.FeeUnits(g)
 }
 
 func (s *SetTx) Copy() UnsignedTransaction {

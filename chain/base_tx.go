@@ -58,12 +58,12 @@ func (b *BaseTx) ExecuteBase() error {
 	return nil
 }
 
-func (b *BaseTx) FeeUnits() uint64 {
-	return BaseTxUnits
+func (b *BaseTx) FeeUnits(g *Genesis) uint64 {
+	return g.BaseTxUnits
 }
 
-func (b *BaseTx) LoadUnits() uint64 {
-	return b.FeeUnits()
+func (b *BaseTx) LoadUnits(g *Genesis) uint64 {
+	return b.FeeUnits(g)
 }
 
 func (b *BaseTx) Copy() *BaseTx {

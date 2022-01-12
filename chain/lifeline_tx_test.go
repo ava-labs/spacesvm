@@ -26,6 +26,7 @@ func TestLifelineTx(t *testing.T) {
 	db := memdb.New()
 	defer db.Close()
 
+	g := DefaultGenesis()
 	tt := []struct {
 		utx       UnsignedTransaction
 		blockTime uint64
@@ -48,7 +49,7 @@ func TestLifelineTx(t *testing.T) {
 		},
 	}
 	for i, tv := range tt {
-		err := tv.utx.Execute(db, tv.blockTime, ids.ID{})
+		err := tv.utx.Execute(g, db, tv.blockTime, ids.ID{})
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
 		}

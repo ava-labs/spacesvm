@@ -168,6 +168,7 @@ func createTestBlk(
 
 	ctrl := gomock.NewController(t)
 	vm := NewMockVM(ctrl)
+	vm.EXPECT().Genesis().Return(DefaultGenesis()).AnyTimes()
 	parentBlk.vm = vm
 
 	if err := parentBlk.init(); err != nil {

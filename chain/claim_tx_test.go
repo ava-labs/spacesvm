@@ -37,6 +37,8 @@ func TestClaimTx(t *testing.T) {
 	db := memdb.New()
 	defer db.Close()
 
+	g := DefaultGenesis()
+	ExpiryTime := int64(g.ExpiryTime)
 	tt := []struct {
 		tx        *ClaimTx
 		blockTime int64
@@ -80,7 +82,7 @@ func TestClaimTx(t *testing.T) {
 				t.Fatalf("#%d: ExpireNext errored %v", i, err)
 			}
 		}
-		err := tv.tx.Execute(db, uint64(tv.blockTime), ids.ID{})
+		err := tv.tx.Execute(g, db, uint64(tv.blockTime), ids.ID{})
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
 		}
