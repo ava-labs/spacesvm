@@ -71,7 +71,7 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 	//
 	// Note: we do this after adding the new transaction in case it is the new
 	// lowest paying transaction
-	if th.Len() > th.maxSize {
+	if th.maxHeap.Len() > th.maxSize {
 		t, _ := th.popMin()
 		if t.ID() == txID {
 			return false
