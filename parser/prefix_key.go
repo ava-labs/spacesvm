@@ -98,8 +98,7 @@ func GetRangeEnd(k []byte) []byte {
 			return end
 		}
 	}
-	// next prefix does not exist (e.g., 0xffff);
-	// default to special end key
+	// next prefix does not exist (e.g., 0xffff)
 	return nil
 }
 
