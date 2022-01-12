@@ -149,11 +149,11 @@ func (vm *VM) Initialize(
 	}
 
 	// Validate and set genesis
-	if err := chain.VerifyGenesis(genesisBlk); err != nil {
+	vm.genesis, err = genesisBlk.VerifyGenesis()
+	if err != nil {
 		log.Error("genesis block failed verification", "err", err)
 		return err
 	}
-	vm.genesis = genesisBlk.Genesis
 	vm.mempool = mempool.New(vm.genesis, vm.config.MempoolSize)
 
 	if has {

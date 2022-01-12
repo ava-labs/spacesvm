@@ -15,16 +15,16 @@ type Genesis struct {
 	BaseTxUnits uint64 `serialize:"true" json:"baseTxUnits"`
 
 	// SetTx params
-	ValueUnitSize int `serialize:"true" json:"valueUnitSize"`
-	MaxValueSize  int `serialize:"true" json:"maxValueSize"`
+	ValueUnitSize uint64 `serialize:"true" json:"valueUnitSize"`
+	MaxValueSize  uint64 `serialize:"true" json:"maxValueSize"`
 
 	// Claim Params
 	ClaimFeeMultiplier   uint64 `serialize:"true" json:"claimFeeMultiplier"`
 	ExpiryTime           uint64 `serialize:"true" json:"expiryTime"`
 	ClaimTier3Multiplier uint64 `serialize:"true" json:"claimTier3Multiplier"`
-	ClaimTier2Size       int    `serialize:"true" json:"claimTier2Size"`
+	ClaimTier2Size       uint64 `serialize:"true" json:"claimTier2Size"`
 	ClaimTier2Multiplier uint64 `serialize:"true" json:"claimTier2Multiplier"`
-	ClaimTier1Size       int    `serialize:"true" json:"claimTier1Size"`
+	ClaimTier1Size       uint64 `serialize:"true" json:"claimTier1Size"`
 	ClaimTier1Multiplier uint64 `serialize:"true" json:"claimTier1Multiplier"`
 
 	// Lifeline Params
@@ -68,30 +68,30 @@ func DefaultGenesis() *Genesis {
 	}
 }
 
-func VerifyGenesis(b *StatelessBlock) error {
+func (b *StatelessBlock) VerifyGenesis() (*Genesis, error) {
 	if b.Prnt != ids.Empty {
-		return ErrInvalidGenesisParent
+		return nil, ErrInvalidGenesisParent
 	}
 	if b.Hght != 0 {
-		return ErrInvalidGenesisHeight
+		return nil, ErrInvalidGenesisHeight
 	}
 	if b.Tmstmp == 0 || time.Now().Unix()-b.Tmstmp < 0 {
-		return ErrInvalidGenesisTimestamp
+		return nil, ErrInvalidGenesisTimestamp
 	}
 	if b.Genesis == nil {
-		return ErrMissingGenesis
+		return nil, ErrMissingGenesis
 	}
-	if b.Difficulty != b.Genesis.MinDifficulty {
-		return ErrInvalidGenesisDifficulty
+	if b.Difficulty != b.genesis.MinDifficulty {
+		return nil, ErrInvalidGenesisDifficulty
 	}
-	if b.Cost != b.Genesis.MinBlockCost {
-		return ErrInvalidGenesisCost
+	if b.Cost != b.genesis.MinBlockCost {
+		return nil, ErrInvalidGenesisCost
 	}
 	if len(b.Txs) > 0 {
-		return ErrInvalidGenesisTxs
+		return nil, ErrInvalidGenesisTxs
 	}
-	if b.Beneficiary != nil {
-		return ErrInvalidGenesisBeneficiary
+	if len(b.Beneficiary) > 0 {
+		return nil, ErrInvalidGenesisBeneficiary
 	}
-	return nil
+	return b.genesis, nil
 }

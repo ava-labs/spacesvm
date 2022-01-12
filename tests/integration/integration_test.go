@@ -113,11 +113,14 @@ var _ = ginkgo.BeforeSuite(func() {
 	if minBlockCost >= 0 {
 		genesis.MinBlockCost = uint64(minBlockCost)
 	}
+	g, err := chain.Marshal(genesis)
+	gomega.Ω(err).Should(gomega.BeNil())
+
 	blk := &chain.StatefulBlock{
 		Tmstmp:     time.Now().Unix(),
 		Difficulty: genesis.MinDifficulty,
 		Cost:       genesis.MinBlockCost,
-		Genesis:    genesis,
+		Genesis:    g,
 	}
 	genesisBytes, err = chain.Marshal(blk)
 	gomega.Ω(err).Should(gomega.BeNil())

@@ -28,8 +28,8 @@ type StatefulBlock struct {
 	Cost       uint64         `serialize:"true" json:"cost"`
 	Txs        []*Transaction `serialize:"true" json:"txs"`
 
-	Beneficiary []byte   `serialize:"true,omitempty" json:"beneficiary"` // prefix to reward
-	Genesis     *Genesis `serialize:"true,omitempty" json:"genesis"`     // only non-empty at height 0
+	Beneficiary []byte `serialize:"true" json:"beneficiary"` // prefix to reward
+	Genesis     []byte `serialize:"true" json:"genesis"`     // only non-empty at height 0
 }
 
 // Stateless is defined separately from "Block"
@@ -38,10 +38,11 @@ type StatefulBlock struct {
 type StatelessBlock struct {
 	*StatefulBlock `serialize:"true" json:"block"`
 
-	id    ids.ID
-	st    choices.Status
-	t     time.Time
-	bytes []byte
+	genesis *Genesis
+	id      ids.ID
+	st      choices.Status
+	t       time.Time
+	bytes   []byte
 
 	vm         VM
 	children   []*StatelessBlock
@@ -95,6 +96,12 @@ func ParseStatefulBlock(
 	}
 	b.id = id
 	g := vm.Genesis()
+	if len(blk.Genesis) > 0 {
+		if _, err := Unmarshal(blk.Genesis, b.genesis); err != nil {
+			return nil, err
+		}
+		g = b.genesis
+	}
 	for _, tx := range blk.Txs {
 		if err := tx.Init(g); err != nil {
 			return nil, err
