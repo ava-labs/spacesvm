@@ -29,7 +29,6 @@ type StatefulBlock struct {
 	Txs        []*Transaction `serialize:"true" json:"txs"`
 
 	Beneficiary []byte `serialize:"true" json:"beneficiary"` // prefix to reward
-	Genesis     []byte `serialize:"true" json:"genesis"`     // only non-empty at height 0
 }
 
 // Stateless is defined separately from "Block"
@@ -38,11 +37,10 @@ type StatefulBlock struct {
 type StatelessBlock struct {
 	*StatefulBlock `serialize:"true" json:"block"`
 
-	genesis Genesis
-	id      ids.ID
-	st      choices.Status
-	t       time.Time
-	bytes   []byte
+	id    ids.ID
+	st    choices.Status
+	t     time.Time
+	bytes []byte
 
 	vm         VM
 	children   []*StatelessBlock
@@ -82,6 +80,13 @@ func ParseStatefulBlock(
 	status choices.Status,
 	vm VM,
 ) (*StatelessBlock, error) {
+	if len(source) == 0 {
+		b, err := Marshal(blk)
+		if err != nil {
+			return nil, err
+		}
+		source = b
+	}
 	b := &StatelessBlock{
 		StatefulBlock: blk,
 		t:             time.Unix(blk.Tmstmp, 0),
@@ -96,12 +101,6 @@ func ParseStatefulBlock(
 	}
 	b.id = id
 	g := vm.Genesis()
-	if len(blk.Genesis) > 0 {
-		if _, err := Unmarshal(blk.Genesis, &b.genesis); err != nil {
-			return nil, err
-		}
-		g = &b.genesis
-	}
 	for _, tx := range blk.Txs {
 		if err := tx.Init(g); err != nil {
 			return nil, err
@@ -147,9 +146,6 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		return nil, nil, err
 	}
 
-	if b.Hght > 0 && b.Genesis != nil {
-		return nil, nil, ErrInvalidGenesis
-	}
 	if len(b.Txs) == 0 {
 		return nil, nil, ErrNoTxs
 	}
