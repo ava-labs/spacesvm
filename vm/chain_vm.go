@@ -63,6 +63,7 @@ func (vm *VM) Beneficiary() []byte {
 }
 
 func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) (*chain.Context, error) {
+	g := vm.genesis
 	recentBlockIDs := ids.Set{}
 	recentTxIDs := ids.Set{}
 	recentUnits := uint64(0)
@@ -72,7 +73,7 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		recentBlockIDs.Add(b.ID())
 		for _, tx := range b.StatefulBlock.Txs {
 			recentTxIDs.Add(tx.ID())
-			recentUnits += tx.LoadUnits(vm.genesis)
+			recentUnits += tx.LoadUnits(g)
 		}
 		difficulties = append(difficulties, b.Difficulty)
 		costs = append(costs, b.Cost)
@@ -85,28 +86,28 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 	// compute new block cost
 	secondsSinceLast := currTime - lastBlock.Tmstmp
 	nextCost := lastBlock.Cost
-	if secondsSinceLast < vm.genesis.BlockTarget {
-		nextCost += uint64(vm.genesis.BlockTarget - secondsSinceLast)
+	if secondsSinceLast < g.BlockTarget {
+		nextCost += uint64(g.BlockTarget - secondsSinceLast)
 	} else {
-		possibleDiff := uint64(secondsSinceLast - vm.genesis.BlockTarget)
+		possibleDiff := uint64(secondsSinceLast - g.BlockTarget)
 		// TODO: clean this up
-		if nextCost >= vm.minBlockCost && possibleDiff < nextCost-vm.minBlockCost {
+		if nextCost >= g.MinBlockCost && possibleDiff < nextCost-g.MinBlockCost {
 			nextCost -= possibleDiff
 		} else {
-			nextCost = vm.minBlockCost
+			nextCost = g.MinBlockCost
 		}
 	}
 
 	// compute new min difficulty
 	nextDifficulty := lastBlock.Difficulty
-	if recentUnits > vm.genesis.TargetUnits {
+	if recentUnits > g.TargetUnits {
 		nextDifficulty++
-	} else if recentUnits < vm.genesis.TargetUnits {
-		elapsedWindows := uint64(secondsSinceLast/vm.genesis.LookbackWindow) + 1 // account for current window being less
-		if nextDifficulty >= vm.minDifficulty && elapsedWindows < nextDifficulty-vm.minDifficulty {
+	} else if recentUnits < g.TargetUnits {
+		elapsedWindows := uint64(secondsSinceLast/g.LookbackWindow) + 1 // account for current window being less
+		if nextDifficulty >= g.MinDifficulty && elapsedWindows < nextDifficulty-g.MinDifficulty {
 			nextDifficulty -= elapsedWindows
 		} else {
-			nextDifficulty = vm.minDifficulty
+			nextDifficulty = g.MinDifficulty
 		}
 	}
 
