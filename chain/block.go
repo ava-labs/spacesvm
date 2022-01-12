@@ -29,7 +29,7 @@ type StatefulBlock struct {
 	Txs        []*Transaction `serialize:"true" json:"txs"`
 
 	Beneficiary []byte   `serialize:"true,omitempty" json:"beneficiary"` // prefix to reward
-	Data        *Genesis `serialize:"true,omitempty" json:"data"`        // only non-empty at height 0
+	Genesis     *Genesis `serialize:"true,omitempty" json:"genesis"`     // only non-empty at height 0
 }
 
 // Stateless is defined separately from "Block"
@@ -140,7 +140,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		return nil, nil, err
 	}
 
-	if b.Hght > 0 && b.Data != nil {
+	if b.Hght > 0 && b.Genesis != nil {
 		return nil, nil, ErrInvalidData
 	}
 	if len(b.Txs) == 0 {

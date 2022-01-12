@@ -76,19 +76,19 @@ func VerifyGenesis(b *StatelessBlock) error {
 	if b.Tmstmp != 0 {
 		return ErrInvalidGenesis
 	}
-	if b.Data == nil {
+	if b.Genesis == nil {
 		return ErrInvalidGenesis
 	}
-	if b.Difficulty != b.Data.MinDifficulty {
+	if b.Difficulty != b.Genesis.MinDifficulty {
 		return ErrInvalidGenesis
 	}
-	if b.Cost != b.Data.MinBlockCost {
+	if b.Cost != b.Genesis.MinBlockCost {
 		return ErrInvalidGenesis
 	}
 	if len(b.Txs) > 0 {
 		return ErrInvalidGenesis
 	}
-	if len(b.Beneficiary) > 0 {
+	if b.Beneficiary != nil {
 		return ErrInvalidGenesis
 	}
 	return nil
