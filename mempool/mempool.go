@@ -42,15 +42,18 @@ func New(g *chain.Genesis, maxSize int) *Mempool {
 
 func (th *Mempool) Add(tx *chain.Transaction) bool {
 	txID := tx.ID()
-	// Don't add duplicates
-	if th.Has(txID) {
-		return false
-	}
-	// Optimistically add tx to mempool
 	difficulty := tx.Difficulty()
 	oldLen := th.Len()
 
 	th.mu.Lock()
+	defer th.mu.Unlock()
+
+	// Don't add duplicates
+	if th.maxHeap.Has(txID) {
+		return false
+	}
+
+	// Optimistically add tx to mempool
 	heap.Push(th.maxHeap, &txEntry{
 		id:         txID,
 		difficulty: difficulty,
@@ -63,18 +66,18 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 		tx:         tx,
 		index:      oldLen,
 	})
-	th.mu.Unlock()
 
 	// Remove the lowest paying tx
 	//
 	// Note: we do this after adding the new transaction in case it is the new
 	// lowest paying transaction
 	if th.Len() > th.maxSize {
-		t, _ := th.PopMin()
+		t, _ := th.popMin()
 		if t.ID() == txID {
 			return false
 		}
 	}
+
 	// When adding [tx] to the mempool make sure that there is an item in Pending
 	// to signal the VM to produce a block. Note: if the VM's buildStatus has already
 	// been set to something other than [dontBuild], this will be ignored and won't be
@@ -117,8 +120,7 @@ func (th *Mempool) PopMin() (*chain.Transaction, uint64) { // O(log N)
 	th.mu.Lock()
 	defer th.mu.Unlock()
 
-	item := th.minHeap.items[0]
-	return th.remove(item.id), item.difficulty
+	return th.popMin()
 }
 
 func (th *Mempool) Remove(id ids.ID) *chain.Transaction { // O(log N)
@@ -197,7 +199,13 @@ func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 	return selected
 }
 
-// remove assuming the write lock is held and takes O(log N) time to run.
+// popMin assumes the write lock is held and takes O(log N) time to run.
+func (th *Mempool) popMin() (*chain.Transaction, uint64) { // O(log N)
+	item := th.minHeap.items[0]
+	return th.remove(item.id), item.difficulty
+}
+
+// remove assumes the write lock is held and takes O(log N) time to run.
 func (th *Mempool) remove(id ids.ID) *chain.Transaction {
 	maxEntry, ok := th.maxHeap.Get(id) // O(1)
 	if !ok {
