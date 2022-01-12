@@ -199,7 +199,7 @@ func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 		th.newTxs[numSelected] = th.newTxs[i]
 		numSelected++
 	}
-	selected := th.newTxs
+	selected := th.newTxs[:numSelected]
 	th.newTxs = th.newTxs[len(th.newTxs):]
 	return selected
 }
