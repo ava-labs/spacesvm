@@ -81,6 +81,7 @@ var (
 	// when used with embedded VMs
 	genesisBytes []byte
 	instances    []instance
+	genesis      *chain.Genesis
 )
 
 type instance struct {
@@ -104,18 +105,18 @@ var _ = ginkgo.BeforeSuite(func() {
 	// create embedded VMs
 	instances = make([]instance, vms)
 
-	defaultGenesis := chain.DefaultGenesis()
+	genesis = chain.DefaultGenesis()
 	if minDifficulty >= 0 {
-		defaultGenesis.MinDifficulty = uint64(minDifficulty)
+		genesis.MinDifficulty = uint64(minDifficulty)
 	}
 	if minBlockCost >= 0 {
-		defaultGenesis.MinBlockCost = uint64(minBlockCost)
+		genesis.MinBlockCost = uint64(minBlockCost)
 	}
 	blk := &chain.StatefulBlock{
 		Tmstmp:     time.Now().Unix(),
-		Difficulty: defaultGenesis.MinDifficulty,
-		Cost:       defaultGenesis.MinBlockCost,
-		Data:       defaultGenesis,
+		Difficulty: genesis.MinDifficulty,
+		Cost:       genesis.MinBlockCost,
+		Genesis:    genesis,
 	}
 	genesisBytes, err = chain.Marshal(blk)
 	gomega.Ω(err).Should(gomega.BeNil())
@@ -220,7 +221,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		})
 
 		ginkgo.By("send gossip from node 0 to 1", func() {
-			newTxs := instances[0].vm.Mempool().NewTxs(chain.TargetUnits)
+			newTxs := instances[0].vm.Mempool().NewTxs(genesis.TargetUnits)
 			gomega.Ω(len(newTxs)).To(gomega.Equal(1))
 
 			err := instances[0].vm.Network().GossipNewTxs(newTxs)
@@ -266,7 +267,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		tx := chain.NewTx(utx, sig)
-		err = tx.Init()
+		err = tx.Init(genesis)
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		_, err = instances[0].cli.IssueTx(tx.Bytes())
@@ -363,7 +364,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 		// since the block from previous test spec has not been replicated yet
 		ginkgo.By("send gossip from node 0 to 1 should fail on server-side since 1 doesn't have the block yet", func() {
-			newTxs := instances[0].vm.Mempool().NewTxs(chain.TargetUnits)
+			newTxs := instances[0].vm.Mempool().NewTxs(genesis.TargetUnits)
 			gomega.Ω(len(newTxs)).To(gomega.Equal(1))
 
 			err := instances[0].vm.Network().GossipNewTxs(newTxs)
@@ -382,7 +383,7 @@ func mineAndExpectBlkAccept(
 	rtx chain.UnsignedTransaction,
 ) *chain.StatelessBlock {
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	utx, err := i.cli.Mine(ctx, rtx)
+	utx, err := i.cli.Mine(ctx, genesis, rtx)
 	cancel()
 	gomega.Ω(err).Should(gomega.BeNil())
 
@@ -393,7 +394,7 @@ func mineAndExpectBlkAccept(
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	tx := chain.NewTx(utx, sig)
-	err = tx.Init()
+	err = tx.Init(genesis)
 	gomega.Ω(err).To(gomega.BeNil())
 
 	// or to use VM directly
