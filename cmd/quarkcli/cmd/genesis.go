@@ -16,10 +16,11 @@ import (
 var (
 	genesisFile string
 
-	minDifficulty     int64
-	minBlockCost      int64
-	claimReward       int64
-	beneficiaryReward int64
+	minDifficulty      int64
+	minBlockCost       int64
+	claimReward        int64
+	lifelineUnitReward int64
+	beneficiaryReward  int64
 )
 
 func init() {
@@ -48,6 +49,12 @@ func init() {
 		"seconds until a prefix will expire after being claimed",
 	)
 	genesisCmd.PersistentFlags().Int64Var(
+		&lifelineUnitReward,
+		"lifeline-unit-reward",
+		-1,
+		"seconds per unit of fee that will be rewarded in a lifeline transaction",
+	)
+	genesisCmd.PersistentFlags().Int64Var(
 		&beneficiaryReward,
 		"beneficiary-reward",
 		-1,
@@ -71,6 +78,9 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	}
 	if claimReward >= 0 {
 		genesis.ClaimReward = uint64(claimReward)
+	}
+	if lifelineUnitReward >= 0 {
+		genesis.LifelineUnitReward = uint64(lifelineUnitReward)
 	}
 	if beneficiaryReward >= 0 {
 		genesis.BeneficiaryReward = uint64(beneficiaryReward)
