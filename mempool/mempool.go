@@ -178,8 +178,8 @@ func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 
 	// Note: this algorithm preserves the ordering of new transactions
 	var (
-		units       uint64
-		numSelected int
+		units    uint64
+		selected = th.newTxs[:0]
 	)
 	for i, tx := range th.newTxs {
 		// It is possible that a block may have been accepted that contains some
@@ -189,17 +189,12 @@ func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 		}
 		txUnits := tx.LoadUnits(th.g)
 		if txUnits > maxUnits-units {
-			selected := th.newTxs[:numSelected]
 			th.newTxs = th.newTxs[i:]
 			return selected
 		}
 		units += txUnits
-		// The tx is moved from index [i] to index [numSelected] to ensure that
-		// skipped txs aren't included in the [selected] slice.
-		th.newTxs[numSelected] = th.newTxs[i]
-		numSelected++
+		selected = append(selected, tx)
 	}
-	selected := th.newTxs[:numSelected]
 	th.newTxs = th.newTxs[len(th.newTxs):]
 	return selected
 }
