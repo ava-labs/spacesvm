@@ -21,15 +21,15 @@ const futureBound = 10 * time.Second
 var _ snowman.Block = &StatelessBlock{}
 
 type StatefulBlock struct {
-	Prnt        ids.ID         `serialize:"true" json:"parent"`
-	Tmstmp      int64          `serialize:"true" json:"timestamp"`
-	Hght        uint64         `serialize:"true" json:"height"`
-	Difficulty  uint64         `serialize:"true" json:"difficulty"` // difficulty per unit
-	Cost        uint64         `serialize:"true" json:"cost"`
-	Txs         []*Transaction `serialize:"true" json:"txs"`
-	Beneficiary []byte         `serialize:"true" json:"beneficiary"` // prefix to reward
+	Prnt       ids.ID         `serialize:"true" json:"parent"`
+	Tmstmp     int64          `serialize:"true" json:"timestamp"`
+	Hght       uint64         `serialize:"true" json:"height"`
+	Difficulty uint64         `serialize:"true" json:"difficulty"` // difficulty per unit
+	Cost       uint64         `serialize:"true" json:"cost"`
+	Txs        []*Transaction `serialize:"true" json:"txs"`
 
-	Data *Genesis `serialize:"true,omitempty" json:"data"` // only non-empty at height 0
+	Beneficiary []byte   `serialize:"true,omitempty" json:"beneficiary"` // prefix to reward
+	Data        *Genesis `serialize:"true,omitempty" json:"data"`        // only non-empty at height 0
 }
 
 // Stateless is defined separately from "Block"
