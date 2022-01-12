@@ -207,6 +207,7 @@ func GetValue(db database.KeyValueReader, prefix []byte, key []byte) ([]byte, bo
 // corresponding txID where they were found. The extracted value is then
 // written to disk.
 func linkValues(db database.KeyValueWriter, block *StatelessBlock) ([]*Transaction, error) {
+	g := block.vm.Genesis()
 	ogTxs := make([]*Transaction, len(block.Txs))
 	for i, tx := range block.Txs {
 		switch t := tx.UnsignedTransaction.(type) {
@@ -218,7 +219,7 @@ func linkValues(db database.KeyValueWriter, block *StatelessBlock) ([]*Transacti
 
 			// Copy transaction for later
 			cptx := tx.Copy()
-			if err := cptx.Init(); err != nil {
+			if err := cptx.Init(g); err != nil {
 				return nil, err
 			}
 			ogTxs[i] = cptx
@@ -293,23 +294,19 @@ func GetLastAccepted(db database.KeyValueReader) (ids.ID, error) {
 	return ids.ToID(v)
 }
 
-func GetBlock(db database.KeyValueReader, bid ids.ID) (*StatefulBlock, []byte, error) {
+func GetBlock(db database.KeyValueReader, bid ids.ID) (*StatefulBlock, error) {
 	b, err := db.Get(PrefixBlockKey(bid))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	blk := new(StatefulBlock)
 	if _, err := Unmarshal(b, blk); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := restoreValues(db, blk); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	fb, err := Marshal(blk)
-	if err != nil {
-		return nil, nil, err
-	}
-	return blk, fb, nil
+	return blk, nil
 }
 
 // ExpireNext queries "expiryPrefix" key space to find expiring keys,

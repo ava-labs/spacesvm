@@ -9,7 +9,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/timer"
-	"github.com/ava-labs/quarkvm/chain"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -127,7 +126,7 @@ func (b *TimeBuilder) HandleGenerateBlock() {
 	// engine know it [mayBuild] in [buildInterval].
 	if b.needToBuild() {
 		b.status = mayBuild
-		b.buildBlockTimer.SetTimeoutIn(b.vm.buildInterval)
+		b.buildBlockTimer.SetTimeoutIn(b.vm.config.BuildInterval)
 	} else {
 		b.status = dontBuild
 	}
@@ -185,16 +184,16 @@ func (b *TimeBuilder) Gossip() {
 	log.Debug("starting gossip loops")
 	defer close(b.doneGossip)
 
-	g := time.NewTicker(b.vm.gossipInterval)
+	g := time.NewTicker(b.vm.config.GossipInterval)
 	defer g.Stop()
 
-	rg := time.NewTicker(b.vm.regossipInterval)
+	rg := time.NewTicker(b.vm.config.RegossipInterval)
 	defer rg.Stop()
 
 	for {
 		select {
 		case <-g.C:
-			newTxs := b.vm.mempool.NewTxs(chain.TargetUnits)
+			newTxs := b.vm.mempool.NewTxs(b.vm.genesis.TargetUnits)
 			_ = b.vm.network.GossipNewTxs(newTxs) // handles case where there are none
 		case <-rg.C:
 			_ = b.vm.network.RegossipTxs()

@@ -9,7 +9,7 @@ import (
 	"github.com/ava-labs/quarkvm/parser"
 )
 
-func Reward(db database.KeyValueReaderWriter, prefix []byte) error {
+func Reward(g *Genesis, db database.KeyValueReaderWriter, prefix []byte) error {
 	// If there is no one to reward, do nothing
 	if len(prefix) == 0 {
 		return nil
@@ -17,5 +17,5 @@ func Reward(db database.KeyValueReaderWriter, prefix []byte) error {
 	if err := parser.CheckPrefix(prefix); err != nil {
 		return err
 	}
-	return addLife(db, prefix)
+	return addLife(g, db, prefix)
 }

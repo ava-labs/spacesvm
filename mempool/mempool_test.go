@@ -12,7 +12,8 @@ import (
 )
 
 func TestMempool(t *testing.T) {
-	txm := mempool.New(4)
+	g := chain.DefaultGenesis()
+	txm := mempool.New(g, 4)
 	for _, i := range []int{200, 220, 250} {
 		tx := &chain.Transaction{
 			Signature: bytes.Repeat([]byte{'a'}, i),
@@ -23,7 +24,7 @@ func TestMempool(t *testing.T) {
 				},
 			},
 		}
-		if err := tx.Init(); err != nil {
+		if err := tx.Init(g); err != nil {
 			t.Fatal(err)
 		}
 		if !txm.Add(tx) {

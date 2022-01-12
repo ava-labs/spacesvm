@@ -43,8 +43,8 @@ func TestIntegration(t *testing.T) {
 var (
 	requestTimeout time.Duration
 	vms            int
-	minDifficulty  uint64
-	minBlockCost   uint64
+	minDifficulty  int64
+	minBlockCost   int64
 )
 
 func init() {
@@ -60,16 +60,16 @@ func init() {
 		3,
 		"number of VMs to create",
 	)
-	flag.Uint64Var(
+	flag.Int64Var(
 		&minDifficulty,
 		"min-difficulty",
-		chain.MinDifficulty,
+		-1,
 		"minimum difficulty for mining",
 	)
-	flag.Uint64Var(
+	flag.Int64Var(
 		&minBlockCost,
 		"min-block-cost",
-		chain.MinBlockCost,
+		-1,
 		"minimum block cost",
 	)
 }
@@ -81,6 +81,8 @@ var (
 	// when used with embedded VMs
 	genesisBytes []byte
 	instances    []instance
+
+	genesis *chain.Genesis
 )
 
 type instance struct {
@@ -104,12 +106,14 @@ var _ = ginkgo.BeforeSuite(func() {
 	// create embedded VMs
 	instances = make([]instance, vms)
 
-	blk := &chain.StatefulBlock{
-		Tmstmp:     time.Now().Unix(),
-		Difficulty: minDifficulty,
-		Cost:       minBlockCost,
+	genesis = chain.DefaultGenesis()
+	if minDifficulty >= 0 {
+		genesis.MinDifficulty = uint64(minDifficulty)
 	}
-	genesisBytes, err = chain.Marshal(blk)
+	if minBlockCost >= 0 {
+		genesis.MinBlockCost = uint64(minBlockCost)
+	}
+	genesisBytes, err = chain.Marshal(genesis)
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	networkID := uint32(1)
@@ -212,7 +216,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		})
 
 		ginkgo.By("send gossip from node 0 to 1", func() {
-			newTxs := instances[0].vm.Mempool().NewTxs(chain.TargetUnits)
+			newTxs := instances[0].vm.Mempool().NewTxs(genesis.TargetUnits)
 			gomega.Ω(len(newTxs)).To(gomega.Equal(1))
 
 			err := instances[0].vm.Network().GossipNewTxs(newTxs)
@@ -258,7 +262,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		tx := chain.NewTx(utx, sig)
-		err = tx.Init()
+		err = tx.Init(genesis)
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		_, err = instances[0].cli.IssueTx(tx.Bytes())
@@ -355,7 +359,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 		// since the block from previous test spec has not been replicated yet
 		ginkgo.By("send gossip from node 0 to 1 should fail on server-side since 1 doesn't have the block yet", func() {
-			newTxs := instances[0].vm.Mempool().NewTxs(chain.TargetUnits)
+			newTxs := instances[0].vm.Mempool().NewTxs(genesis.TargetUnits)
 			gomega.Ω(len(newTxs)).To(gomega.Equal(1))
 
 			err := instances[0].vm.Network().GossipNewTxs(newTxs)
@@ -374,7 +378,7 @@ func mineAndExpectBlkAccept(
 	rtx chain.UnsignedTransaction,
 ) *chain.StatelessBlock {
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	utx, err := i.cli.Mine(ctx, rtx)
+	utx, err := i.cli.Mine(ctx, genesis, rtx)
 	cancel()
 	gomega.Ω(err).Should(gomega.BeNil())
 
@@ -385,7 +389,7 @@ func mineAndExpectBlkAccept(
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	tx := chain.NewTx(utx, sig)
-	err = tx.Init()
+	err = tx.Init(genesis)
 	gomega.Ω(err).To(gomega.BeNil())
 
 	// or to use VM directly

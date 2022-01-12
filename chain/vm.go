@@ -8,7 +8,20 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 )
 
+type Context struct {
+	RecentBlockIDs  ids.Set
+	RecentTxIDs     ids.Set
+	RecentLoadUnits uint64
+
+	Difficulties []uint64
+	Costs        []uint64
+
+	NextCost       uint64
+	NextDifficulty uint64
+}
+
 type VM interface {
+	Genesis() *Genesis
 	IsBootstrapped() bool
 	State() database.Database
 	Mempool() Mempool

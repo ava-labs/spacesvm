@@ -24,7 +24,7 @@ func (vm *VM) lookback(currTime int64, lastID ids.ID, f func(b *chain.StatelessB
 		return err
 	}
 	// Include at least parent block in the window, regardless of how old
-	for curr != nil && (currTime-curr.Tmstmp <= chain.LookbackWindow || curr.ID() == lastID) {
+	for curr != nil && (currTime-curr.Tmstmp <= vm.genesis.LookbackWindow || curr.ID() == lastID) {
 		if cont, err := f(curr); !cont || err != nil {
 			return err
 		}
@@ -53,6 +53,7 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 }
 
 func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
+	g := vm.genesis
 	prnt, err := vm.GetBlock(vm.preferred)
 	if err != nil {
 		return 0, 0, err
@@ -70,13 +71,13 @@ func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
 	// Sort useful costs/difficulties
 	sort.Slice(ctx.Difficulties, func(i, j int) bool { return ctx.Difficulties[i] < ctx.Difficulties[j] })
 	pDiff := ctx.Difficulties[(len(ctx.Difficulties)-1)*feePercentile/100]
-	if pDiff < vm.minDifficulty {
-		pDiff = vm.minDifficulty
+	if pDiff < g.MinDifficulty {
+		pDiff = g.MinDifficulty
 	}
 	sort.Slice(ctx.Costs, func(i, j int) bool { return ctx.Costs[i] < ctx.Costs[j] })
 	pCost := ctx.Costs[(len(ctx.Costs)-1)*feePercentile/100]
-	if pCost < vm.minBlockCost {
-		pCost = vm.minBlockCost
+	if pCost < g.MinBlockCost {
+		pCost = g.MinBlockCost
 	}
 
 	// Adjust cost estimate based on recent txs
@@ -85,10 +86,10 @@ func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
 		return pDiff, pCost, nil
 	}
 	cPerTx := pCost / uint64(recentTxs) / uint64(ctx.RecentBlockIDs.Len())
-	if cPerTx < vm.minBlockCost {
+	if cPerTx < g.MinBlockCost {
 		// We always recommend at least the minBlockCost in case there are no other
 		// transactions.
-		cPerTx = vm.minBlockCost
+		cPerTx = g.MinBlockCost
 	}
 	return pDiff, cPerTx, nil
 }

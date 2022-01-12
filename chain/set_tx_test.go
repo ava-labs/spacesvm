@@ -39,6 +39,7 @@ func TestSetTx(t *testing.T) {
 	db := memdb.New()
 	defer db.Close()
 
+	g := DefaultGenesis()
 	tt := []struct {
 		utx       UnsignedTransaction
 		blockTime int64
@@ -189,7 +190,7 @@ func TestSetTx(t *testing.T) {
 					BlockID: ids.GenerateTestID(),
 				},
 				Key:   []byte("bar"),
-				Value: bytes.Repeat([]byte{'b'}, MaxValueSize+1),
+				Value: bytes.Repeat([]byte{'b'}, int(g.MaxValueSize)+1),
 			},
 			blockTime: 1,
 			err:       ErrValueTooBig,
@@ -227,7 +228,7 @@ func TestSetTx(t *testing.T) {
 				},
 				Key: []byte("bar"),
 			},
-			blockTime: ExpiryTime * 2,
+			blockTime: int64(g.ExpiryTime) * 2,
 			err:       ErrPrefixMissing,
 		},
 	}
@@ -247,7 +248,7 @@ func TestSetTx(t *testing.T) {
 				}
 			}
 		}
-		err := tv.utx.Execute(db, uint64(tv.blockTime), id)
+		err := tv.utx.Execute(g, db, uint64(tv.blockTime), id)
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
 		}

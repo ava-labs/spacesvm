@@ -19,7 +19,7 @@ type ClaimTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 }
 
-func (c *ClaimTx) Execute(db database.Database, blockTime uint64, _ ids.ID) error {
+func (c *ClaimTx) Execute(g *Genesis, db database.Database, blockTime uint64, _ ids.ID) error {
 	// Restrict address prefix to be owned by pk
 	// [33]byte prefix is reserved for pubkey
 	if len(c.Prefix) == crypto.SECP256K1RPKLen && !bytes.Equal(c.Sender[:], c.Prefix) {
@@ -40,7 +40,7 @@ func (c *ClaimTx) Execute(db database.Database, blockTime uint64, _ ids.ID) erro
 		Owner:       c.Sender,
 		Created:     blockTime,
 		LastUpdated: blockTime,
-		Expiry:      blockTime + ExpiryTime,
+		Expiry:      blockTime + g.ExpiryTime,
 		Units:       1,
 	}
 	if err := PutPrefixInfo(db, c.Prefix, newInfo, 0); err != nil {
@@ -55,23 +55,23 @@ func (c *ClaimTx) Execute(db database.Database, blockTime uint64, _ ids.ID) erro
 // prefix.
 //
 // [prefixUnits] should only be called on a prefix that is valid
-func prefixUnits(p []byte) uint64 {
-	desirability := parser.MaxKeySize - len(p)
-	if len(p) > ClaimTier2Size {
-		return uint64(desirability * ClaimTier3Multiplier)
+func prefixUnits(g *Genesis, p []byte) uint64 {
+	desirability := uint64(parser.MaxKeySize - len(p))
+	if uint64(len(p)) > g.ClaimTier2Size {
+		return desirability * g.ClaimTier3Multiplier
 	}
-	if len(p) > ClaimTier1Size {
-		return uint64(desirability * ClaimTier2Multiplier)
+	if uint64(len(p)) > g.ClaimTier1Size {
+		return desirability * g.ClaimTier2Multiplier
 	}
-	return uint64(desirability * ClaimTier1Multiplier)
+	return desirability * g.ClaimTier1Multiplier
 }
 
-func (c *ClaimTx) FeeUnits() uint64 {
-	return c.LoadUnits() + prefixUnits(c.Prefix)
+func (c *ClaimTx) FeeUnits(g *Genesis) uint64 {
+	return c.LoadUnits(g) + prefixUnits(g, c.Prefix)
 }
 
-func (c *ClaimTx) LoadUnits() uint64 {
-	return c.BaseTx.LoadUnits() * ClaimFeeMultiplier
+func (c *ClaimTx) LoadUnits(g *Genesis) uint64 {
+	return c.BaseTx.LoadUnits(g) * g.ClaimFeeMultiplier
 }
 
 func (c *ClaimTx) Copy() UnsignedTransaction {

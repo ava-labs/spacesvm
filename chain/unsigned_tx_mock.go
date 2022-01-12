@@ -52,17 +52,17 @@ func (mr *MockUnsignedTransactionMockRecorder) Copy() *gomock.Call {
 }
 
 // Execute mocks base method.
-func (m *MockUnsignedTransaction) Execute(arg0 database.Database, arg1 uint64) error {
+func (m *MockUnsignedTransaction) Execute(arg0 *Genesis, arg1 database.Database, arg2 uint64, arg3 ids.ID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute", arg0, arg1)
+	ret := m.ctrl.Call(m, "Execute", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockUnsignedTransactionMockRecorder) Execute(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockUnsignedTransactionMockRecorder) Execute(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockUnsignedTransaction)(nil).Execute), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockUnsignedTransaction)(nil).Execute), arg0, arg1, arg2, arg3)
 }
 
 // ExecuteBase mocks base method.
@@ -80,17 +80,17 @@ func (mr *MockUnsignedTransactionMockRecorder) ExecuteBase() *gomock.Call {
 }
 
 // FeeUnits mocks base method.
-func (m *MockUnsignedTransaction) FeeUnits() uint64 {
+func (m *MockUnsignedTransaction) FeeUnits(arg0 *Genesis) uint64 {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FeeUnits")
+	ret := m.ctrl.Call(m, "FeeUnits", arg0)
 	ret0, _ := ret[0].(uint64)
 	return ret0
 }
 
 // FeeUnits indicates an expected call of FeeUnits.
-func (mr *MockUnsignedTransactionMockRecorder) FeeUnits() *gomock.Call {
+func (mr *MockUnsignedTransactionMockRecorder) FeeUnits(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeUnits", reflect.TypeOf((*MockUnsignedTransaction)(nil).FeeUnits))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeUnits", reflect.TypeOf((*MockUnsignedTransaction)(nil).FeeUnits), arg0)
 }
 
 // GetBlockID mocks base method.
@@ -122,17 +122,17 @@ func (mr *MockUnsignedTransactionMockRecorder) GetSender() *gomock.Call {
 }
 
 // LoadUnits mocks base method.
-func (m *MockUnsignedTransaction) LoadUnits() uint64 {
+func (m *MockUnsignedTransaction) LoadUnits(arg0 *Genesis) uint64 {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LoadUnits")
+	ret := m.ctrl.Call(m, "LoadUnits", arg0)
 	ret0, _ := ret[0].(uint64)
 	return ret0
 }
 
 // LoadUnits indicates an expected call of LoadUnits.
-func (mr *MockUnsignedTransactionMockRecorder) LoadUnits() *gomock.Call {
+func (mr *MockUnsignedTransactionMockRecorder) LoadUnits(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadUnits", reflect.TypeOf((*MockUnsignedTransaction)(nil).LoadUnits))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadUnits", reflect.TypeOf((*MockUnsignedTransaction)(nil).LoadUnits), arg0)
 }
 
 // SetBlockID mocks base method.

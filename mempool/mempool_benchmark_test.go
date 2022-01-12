@@ -68,6 +68,7 @@ func createTestMempool(
 	}
 
 	b.StopTimer()
+	g := chain.DefaultGenesis()
 	txs := make([]*chain.Transaction, n)
 	for i := 0; i < n; i++ {
 		pfx := make([]byte, 8)
@@ -85,7 +86,7 @@ func createTestMempool(
 				},
 			},
 		}
-		if err := tx.Init(); err != nil {
+		if err := tx.Init(g); err != nil {
 			b.Fatal(err)
 		}
 
@@ -100,8 +101,7 @@ func createTestMempool(
 
 	sampleBlkIDs = ids.NewSet(sampleBlk)
 
-	mp = mempool.New(maxSize)
-	// mp = mempool.NewBtree(maxSize)
+	mp = mempool.New(g, maxSize)
 
 	b.StartTimer()
 	for _, tx := range txs {
