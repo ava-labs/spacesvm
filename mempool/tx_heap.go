@@ -14,13 +14,13 @@ import (
 // txEntry is used to track the work transactions pay to be included in the
 // mempool.
 type txEntry struct {
-	id         ids.ID
-	tx         *chain.Transaction
-	difficulty uint64
-	index      int
+	id    ids.ID
+	tx    *chain.Transaction
+	price uint64
+	index int
 }
 
-// txHeap is used to track pending transactions by [difficulty]
+// txHeap is used to track pending transactions by [price]
 type txHeap struct {
 	isMinHeap bool
 	items     []*txEntry
@@ -39,9 +39,9 @@ func (th txHeap) Len() int { return len(th.items) }
 
 func (th txHeap) Less(i, j int) bool {
 	if th.isMinHeap {
-		return th.items[i].difficulty < th.items[j].difficulty
+		return th.items[i].price < th.items[j].price
 	}
-	return th.items[i].difficulty > th.items[j].difficulty
+	return th.items[i].price > th.items[j].price
 }
 
 func (th txHeap) Swap(i, j int) {

@@ -4,20 +4,16 @@
 package mempool_test
 
 import (
+	"crypto/ecdsa"
 	"crypto/rand"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/mempool"
 )
-
-var f *crypto.FactorySECP256K1R
-
-func init() {
-	f = &crypto.FactorySECP256K1R{}
-}
 
 // $ go install -v golang.org/x/perf/cmd/benchstat@latest
 //
@@ -31,10 +27,12 @@ func init() {
 //
 func BenchmarkMempoolAddPrune(b *testing.B) {
 	b.StopTimer()
-	priv, err := f.NewPrivateKey()
+
+	priv, err := crypto.GenerateKey()
 	if err != nil {
 		b.Fatal(err)
 	}
+
 	for i := 0; i < b.N; i++ {
 		mp, sampleBlkIDs := createTestMempool(b, priv, 2000, 10000, 500)
 		mp.Prune(sampleBlkIDs)
@@ -43,7 +41,7 @@ func BenchmarkMempoolAddPrune(b *testing.B) {
 
 func createTestMempool(
 	b *testing.B,
-	priv crypto.PrivateKey,
+	priv *ecdsa.PrivateKey,
 	maxSize int,
 	n int,
 	sampleBlk int) (mp chain.Mempool, sampleBlkIDs ids.Set) {
@@ -62,11 +60,6 @@ func createTestMempool(
 		blks[i] = ids.GenerateTestID()
 	}
 
-	sender, err := chain.FormatPK(priv.PublicKey())
-	if err != nil {
-		b.Fatal(err)
-	}
-
 	b.StopTimer()
 	g := chain.DefaultGenesis()
 	txs := make([]*chain.Transaction, n)
@@ -80,21 +73,19 @@ func createTestMempool(
 		tx := &chain.Transaction{
 			UnsignedTransaction: &chain.ClaimTx{
 				BaseTx: &chain.BaseTx{
-					Sender:  sender,
-					Prefix:  pfx,
-					BlockID: blks[i%blksN],
+					Pfx:   pfx,
+					BlkID: blks[i%blksN],
 				},
 			},
 		}
-		if err := tx.Init(g); err != nil {
-			b.Fatal(err)
-		}
-
-		sig, err := priv.Sign(tx.UnsignedBytes())
+		sig, err := crypto.Sign(tx.DigestHash(), priv)
 		if err != nil {
 			b.Fatal(err)
 		}
 		tx.Signature = sig
+		if err := tx.Init(g); err != nil {
+			b.Fatal(err)
+		}
 
 		txs[i] = tx
 	}
@@ -106,7 +97,7 @@ func createTestMempool(
 	b.StartTimer()
 	for _, tx := range txs {
 		if added := mp.Add(tx); added && sampleBlkIDs.Len() < sampleBlk {
-			sampleBlkIDs.Add(tx.GetBlockID())
+			sampleBlkIDs.Add(tx.BlockID())
 		}
 	}
 	return mp, sampleBlkIDs

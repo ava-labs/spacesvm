@@ -42,7 +42,7 @@ func New(g *chain.Genesis, maxSize int) *Mempool {
 
 func (th *Mempool) Add(tx *chain.Transaction) bool {
 	txID := tx.ID()
-	difficulty := tx.Difficulty()
+	price := tx.Price()
 
 	th.mu.Lock()
 	defer th.mu.Unlock()
@@ -56,16 +56,16 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 
 	// Optimistically add tx to mempool
 	heap.Push(th.maxHeap, &txEntry{
-		id:         txID,
-		difficulty: difficulty,
-		tx:         tx,
-		index:      oldLen,
+		id:    txID,
+		price: price,
+		tx:    tx,
+		index: oldLen,
 	})
 	heap.Push(th.minHeap, &txEntry{
-		id:         txID,
-		difficulty: difficulty,
-		tx:         tx,
-		index:      oldLen,
+		id:    txID,
+		price: price,
+		tx:    tx,
+		index: oldLen,
 	})
 
 	// Remove the lowest paying tx
@@ -95,7 +95,7 @@ func (th *Mempool) PeekMax() (*chain.Transaction, uint64) {
 	defer th.mu.RUnlock()
 
 	txEntry := th.maxHeap.items[0]
-	return txEntry.tx, txEntry.difficulty
+	return txEntry.tx, txEntry.price
 }
 
 // Assumes there is non-zero items in [Mempool]
@@ -104,7 +104,7 @@ func (th *Mempool) PeekMin() (*chain.Transaction, uint64) {
 	defer th.mu.RUnlock()
 
 	txEntry := th.minHeap.items[0]
-	return txEntry.tx, txEntry.difficulty
+	return txEntry.tx, txEntry.price
 }
 
 // Assumes there is non-zero items in [Mempool]
@@ -113,7 +113,7 @@ func (th *Mempool) PopMax() (*chain.Transaction, uint64) { // O(log N)
 	defer th.mu.Unlock()
 
 	item := th.maxHeap.items[0]
-	return th.remove(item.id), item.difficulty
+	return th.remove(item.id), item.price
 }
 
 // Assumes there is non-zero items in [Mempool]
@@ -136,7 +136,7 @@ func (th *Mempool) Prune(validHashes ids.Set) {
 	th.mu.RLock()
 	toRemove := []ids.ID{}
 	for _, txE := range th.maxHeap.items { // O(N)
-		if !validHashes.Contains(txE.tx.GetBlockID()) {
+		if !validHashes.Contains(txE.tx.BlockID()) {
 			toRemove = append(toRemove, txE.id)
 		}
 	}
@@ -203,7 +203,7 @@ func (th *Mempool) NewTxs(maxUnits uint64) []*chain.Transaction {
 // popMin assumes the write lock is held and takes O(log N) time to run.
 func (th *Mempool) popMin() (*chain.Transaction, uint64) { // O(log N)
 	item := th.minHeap.items[0]
-	return th.remove(item.id), item.difficulty
+	return th.remove(item.id), item.price
 }
 
 // remove assumes the write lock is held and takes O(log N) time to run.
