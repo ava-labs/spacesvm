@@ -119,19 +119,19 @@ func (svc *PublicService) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, 
 	return nil
 }
 
-type SuggestPriceArgs struct{}
+type SuggestedFeeArgs struct{}
 
-type SuggestPriceReply struct {
+type SuggestedFeeReply struct {
 	Price uint64 `serialize:"true" json:"price"`
 	Cost  uint64 `serialize:"true" json:"cost"`
 }
 
-func (svc *PublicService) SuggestPrice(
+func (svc *PublicService) SuggestedFee(
 	_ *http.Request,
-	_ *SuggestPriceArgs,
-	reply *SuggestPriceReply,
+	_ *SuggestedFeeArgs,
+	reply *SuggestedFeeReply,
 ) error {
-	price, cost, err := svc.vm.SuggestPrice()
+	price, cost, err := svc.vm.SuggestedFee()
 	if err != nil {
 		return err
 	}
@@ -239,3 +239,5 @@ func (svc *PublicService) Resolve(_ *http.Request, args *ResolveArgs, reply *Res
 	reply.Value = v
 	return err
 }
+
+// TODO: IssueTxHR, Balance

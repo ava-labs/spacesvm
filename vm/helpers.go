@@ -52,7 +52,7 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 	return foundBlockID, err
 }
 
-func (vm *VM) SuggestPrice() (uint64, uint64, error) {
+func (vm *VM) SuggestedFee() (uint64, uint64, error) {
 	g := vm.genesis
 	prnt, err := vm.GetBlock(vm.preferred)
 	if err != nil {
