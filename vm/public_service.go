@@ -119,23 +119,23 @@ func (svc *PublicService) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, 
 	return nil
 }
 
-type DifficultyEstimateArgs struct{}
+type SuggestPriceArgs struct{}
 
-type DifficultyEstimateReply struct {
-	Difficulty uint64 `serialize:"true" json:"difficulty"`
-	Cost       uint64 `serialize:"true" json:"cost"`
+type SuggestPriceReply struct {
+	Price uint64 `serialize:"true" json:"price"`
+	Cost  uint64 `serialize:"true" json:"cost"`
 }
 
-func (svc *PublicService) DifficultyEstimate(
+func (svc *PublicService) SuggestPrice(
 	_ *http.Request,
-	_ *DifficultyEstimateArgs,
-	reply *DifficultyEstimateReply,
+	_ *SuggestPriceArgs,
+	reply *SuggestPriceReply,
 ) error {
-	diff, cost, err := svc.vm.DifficultyEstimate()
+	price, cost, err := svc.vm.SuggestPrice()
 	if err != nil {
 		return err
 	}
-	reply.Difficulty = diff
+	reply.Price = price
 	reply.Cost = cost
 	return nil
 }

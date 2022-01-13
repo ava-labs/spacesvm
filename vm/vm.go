@@ -405,7 +405,7 @@ func (vm *VM) submit(tx *chain.Transaction, db database.Database, blkTime int64,
 	if err := tx.Init(vm.genesis); err != nil {
 		return err
 	}
-	if err := tx.ExecuteBase(); err != nil {
+	if err := tx.ExecuteBase(vm.genesis); err != nil {
 		return err
 	}
 	if err := tx.Execute(vm.genesis, db, blkTime, ctx); err != nil {
