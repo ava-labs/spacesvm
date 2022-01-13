@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 
 type Transaction struct {
@@ -104,7 +103,13 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blockTime int64,
 	if t.Price() < context.NextPrice {
 		return ErrInsufficientPrice
 	}
-	if err := t.UnsignedTransaction.Execute(g, db, uint64(blockTime), t.id); err != nil {
+	if err := t.UnsignedTransaction.Execute(&TransactionContext{
+		Genesis:   g,
+		Database:  db,
+		BlockTime: uint64(blockTime),
+		TxID:      t.id,
+		Sender:    t.sender,
+	}); err != nil {
 		return err
 	}
 	return SetTransaction(db, t)

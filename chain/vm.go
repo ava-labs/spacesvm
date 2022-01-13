@@ -13,11 +13,11 @@ type Context struct {
 	RecentTxIDs     ids.Set
 	RecentLoadUnits uint64
 
-	Prices     []uint64
-	BlockCosts []uint64
+	Prices []uint64
+	Costs  []uint64
 
-	NextBlockCost uint64
-	NextPrice     uint64
+	NextCost  uint64
+	NextPrice uint64
 }
 
 type VM interface {

@@ -3,10 +3,7 @@
 
 package chain
 
-import (
-	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/avalanchego/ids"
-)
+import "github.com/ava-labs/avalanchego/database"
 
 var _ UnsignedTransaction = &LifelineTx{}
 
@@ -34,14 +31,15 @@ func addLife(_ *Genesis, db database.KeyValueReaderWriter, prefix []byte, reward
 	return PutPrefixInfo(db, prefix, i, lastExpiry)
 }
 
-func (l *LifelineTx) Execute(g *Genesis, db database.Database, blockTime uint64, _ ids.ID) error {
-	return addLife(g, db, l.Prefix, g.LifelineUnitReward*l.Units)
+func (l *LifelineTx) Execute(t *TransactionContext) error {
+	g := t.Genesis
+	return addLife(g, t.Database, l.Prefix(), g.LifelineUnitReward*l.Units)
 }
 
 func (l *LifelineTx) FeeUnits(g *Genesis) uint64 {
 	// FeeUnits are discounted so that, all else equal, it is easier for an owner
 	// to retain their prefix than for another to claim it.
-	discountedPrefixUnits := prefixUnits(g, l.Prefix) / g.PrefixRenewalDiscount
+	discountedPrefixUnits := prefixUnits(g, l.Prefix()) / g.PrefixRenewalDiscount
 
 	// The more desirable the prefix, the more it costs to maintain it.
 	//

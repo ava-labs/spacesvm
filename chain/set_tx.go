@@ -9,8 +9,8 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/quarkvm/parser"
-	"golang.org/x/crypto/sha3"
 )
 
 const IDLen = 32
@@ -28,7 +28,8 @@ type SetTx struct {
 	Value []byte `serialize:"true" json:"value"`
 }
 
-func (s *SetTx) Execute(g *Genesis, db database.Database, blockTime uint64, txID ids.ID) error {
+func (s *SetTx) Execute(t *TransactionContext) error {
+	g := t.Genesis
 	// assume prefix is already validated via "BaseTx"
 	if err := parser.CheckKey(s.Key); err != nil {
 		return err
@@ -37,7 +38,7 @@ func (s *SetTx) Execute(g *Genesis, db database.Database, blockTime uint64, txID
 		return ErrValueTooBig
 	}
 
-	i, has, err := GetPrefixInfo(db, s.Prefix)
+	i, has, err := GetPrefixInfo(t.Database, s.Prefix())
 	if err != nil {
 		return err
 	}
@@ -46,18 +47,17 @@ func (s *SetTx) Execute(g *Genesis, db database.Database, blockTime uint64, txID
 		return ErrPrefixMissing
 	}
 	// Prefix cannot be updated if not owned by modifier
-	if !bytes.Equal(i.Owner[:], s.Sender[:]) {
+	if !bytes.Equal(i.Owner[:], t.Sender[:]) {
 		return ErrUnauthorized
 	}
 	// Prefix cannot be updated if expired
-	if i.Expiry < blockTime {
+	if i.Expiry < t.BlockTime {
 		return ErrPrefixExpired
 	}
 	// If Key is equal to hash length, ensure it is equal to the hash of the
 	// value
 	if len(s.Key) == IDLen && len(s.Value) > 0 {
-		h := sha3.Sum256(s.Value)
-		id, err := ids.ToID(h[:])
+		id, err := ids.ToID(hashing.ComputeHash256(s.Value))
 		if err != nil {
 			return err
 		}
@@ -65,11 +65,11 @@ func (s *SetTx) Execute(g *Genesis, db database.Database, blockTime uint64, txID
 			return fmt.Errorf("%w: expected %x got %x", ErrInvalidKey, id[:], s.Key)
 		}
 	}
-	return s.updatePrefix(g, db, blockTime, txID, i)
+	return s.updatePrefix(g, t.Database, t.BlockTime, t.TxID, i)
 }
 
 func (s *SetTx) updatePrefix(g *Genesis, db database.Database, blockTime uint64, txID ids.ID, i *PrefixInfo) error {
-	v, exists, err := GetValue(db, s.Prefix, s.Key)
+	v, exists, err := GetValue(db, s.Prefix(), s.Key)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (s *SetTx) updatePrefix(g *Genesis, db database.Database, blockTime uint64,
 			return ErrKeyMissing
 		}
 		i.Units -= valueUnits(g, v)
-		if err := DeletePrefixKey(db, s.Prefix, s.Key); err != nil {
+		if err := DeletePrefixKey(db, s.Prefix(), s.Key); err != nil {
 			return err
 		}
 	} else {
@@ -88,7 +88,7 @@ func (s *SetTx) updatePrefix(g *Genesis, db database.Database, blockTime uint64,
 			i.Units -= valueUnits(g, v)
 		}
 		i.Units += valueUnits(g, s.Value)
-		if err := PutPrefixKey(db, s.Prefix, s.Key, txID[:]); err != nil {
+		if err := PutPrefixKey(db, s.Prefix(), s.Key, txID[:]); err != nil {
 			return err
 		}
 	}
@@ -96,7 +96,7 @@ func (s *SetTx) updatePrefix(g *Genesis, db database.Database, blockTime uint64,
 	i.LastUpdated = blockTime
 	lastExpiry := i.Expiry
 	i.Expiry = blockTime + newTimeRemaining
-	return PutPrefixInfo(db, s.Prefix, i, lastExpiry)
+	return PutPrefixInfo(db, s.Prefix(), i, lastExpiry)
 }
 
 func valueUnits(g *Genesis, b []byte) uint64 {

@@ -6,7 +6,16 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ethereum/go-ethereum/common"
 )
+
+type TransactionContext struct {
+	Genesis   *Genesis
+	Database  database.Database
+	BlockTime uint64
+	TxID      ids.ID
+	Sender    common.Address
+}
 
 type UnsignedTransaction interface {
 	Copy() UnsignedTransaction
@@ -24,5 +33,5 @@ type UnsignedTransaction interface {
 	LoadUnits(*Genesis) uint64 // units that should impact fee rate
 
 	ExecuteBase(*Genesis) error
-	Execute(*Genesis, database.Database, uint64, ids.ID) error
+	Execute(*TransactionContext) error
 }

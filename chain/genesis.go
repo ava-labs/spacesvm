@@ -37,7 +37,7 @@ type Genesis struct {
 	LookbackWindow int64  `serialize:"true" json:"lookbackWindow"`
 	BlockTarget    int64  `serialize:"true" json:"blockTarget"`
 	TargetUnits    uint64 `serialize:"true" json:"targetUnits"`
-	MinDifficulty  uint64 `serialize:"true" json:"minDifficulty"`
+	MinPrice       uint64 `serialize:"true" json:"minPrice"`
 	MinBlockCost   uint64 `serialize:"true" json:"minBlockCost"`
 }
 
@@ -70,15 +70,15 @@ func DefaultGenesis() *Genesis {
 		LookbackWindow: 60,            // 60 Seconds
 		BlockTarget:    1,             // 1 Block per Second
 		TargetUnits:    10 * 512 * 60, // 5012 Units Per Block (~1.2MB of SetTx)
-		MinDifficulty:  100,           // ~100ms per unit (~5s for easiest claim)
+		MinPrice:       1,             // (50 for easiest claim)
 		MinBlockCost:   1,             // Minimum Unit Overhead
 	}
 }
 
 func (g *Genesis) StatefulBlock() *StatefulBlock {
 	return &StatefulBlock{
-		Difficulty: g.MinDifficulty,
-		Cost:       g.MinBlockCost,
+		Price: g.MinPrice,
+		Cost:  g.MinBlockCost,
 	}
 }
 
