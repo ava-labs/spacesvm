@@ -16,58 +16,44 @@ import (
 func TestBaseTx(t *testing.T) {
 	t.Parallel()
 
-	priv, err := f.NewPrivateKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-	sender, err := FormatPK(priv.PublicKey())
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	tt := []struct {
 		tx  *BaseTx
 		err error
 	}{
 		{
-			tx:  &BaseTx{Sender: sender, Prefix: []byte("foo"), BlockID: ids.GenerateTestID()},
+			tx:  &BaseTx{Pfx: []byte("foo"), BlkID: ids.GenerateTestID()},
 			err: nil,
 		},
 		{
-			tx:  &BaseTx{Prefix: []byte("foo"), BlockID: ids.GenerateTestID()},
-			err: ErrInvalidSender,
-		},
-		{
-			tx:  &BaseTx{Sender: sender, Prefix: []byte("fo/a")},
+			tx:  &BaseTx{Pfx: []byte("fo/a")},
 			err: parser.ErrInvalidDelimiter,
 		},
 		{
-			tx:  &BaseTx{Sender: sender, Prefix: []byte("foo/")},
+			tx:  &BaseTx{Pfx: []byte("foo/")},
 			err: parser.ErrInvalidDelimiter,
 		},
 		{
-			tx:  &BaseTx{Sender: sender, Prefix: []byte("foo")},
+			tx:  &BaseTx{Pfx: []byte("foo")},
 			err: ErrInvalidBlockID,
 		},
 		{
 			tx: &BaseTx{
-				Sender:  sender,
-				BlockID: ids.GenerateTestID(),
-				Prefix:  nil,
+				BlkID: ids.GenerateTestID(),
+				Pfx:   nil,
 			},
 			err: parser.ErrPrefixEmpty,
 		},
 		{
 			tx: &BaseTx{
-				Sender:  sender,
-				BlockID: ids.GenerateTestID(),
-				Prefix:  bytes.Repeat([]byte{'a'}, parser.MaxPrefixSize+1),
+				BlkID: ids.GenerateTestID(),
+				Pfx:   bytes.Repeat([]byte{'a'}, parser.MaxPrefixSize+1),
 			},
 			err: parser.ErrPrefixTooBig,
 		},
 	}
+	g := DefaultGenesis()
 	for i, tv := range tt {
-		err := tv.tx.ExecuteBase()
+		err := tv.tx.ExecuteBase(g)
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
 		}

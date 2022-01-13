@@ -9,7 +9,6 @@ package chain
 import (
 	reflect "reflect"
 
-	database "github.com/ava-labs/avalanchego/database"
 	ids "github.com/ava-labs/avalanchego/ids"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -37,6 +36,20 @@ func (m *MockUnsignedTransaction) EXPECT() *MockUnsignedTransactionMockRecorder 
 	return m.recorder
 }
 
+// BlockID mocks base method.
+func (m *MockUnsignedTransaction) BlockID() ids.ID {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BlockID")
+	ret0, _ := ret[0].(ids.ID)
+	return ret0
+}
+
+// BlockID indicates an expected call of BlockID.
+func (mr *MockUnsignedTransactionMockRecorder) BlockID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlockID", reflect.TypeOf((*MockUnsignedTransaction)(nil).BlockID))
+}
+
 // Copy mocks base method.
 func (m *MockUnsignedTransaction) Copy() UnsignedTransaction {
 	m.ctrl.T.Helper()
@@ -52,31 +65,31 @@ func (mr *MockUnsignedTransactionMockRecorder) Copy() *gomock.Call {
 }
 
 // Execute mocks base method.
-func (m *MockUnsignedTransaction) Execute(arg0 *Genesis, arg1 database.Database, arg2 uint64, arg3 ids.ID) error {
+func (m *MockUnsignedTransaction) Execute(arg0 *TransactionContext) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "Execute", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockUnsignedTransactionMockRecorder) Execute(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockUnsignedTransactionMockRecorder) Execute(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockUnsignedTransaction)(nil).Execute), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockUnsignedTransaction)(nil).Execute), arg0)
 }
 
 // ExecuteBase mocks base method.
-func (m *MockUnsignedTransaction) ExecuteBase() error {
+func (m *MockUnsignedTransaction) ExecuteBase(arg0 *Genesis) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecuteBase")
+	ret := m.ctrl.Call(m, "ExecuteBase", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ExecuteBase indicates an expected call of ExecuteBase.
-func (mr *MockUnsignedTransactionMockRecorder) ExecuteBase() *gomock.Call {
+func (mr *MockUnsignedTransactionMockRecorder) ExecuteBase(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBase", reflect.TypeOf((*MockUnsignedTransaction)(nil).ExecuteBase))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBase", reflect.TypeOf((*MockUnsignedTransaction)(nil).ExecuteBase), arg0)
 }
 
 // FeeUnits mocks base method.
@@ -93,34 +106,6 @@ func (mr *MockUnsignedTransactionMockRecorder) FeeUnits(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeUnits", reflect.TypeOf((*MockUnsignedTransaction)(nil).FeeUnits), arg0)
 }
 
-// GetBlockID mocks base method.
-func (m *MockUnsignedTransaction) GetBlockID() ids.ID {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBlockID")
-	ret0, _ := ret[0].(ids.ID)
-	return ret0
-}
-
-// GetBlockID indicates an expected call of GetBlockID.
-func (mr *MockUnsignedTransactionMockRecorder) GetBlockID() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockID", reflect.TypeOf((*MockUnsignedTransaction)(nil).GetBlockID))
-}
-
-// GetSender mocks base method.
-func (m *MockUnsignedTransaction) GetSender() [33]byte {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSender")
-	ret0, _ := ret[0].([33]byte)
-	return ret0
-}
-
-// GetSender indicates an expected call of GetSender.
-func (mr *MockUnsignedTransactionMockRecorder) GetSender() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSender", reflect.TypeOf((*MockUnsignedTransaction)(nil).GetSender))
-}
-
 // LoadUnits mocks base method.
 func (m *MockUnsignedTransaction) LoadUnits(arg0 *Genesis) uint64 {
 	m.ctrl.T.Helper()
@@ -135,6 +120,48 @@ func (mr *MockUnsignedTransactionMockRecorder) LoadUnits(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadUnits", reflect.TypeOf((*MockUnsignedTransaction)(nil).LoadUnits), arg0)
 }
 
+// Magic mocks base method.
+func (m *MockUnsignedTransaction) Magic() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Magic")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// Magic indicates an expected call of Magic.
+func (mr *MockUnsignedTransactionMockRecorder) Magic() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Magic", reflect.TypeOf((*MockUnsignedTransaction)(nil).Magic))
+}
+
+// Prefix mocks base method.
+func (m *MockUnsignedTransaction) Prefix() []byte {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Prefix")
+	ret0, _ := ret[0].([]byte)
+	return ret0
+}
+
+// Prefix indicates an expected call of Prefix.
+func (mr *MockUnsignedTransactionMockRecorder) Prefix() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Prefix", reflect.TypeOf((*MockUnsignedTransaction)(nil).Prefix))
+}
+
+// Price mocks base method.
+func (m *MockUnsignedTransaction) Price() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Price")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// Price indicates an expected call of Price.
+func (mr *MockUnsignedTransactionMockRecorder) Price() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Price", reflect.TypeOf((*MockUnsignedTransaction)(nil).Price))
+}
+
 // SetBlockID mocks base method.
 func (m *MockUnsignedTransaction) SetBlockID(arg0 ids.ID) {
 	m.ctrl.T.Helper()
@@ -147,14 +174,26 @@ func (mr *MockUnsignedTransactionMockRecorder) SetBlockID(arg0 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBlockID", reflect.TypeOf((*MockUnsignedTransaction)(nil).SetBlockID), arg0)
 }
 
-// SetGraffiti mocks base method.
-func (m *MockUnsignedTransaction) SetGraffiti(arg0 uint64) {
+// SetMagic mocks base method.
+func (m *MockUnsignedTransaction) SetMagic(arg0 uint64) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetGraffiti", arg0)
+	m.ctrl.Call(m, "SetMagic", arg0)
 }
 
-// SetGraffiti indicates an expected call of SetGraffiti.
-func (mr *MockUnsignedTransactionMockRecorder) SetGraffiti(arg0 interface{}) *gomock.Call {
+// SetMagic indicates an expected call of SetMagic.
+func (mr *MockUnsignedTransactionMockRecorder) SetMagic(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGraffiti", reflect.TypeOf((*MockUnsignedTransaction)(nil).SetGraffiti), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMagic", reflect.TypeOf((*MockUnsignedTransaction)(nil).SetMagic), arg0)
+}
+
+// SetPrice mocks base method.
+func (m *MockUnsignedTransaction) SetPrice(arg0 uint64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetPrice", arg0)
+}
+
+// SetPrice indicates an expected call of SetPrice.
+func (mr *MockUnsignedTransactionMockRecorder) SetPrice(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPrice", reflect.TypeOf((*MockUnsignedTransaction)(nil).SetPrice), arg0)
 }

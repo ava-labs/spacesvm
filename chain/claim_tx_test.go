@@ -10,29 +10,24 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func TestClaimTx(t *testing.T) {
 	t.Parallel()
 
-	priv, err := f.NewPrivateKey()
+	priv, err := crypto.GenerateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	sender, err := FormatPK(priv.PublicKey())
-	if err != nil {
-		t.Fatal(err)
-	}
+	sender := crypto.PubkeyToAddress(priv.PublicKey)
 
-	priv2, err := f.NewPrivateKey()
+	priv2, err := crypto.GenerateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	sender2, err := FormatPK(priv2.PublicKey())
-	if err != nil {
-		t.Fatal(err)
-	}
+	sender2 := crypto.PubkeyToAddress(priv2.PublicKey)
 
 	db := memdb.New()
 	defer db.Close()
@@ -42,36 +37,43 @@ func TestClaimTx(t *testing.T) {
 	tt := []struct {
 		tx        *ClaimTx
 		blockTime int64
+		sender    common.Address
 		err       error
 	}{
-		{ // invalid claim, [32]byte prefix is reserved for pubkey
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: bytes.Repeat([]byte{'a'}, crypto.SECP256K1RPKLen)}},
+		{ // invalid claim, [20]byte prefix is reserved for pubkey
+			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: bytes.Repeat([]byte{'a'}, common.AddressLength)}},
 			blockTime: 1,
-			err:       ErrPublicKeyMismatch,
+			sender:    sender,
+			err:       ErrAddressMismatch,
 		},
 		{ // successful claim with expiry time "blockTime" + "expiryTime"
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
+			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
 			blockTime: 1,
+			sender:    sender,
 			err:       nil,
 		},
 		{ // invalid claim due to expiration
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
+			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
 			blockTime: 100,
+			sender:    sender,
 			err:       ErrPrefixNotExpired,
 		},
 		{ // successful new claim
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender, Prefix: []byte("foo")}},
+			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
 			blockTime: ClaimReward * 2,
+			sender:    sender,
 			err:       nil,
 		},
 		{ // successful new claim by different owner
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
+			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
 			blockTime: ClaimReward * 4,
+			sender:    sender2,
 			err:       nil,
 		},
 		{ // invalid claim due to expiration by different owner
-			tx:        &ClaimTx{BaseTx: &BaseTx{Sender: sender2, Prefix: []byte("foo")}},
+			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
 			blockTime: ClaimReward*4 + 3,
+			sender:    sender2,
 			err:       ErrPrefixNotExpired,
 		},
 	}
@@ -82,21 +84,28 @@ func TestClaimTx(t *testing.T) {
 				t.Fatalf("#%d: ExpireNext errored %v", i, err)
 			}
 		}
-		err := tv.tx.Execute(g, db, uint64(tv.blockTime), ids.ID{})
+		tc := &TransactionContext{
+			Genesis:   g,
+			Database:  db,
+			BlockTime: uint64(tv.blockTime),
+			TxID:      ids.Empty,
+			Sender:    tv.sender,
+		}
+		err := tv.tx.Execute(tc)
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
 		}
 		if tv.err != nil {
 			continue
 		}
-		info, exists, err := GetPrefixInfo(db, tv.tx.Prefix)
+		info, exists, err := GetPrefixInfo(db, tv.tx.Prefix())
 		if err != nil {
 			t.Fatalf("#%d: failed to get prefix info %v", i, err)
 		}
 		if !exists {
 			t.Fatalf("#%d: failed to find prefix info", i)
 		}
-		if !bytes.Equal(info.Owner[:], tv.tx.Sender[:]) {
+		if !bytes.Equal(info.Owner[:], tv.sender[:]) {
 			t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(sender[:]))
 		}
 	}
