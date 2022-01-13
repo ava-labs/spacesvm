@@ -43,7 +43,6 @@ func New(g *chain.Genesis, maxSize int) *Mempool {
 func (th *Mempool) Add(tx *chain.Transaction) bool {
 	txID := tx.ID()
 	difficulty := tx.Difficulty()
-	oldLen := th.Len()
 
 	th.mu.Lock()
 	defer th.mu.Unlock()
@@ -52,6 +51,8 @@ func (th *Mempool) Add(tx *chain.Transaction) bool {
 	if th.maxHeap.Has(txID) {
 		return false
 	}
+
+	oldLen := th.maxHeap.Len()
 
 	// Optimistically add tx to mempool
 	heap.Push(th.maxHeap, &txEntry{
