@@ -90,7 +90,7 @@ func TestParsePrefixKey(t *testing.T) {
 			opts: nil,
 			pfx:  []byte("foo"),
 			k:    nil,
-			end:  noPrefixEnd,
+			end:  nil,
 			err:  nil,
 		},
 		{
@@ -154,7 +154,7 @@ func TestParsePrefixKey(t *testing.T) {
 			opts: nil,
 			pfx:  nil,
 			k:    nil,
-			end:  noPrefixEnd,
+			end:  nil,
 			err:  nil,
 		},
 		{ // empty should error if check is enabled
