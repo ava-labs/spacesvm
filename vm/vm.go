@@ -143,6 +143,10 @@ func (vm *VM) Initialize(
 		log.Error("could not unmarshal genesis bytes")
 		return err
 	}
+	if err := vm.genesis.Verify(); err != nil {
+		log.Error("genesis is invalid")
+		return err
+	}
 	vm.mempool = mempool.New(vm.genesis, vm.config.MempoolSize)
 
 	if has { //nolint:nestif

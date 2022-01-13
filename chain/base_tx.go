@@ -4,56 +4,47 @@
 package chain
 
 import (
-	"bytes"
-
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto"
 
 	"github.com/ava-labs/quarkvm/parser"
 )
 
-var emptyPublicKeyBytes [crypto.SECP256K1RPKLen]byte
-
 type BaseTx struct {
-	Sender   [crypto.SECP256K1RPKLen]byte `serialize:"true" json:"sender"`
-	Graffiti uint64                       `serialize:"true" json:"graffiti"`
-	BlockID  ids.ID                       `serialize:"true" json:"blockId"`
+	BlkID ids.ID `serialize:"true" json:"blockId"`
 
 	// Prefix is the namespace for the "PrefixInfo"
 	// whose owner can write and read value for the
 	// specific key space.
 	// The prefix must not have the delimiter '/' as suffix.
 	// Otherwise, the verification will fail.
-	Prefix []byte `serialize:"true" json:"prefix"`
+	Pfx []byte `serialize:"true" json:"prefix"`
+
+	// Magic is a value defined in genesis to protect against replay attacks on
+	// different VMs.
+	Mgc uint64 `serialize:"true" json:"magic"`
 }
 
-func (b *BaseTx) SetBlockID(blockID ids.ID) {
-	b.BlockID = blockID
+func (b *BaseTx) BlockID() ids.ID {
+	return b.BlkID
 }
 
-func (b *BaseTx) SetGraffiti(graffiti uint64) {
-	b.Graffiti = graffiti
+func (b *BaseTx) Prefix() []byte {
+	return b.Pfx
 }
 
-func (b *BaseTx) GetBlockID() ids.ID {
-	return b.BlockID
+func (b *BaseTx) Magic() uint64 {
+	return b.Mgc
 }
 
-func (b *BaseTx) GetSender() [crypto.SECP256K1RPKLen]byte {
-	return b.Sender
-}
-
-func (b *BaseTx) ExecuteBase() error {
-	if err := parser.CheckPrefix(b.Prefix); err != nil {
+func (b *BaseTx) ExecuteBase(g *Genesis) error {
+	if err := parser.CheckPrefix(b.Pfx); err != nil {
 		return err
 	}
-
-	if bytes.Equal(b.Sender[:], emptyPublicKeyBytes[:]) {
-		return ErrInvalidSender
-	}
-
-	if b.BlockID == ids.Empty {
+	if b.BlkID == ids.Empty {
 		return ErrInvalidBlockID
+	}
+	if g.Magic != b.Mgc {
+		return ErrInvalidMagic
 	}
 	return nil
 }
@@ -67,16 +58,13 @@ func (b *BaseTx) LoadUnits(g *Genesis) uint64 {
 }
 
 func (b *BaseTx) Copy() *BaseTx {
-	sender := [crypto.SECP256K1RPKLen]byte{}
-	copy(sender[:], b.Sender[:])
 	blockID := ids.ID{}
-	copy(blockID[:], b.BlockID[:])
-	prefix := make([]byte, len(b.Prefix))
-	copy(prefix, b.Prefix)
+	copy(blockID[:], b.BlkID[:])
+	prefix := make([]byte, len(b.Pfx))
+	copy(prefix, b.Pfx)
 	return &BaseTx{
-		Sender:   sender,
-		BlockID:  blockID,
-		Graffiti: b.Graffiti,
-		Prefix:   prefix,
+		BlkID: blockID,
+		Pfx:   prefix,
+		Mgc:   b.Mgc,
 	}
 }

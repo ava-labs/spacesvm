@@ -19,7 +19,6 @@ type Transaction struct {
 	bytes         []byte
 	id            ids.ID
 	size          uint64
-	difficulty    uint64
 }
 
 func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {

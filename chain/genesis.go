@@ -8,6 +8,8 @@ import (
 )
 
 type Genesis struct {
+	Magic uint64 `serialize:"true" json:"magic"`
+
 	// Tx params
 	BaseTxUnits uint64 `serialize:"true" json:"baseTxUnits"`
 
@@ -78,4 +80,11 @@ func (g *Genesis) StatefulBlock() *StatefulBlock {
 		Difficulty: g.MinDifficulty,
 		Cost:       g.MinBlockCost,
 	}
+}
+
+func (g *Genesis) Verify() error {
+	if g.Magic == 0 {
+		return ErrInvalidMagic
+	}
+	return nil
 }

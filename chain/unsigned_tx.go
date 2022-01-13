@@ -6,19 +6,17 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto"
 )
 
 type UnsignedTransaction interface {
 	Copy() UnsignedTransaction
-	SetBlockID(block ids.ID)
-	SetGraffiti(graffiti uint64)
-	GetSender() [crypto.SECP256K1RPKLen]byte
-	GetBlockID() ids.ID
+	BlockID() ids.ID
+	Prefix() []byte
+	Magic() uint64
 
 	FeeUnits(*Genesis) uint64  // number of units to mine tx
 	LoadUnits(*Genesis) uint64 // units that should impact fee rate
 
-	ExecuteBase() error
+	ExecuteBase(*Genesis) error
 	Execute(*Genesis, database.Database, uint64, ids.ID) error
 }
