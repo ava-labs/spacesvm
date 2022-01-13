@@ -4,15 +4,13 @@
 package chain
 
 import (
-	"fmt"
-
 	"github.com/ava-labs/avalanchego/utils/units"
 )
 
 type Allocation struct {
 	// Address strings are hex-formatted common.Address
 	Address string `serialize:"true" json:"address"`
-	Balance uint64 `serailize:"true" json:"balance"`
+	Balance uint64 `serialize:"true" json:"balance"`
 }
 
 type Genesis struct {
@@ -87,7 +85,6 @@ func DefaultGenesis() *Genesis {
 }
 
 func (g *Genesis) StatefulBlock() *StatefulBlock {
-	fmt.Println(g)
 	return &StatefulBlock{
 		Price: g.MinPrice,
 		Cost:  g.MinBlockCost,
