@@ -16,11 +16,10 @@ type Transaction struct {
 	UnsignedTransaction `serialize:"true" json:"unsignedTransaction"`
 	Signature           []byte `serialize:"true" json:"signature"`
 
-	digestHash []byte
-	bytes      []byte
-	id         ids.ID
-	size       uint64
-	sender     common.Address
+	bytes  []byte
+	id     ids.ID
+	size   uint64
+	sender common.Address
 }
 
 func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
@@ -41,12 +40,10 @@ func (t *Transaction) Copy() *Transaction {
 
 func DigestHash(utx UnsignedTransaction) []byte {
 	// TODO: convert utx to HR bytes
-	return accounts.TextHash(nil)
+	return accounts.TextHash(hashing.ComputeHash256([]byte("test")))
 }
 
 func (t *Transaction) Init(g *Genesis) error {
-	t.digestHash = DigestHash(t.UnsignedTransaction)
-
 	stx, err := Marshal(t)
 	if err != nil {
 		return err
@@ -61,7 +58,7 @@ func (t *Transaction) Init(g *Genesis) error {
 	t.id = id
 
 	// Extract address
-	pk, err := crypto.SigToPub(t.digestHash, t.Signature)
+	pk, err := crypto.SigToPub(t.DigestHash(), t.Signature)
 	if err != nil {
 		return err
 	}
@@ -73,7 +70,7 @@ func (t *Transaction) Init(g *Genesis) error {
 
 func (t *Transaction) Bytes() []byte { return t.bytes }
 
-func (t *Transaction) DigestHash() []byte { return t.digestHash }
+func (t *Transaction) DigestHash() []byte { return DigestHash(t.UnsignedTransaction) }
 
 func (t *Transaction) Size() uint64 { return t.size }
 

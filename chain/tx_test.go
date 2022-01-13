@@ -16,6 +16,11 @@ import (
 func TestTransaction(t *testing.T) {
 	t.Parallel()
 
+	priv, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	found := ids.NewSet(3)
 	g := DefaultGenesis()
 	for i := range []int{0, 1, 2} {
@@ -25,6 +30,14 @@ func TestTransaction(t *testing.T) {
 					Pfx: bytes.Repeat([]byte{'b'}, i*10),
 				},
 			},
+		}
+		dh := tx.DigestHash()
+		if len(tx.DigestHash()) != 32 {
+			t.Fatal("hash insufficient")
+		}
+		tx.Signature, err = crypto.Sign(dh, priv)
+		if err != nil {
+			t.Fatal(err)
 		}
 		if err := tx.Init(g); err != nil {
 			t.Fatal(err)
@@ -89,12 +102,16 @@ func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
 			},
 		},
 	}
-	if err := tx.Init(DefaultGenesis()); err != nil {
+	dh := tx.DigestHash()
+	if len(tx.DigestHash()) != 32 {
+		t.Fatal("hash insufficient")
+	}
+	tx.Signature, err = crypto.Sign(dh, priv)
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	tx.Signature, err = crypto.Sign(tx.DigestHash(), priv)
-	if err != nil {
+	if err := tx.Init(DefaultGenesis()); err != nil {
 		t.Fatal(err)
 	}
 

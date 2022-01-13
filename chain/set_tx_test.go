@@ -6,6 +6,7 @@ package chain
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
@@ -113,7 +114,9 @@ func TestSetTx(t *testing.T) {
 					BlkID: ids.GenerateTestID(),
 				},
 				Key: func() []byte {
+					// TODO: handle case where hash contains a `/`
 					h := hashing.ComputeHash256([]byte("not value"))
+					fmt.Println(string(h))
 					return h[:]
 				}(),
 				Value: []byte("value"),
