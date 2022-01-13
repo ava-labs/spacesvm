@@ -22,6 +22,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	snowmanblock "github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/json"
+	ecommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/rpc/v2"
 	log "github.com/inconshreveable/log15"
 
@@ -174,6 +175,15 @@ func (vm *VM) Initialize(
 		if err != nil {
 			log.Error("unable to init genesis block", "err", err)
 			return err
+		}
+
+		// Set Balances
+		for addr, bal := range vm.genesis.Allocations {
+			paddr := ecommon.HexToAddress(addr)
+			if err := chain.SetBalance(vm.db, paddr, bal); err != nil {
+				log.Error("could not set genesis allocation", "addr", addr, "bal", bal, "err", err)
+				return err
+			}
 		}
 
 		if err := chain.SetLastAccepted(vm.db, genesisBlk); err != nil {

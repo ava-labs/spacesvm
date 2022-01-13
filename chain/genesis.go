@@ -39,6 +39,11 @@ type Genesis struct {
 	TargetUnits    uint64 `serialize:"true" json:"targetUnits"`
 	MinPrice       uint64 `serialize:"true" json:"minPrice"`
 	MinBlockCost   uint64 `serialize:"true" json:"minBlockCost"`
+
+	// Allocations
+	//
+	// Strings are hex-formatted common.Address
+	Allocations map[string]uint64 `serialize:"true" json:"allocations"`
 }
 
 func DefaultGenesis() *Genesis {
