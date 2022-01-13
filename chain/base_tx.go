@@ -22,6 +22,9 @@ type BaseTx struct {
 	// Magic is a value defined in genesis to protect against replay attacks on
 	// different VMs.
 	Mgc uint64 `serialize:"true" json:"magic"`
+
+	// Price is the value per unit to spend on this transaction.
+	Prce uint64 `serialize:"true" json:"fee"`
 }
 
 func (b *BaseTx) BlockID() ids.ID {
@@ -34,6 +37,10 @@ func (b *BaseTx) Prefix() []byte {
 
 func (b *BaseTx) Magic() uint64 {
 	return b.Mgc
+}
+
+func (b *BaseTx) Price() uint64 {
+	return b.Prce
 }
 
 func (b *BaseTx) ExecuteBase(g *Genesis) error {
@@ -66,5 +73,6 @@ func (b *BaseTx) Copy() *BaseTx {
 		BlkID: blockID,
 		Pfx:   prefix,
 		Mgc:   b.Mgc,
+		Prce:  b.Prce,
 	}
 }

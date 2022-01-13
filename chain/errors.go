@@ -17,10 +17,11 @@ var (
 	ErrParentBlockNotVerified = errors.New("parent block not verified or accepted")
 
 	// Tx Correctness
-	ErrInvalidMagic     = errors.New("invalid magic")
-	ErrInvalidBlockID   = errors.New("invalid blockID")
-	ErrInvalidSignature = errors.New("invalid signature")
-	ErrDuplicateTx      = errors.New("duplicate transaction")
+	ErrInvalidMagic      = errors.New("invalid magic")
+	ErrInvalidBlockID    = errors.New("invalid blockID")
+	ErrInvalidSignature  = errors.New("invalid signature")
+	ErrDuplicateTx       = errors.New("duplicate transaction")
+	ErrInsufficientPrice = errors.New("insufficient price")
 
 	// Execution Correctness
 	ErrValueTooBig       = errors.New("value too big")
@@ -31,4 +32,5 @@ var (
 	ErrPrefixNotExpired  = errors.New("prefix not expired")
 	ErrPrefixMissing     = errors.New("prefix missing")
 	ErrUnauthorized      = errors.New("sender is not authorized")
+	ErrInvalidBalance    = errors.New("invalid balance")
 )
