@@ -178,12 +178,13 @@ func (vm *VM) Initialize(
 		}
 
 		// Set Balances
-		for addr, bal := range vm.genesis.Allocations {
-			paddr := ecommon.HexToAddress(addr)
-			if err := chain.SetBalance(vm.db, paddr, bal); err != nil {
-				log.Error("could not set genesis allocation", "addr", addr, "bal", bal, "err", err)
+		for _, alloc := range vm.genesis.Allocations {
+			paddr := ecommon.HexToAddress(alloc.Address)
+			if err := chain.SetBalance(vm.db, paddr, alloc.Balance); err != nil {
+				log.Error("could not set genesis allocation", "alloc", alloc, "addr", alloc.Address, "bal", alloc.Balance, "err", err)
 				return err
 			}
+			log.Debug("loaded genesis balance", "addr", paddr, "balance", alloc.Balance)
 		}
 
 		if err := chain.SetLastAccepted(vm.db, genesisBlk); err != nil {

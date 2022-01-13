@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ethereum/go-ethereum/common"
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/quarkvm/chain"
@@ -241,3 +242,20 @@ func (svc *PublicService) Resolve(_ *http.Request, args *ResolveArgs, reply *Res
 }
 
 // TODO: IssueTxHR, Balance
+type BalanceArgs struct {
+	Address string `serialize:"true" json:"address"`
+}
+
+type BalanceReply struct {
+	Balance uint64 `serialize:"true" json:"balance"`
+}
+
+func (svc *PublicService) Balance(_ *http.Request, args *BalanceArgs, reply *BalanceReply) error {
+	paddr := common.HexToAddress(args.Address)
+	bal, err := chain.GetBalance(svc.vm.db, paddr)
+	if err != nil {
+		return err
+	}
+	reply.Balance = bal
+	return err
+}

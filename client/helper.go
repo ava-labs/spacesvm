@@ -37,6 +37,9 @@ func SignIssueTx(
 	}
 
 	price, blockCost, err := cli.SuggestedFee()
+	if err != nil {
+		return ids.Empty, err
+	}
 
 	utx.SetBlockID(la)
 	utx.SetMagic(g.Magic)

@@ -140,16 +140,16 @@ func (cli *client) ValidBlockID(blkID ids.ID) (bool, error) {
 	return resp.Valid, nil
 }
 
-func (cli *client) EstimateDifficulty() (uint64, uint64, error) {
-	resp := new(vm.DifficultyEstimateReply)
+func (cli *client) SuggestedFee() (uint64, uint64, error) {
+	resp := new(vm.SuggestedFeeReply)
 	if err := cli.req.SendRequest(
-		"difficultyEstimate",
-		&vm.DifficultyEstimateArgs{},
+		"suggestedFee",
+		&vm.SuggestedFeeArgs{},
 		resp,
 	); err != nil {
 		return 0, 0, err
 	}
-	return resp.Difficulty, resp.Cost, nil
+	return resp.Price, resp.Cost, nil
 }
 
 func (cli *client) IssueTx(d []byte) (ids.ID, error) {
@@ -241,8 +241,18 @@ func (cli *client) IssueTxHR(d []byte, sig []byte) (ids.ID, error) {
 	return ids.ID{}, errors.New("not implemented")
 }
 
-func (cli *client) Balance(addr common.Address) (uint64, error) {
-	return 0, errors.New("not implemented")
+func (cli *client) Balance(addr common.Address) (bal uint64, err error) {
+	resp := new(vm.BalanceReply)
+	if err = cli.req.SendRequest(
+		"balance",
+		&vm.BalanceArgs{
+			Address: addr.Hex(),
+		},
+		resp,
+	); err != nil {
+		return 0, err
+	}
+	return resp.Balance, nil
 }
 
 type Op struct {

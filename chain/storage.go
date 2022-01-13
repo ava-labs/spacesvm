@@ -627,6 +627,7 @@ func SetBalance(db database.KeyValueWriter, address common.Address, bal uint64) 
 	k := PrefixBalanceKey(address)
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, bal)
+	log.Debug("setting balance", "addr", address, "bal", bal)
 	return db.Put(k, b)
 }
 
@@ -645,6 +646,7 @@ func ModifyBalance(db database.KeyValueReaderWriter, address common.Address, add
 		n, ok = smath.SafeSub(b, change)
 	}
 	if !ok {
+		log.Debug("invalid balance", "addr", address, "add", add, "change", change)
 		return 0, ErrInvalidBalance
 	}
 	return n, SetBalance(db, address, n)

@@ -6,7 +6,9 @@ package integration_test
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"flag"
+	"math/rand"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -17,8 +19,9 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
-	"github.com/ava-labs/avalanchego/utils/crypto"
 	avago_version "github.com/ava-labs/avalanchego/version"
+	ecommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -29,12 +32,6 @@ import (
 	"github.com/ava-labs/quarkvm/vm"
 )
 
-var f *crypto.FactorySECP256K1R
-
-func init() {
-	f = &crypto.FactorySECP256K1R{}
-}
-
 func TestIntegration(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "quarkvm integration test suites")
@@ -43,7 +40,7 @@ func TestIntegration(t *testing.T) {
 var (
 	requestTimeout time.Duration
 	vms            int
-	minDifficulty  int64
+	minPrice       int64
 	minBlockCost   int64
 )
 
@@ -61,10 +58,10 @@ func init() {
 		"number of VMs to create",
 	)
 	flag.Int64Var(
-		&minDifficulty,
-		"min-difficulty",
+		&minPrice,
+		"min-price",
 		-1,
-		"minimum difficulty for mining",
+		"minimum price",
 	)
 	flag.Int64Var(
 		&minBlockCost,
@@ -75,8 +72,8 @@ func init() {
 }
 
 var (
-	priv   crypto.PrivateKey
-	sender [crypto.SECP256K1RPKLen]byte
+	priv   *ecdsa.PrivateKey
+	sender ecommon.Address
 
 	// when used with embedded VMs
 	genesisBytes []byte
@@ -98,20 +95,26 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Ω(vms).Should(gomega.BeNumerically(">", 1))
 
 	var err error
-	priv, err = f.NewPrivateKey()
+	priv, err = crypto.GenerateKey()
 	gomega.Ω(err).Should(gomega.BeNil())
-	sender, err = chain.FormatPK(priv.PublicKey())
-	gomega.Ω(err).Should(gomega.BeNil())
+	sender = crypto.PubkeyToAddress(priv.PublicKey)
 
 	// create embedded VMs
 	instances = make([]instance, vms)
 
 	genesis = chain.DefaultGenesis()
-	if minDifficulty >= 0 {
-		genesis.MinDifficulty = uint64(minDifficulty)
+	if minPrice >= 0 {
+		genesis.MinPrice = uint64(minPrice)
 	}
 	if minBlockCost >= 0 {
 		genesis.MinBlockCost = uint64(minBlockCost)
+	}
+	genesis.Magic = rand.Uint64()
+	genesis.Allocations = []*chain.Allocation{
+		{
+			Address: sender.Hex(),
+			Balance: 100000,
+		},
 	}
 	genesisBytes, err = chain.Marshal(genesis)
 	gomega.Ω(err).Should(gomega.BeNil())
@@ -190,6 +193,23 @@ var _ = ginkgo.Describe("[Ping]", func() {
 	})
 })
 
+var _ = ginkgo.Describe("[Genesis]", func() {
+	ginkgo.It("can ping", func() {
+		for _, inst := range instances {
+			cli := inst.cli
+			g, err := cli.Genesis()
+			gomega.Ω(err).Should(gomega.BeNil())
+
+			for _, alloc := range g.Allocations {
+				paddr := ecommon.HexToAddress(alloc.Address)
+				bal, err := cli.Balance(paddr)
+				gomega.Ω(err).Should(gomega.BeNil())
+				gomega.Ω(bal).Should(gomega.Equal(alloc.Balance))
+			}
+		}
+	})
+})
+
 var _ = ginkgo.Describe("[ClaimTx]", func() {
 	ginkgo.It("get currently accepted block ID", func() {
 		for _, inst := range instances {
@@ -203,14 +223,13 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		pfx := []byte(strings.Repeat("a", parser.MaxPrefixSize))
 		claimTx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
-				Sender: sender,
-				Prefix: pfx,
+				Pfx: pfx,
 			},
 		}
 
 		ginkgo.By("mine and issue ClaimTx", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.MineSignIssueTx(ctx, instances[0].cli, claimTx, priv)
+			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
@@ -250,15 +269,12 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	ginkgo.It("fail ClaimTx with no block ID", func() {
 		utx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
-				Sender: sender,
-				Prefix: []byte("foo"),
+				Pfx: []byte("foo"),
 			},
 		}
 
-		b, err := chain.UnsignedBytes(utx)
-		gomega.Ω(err).Should(gomega.BeNil())
-
-		sig, err := priv.Sign(b)
+		dh := chain.DigestHash(utx)
+		sig, err := crypto.Sign(dh, priv)
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		tx := chain.NewTx(utx, sig)
@@ -269,12 +285,11 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		gomega.Ω(err.Error()).Should(gomega.Equal(chain.ErrInvalidBlockID.Error()))
 	})
 
-	ginkgo.It("Claim/SetTx with valid PoW in a single node", func() {
+	ginkgo.It("Claim/SetTx in a single node", func() {
 		pfx := []byte(strings.Repeat("b", parser.MaxPrefixSize))
 		claimTx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
-				Sender: sender,
-				Prefix: pfx,
+				Pfx: pfx,
 			},
 		}
 
@@ -282,7 +297,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			bpfx := []byte("junk")
 			instances[0].vm.SetBeneficiary(bpfx)
 
-			blk := mineAndExpectBlkAccept(instances[0], claimTx)
+			blk := expectBlkAccept(instances[0], claimTx)
 			gomega.Ω(blk.Beneficiary).Should(gomega.BeEmpty())
 
 			instances[0].vm.SetBeneficiary(nil)
@@ -291,6 +306,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		ginkgo.By("check prefix after ClaimTx has been accepted", func() {
 			pf, err := instances[0].cli.PrefixInfo(pfx)
 			gomega.Ω(err).To(gomega.BeNil())
+			gomega.Ω(pf).NotTo(gomega.BeNil())
 			gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
 			gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 		})
@@ -298,8 +314,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		k, v := []byte("avax.kvm"), []byte("hello")
 		setTx := &chain.SetTx{
 			BaseTx: &chain.BaseTx{
-				Sender: sender,
-				Prefix: pfx,
+				Pfx: pfx,
 			},
 			Key:   k,
 			Value: v,
@@ -313,7 +328,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(err).To(gomega.BeNil())
 			instances[0].vm.SetBeneficiary(pfx)
 
-			blk := mineAndExpectBlkAccept(instances[0], setTx)
+			blk := expectBlkAccept(instances[0], setTx)
 			gomega.Ω(blk.Beneficiary).Should(gomega.Equal(pfx))
 
 			i2, err := instances[0].cli.PrefixInfo(pfx)
@@ -345,14 +360,13 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		pfx := []byte(strings.Repeat("c", parser.MaxPrefixSize))
 		claimTx := &chain.ClaimTx{
 			BaseTx: &chain.BaseTx{
-				Sender: sender,
-				Prefix: pfx,
+				Pfx: pfx,
 			},
 		}
 
 		ginkgo.By("mine and issue ClaimTx", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.MineSignIssueTx(ctx, instances[0].cli, claimTx, priv)
+			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
@@ -373,19 +387,23 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	// TODO: full replicate blocks between nodes
 })
 
-func mineAndExpectBlkAccept(
+func expectBlkAccept(
 	i instance,
-	rtx chain.UnsignedTransaction,
+	utx chain.UnsignedTransaction,
 ) *chain.StatelessBlock {
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	utx, err := i.cli.Mine(ctx, genesis, rtx)
-	cancel()
+	g, err := i.cli.Genesis()
 	gomega.Ω(err).Should(gomega.BeNil())
+	utx.SetMagic(g.Magic)
 
-	b, err := chain.UnsignedBytes(utx)
+	la, err := i.cli.Accepted()
 	gomega.Ω(err).Should(gomega.BeNil())
+	utx.SetBlockID(la)
 
-	sig, err := priv.Sign(b)
+	price, blockCost, err := i.cli.SuggestedFee()
+	gomega.Ω(err).Should(gomega.BeNil())
+	utx.SetPrice(price + blockCost/utx.FeeUnits(g))
+
+	sig, err := crypto.Sign(chain.DigestHash(utx), priv)
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	tx := chain.NewTx(utx, sig)

@@ -40,7 +40,11 @@ func (t *Transaction) Copy() *Transaction {
 
 func DigestHash(utx UnsignedTransaction) []byte {
 	// TODO: convert utx to HR bytes
-	return accounts.TextHash(hashing.ComputeHash256([]byte("test")))
+	b, err := Marshal(utx)
+	if err != nil {
+		panic(err)
+	}
+	return accounts.TextHash(hashing.ComputeHash256(b))
 }
 
 func (t *Transaction) Init(g *Genesis) error {
