@@ -12,8 +12,8 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
+	"github.com/ava-labs/avalanchego/utils/hashing"
 	log "github.com/inconshreveable/log15"
-	"golang.org/x/crypto/sha3"
 )
 
 const futureBound = 10 * time.Second
@@ -94,8 +94,7 @@ func ParseStatefulBlock(
 		st:            status,
 		vm:            vm,
 	}
-	h := sha3.Sum256(b.bytes)
-	id, err := ids.ToID(h[:])
+	id, err := ids.ToID(hashing.ComputeHash256(b.bytes))
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +115,7 @@ func (b *StatelessBlock) init() error {
 	}
 	b.bytes = bytes
 
-	h := sha3.Sum256(b.bytes)
-	id, err := ids.ToID(h[:])
+	id, err := ids.ToID(hashing.ComputeHash256(b.bytes))
 	if err != nil {
 		return err
 	}

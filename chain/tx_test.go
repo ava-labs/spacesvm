@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func TestTransaction(t *testing.T) {
@@ -21,7 +22,7 @@ func TestTransaction(t *testing.T) {
 		tx := &Transaction{
 			UnsignedTransaction: &ClaimTx{
 				BaseTx: &BaseTx{
-					Prefix: bytes.Repeat([]byte{'b'}, i*10),
+					Pfx: bytes.Repeat([]byte{'b'}, i*10),
 				},
 			},
 		}
@@ -76,21 +77,15 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
 	t.Helper()
 
-	priv, err := f.NewPrivateKey()
+	priv, err := crypto.GenerateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	sender, err := FormatPK(priv.PublicKey())
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	tx := &Transaction{
 		UnsignedTransaction: &ClaimTx{
 			BaseTx: &BaseTx{
-				Sender:  sender,
-				Prefix:  []byte{'a'},
-				BlockID: blockID,
+				Pfx:   []byte{'a'},
+				BlkID: blockID,
 			},
 		},
 	}
@@ -98,7 +93,7 @@ func createTestTx(t *testing.T, blockID ids.ID) *Transaction {
 		t.Fatal(err)
 	}
 
-	tx.Signature, err = priv.Sign(tx.UnsignedBytes())
+	tx.Signature, err = crypto.Sign(tx.DigestHash(), priv)
 	if err != nil {
 		t.Fatal(err)
 	}
