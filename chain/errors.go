@@ -34,4 +34,5 @@ var (
 	ErrPrefixMissing    = errors.New("prefix missing")
 	ErrUnauthorized     = errors.New("sender is not authorized")
 	ErrInvalidBalance   = errors.New("invalid balance")
+	ErrNonActionable    = errors.New("transaction doesn't do anything")
 )

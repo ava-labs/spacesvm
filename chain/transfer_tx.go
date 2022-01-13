@@ -16,11 +16,41 @@ type TransferTx struct {
 }
 
 func (t *TransferTx) Execute(c *TransactionContext) error {
-	if _, err := ModifyBalance(c.Database, c.Sender, false, t.Value); err != nil {
-		return err
+	// Note this also prevents someone from transfering a prefix to themselves.
+	if t.To == c.Sender {
+		return ErrNonActionable
 	}
-	if _, err := ModifyBalance(c.Database, t.To, true, t.Value); err != nil {
-		return err
+
+	actionable := false
+	if t.Value > 0 {
+		actionable = true
+		if _, err := ModifyBalance(c.Database, c.Sender, false, t.Value); err != nil {
+			return err
+		}
+		if _, err := ModifyBalance(c.Database, t.To, true, t.Value); err != nil {
+			return err
+		}
+	}
+	// TODO: move prefix to tx model outside of base
+	if len(t.Prefix()) > 0 {
+		actionable = true
+		p, exists, err := GetPrefixInfo(c.Database, t.Prefix())
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return ErrPrefixMissing
+		}
+		if p.Owner != c.Sender {
+			return ErrUnauthorized
+		}
+		p.Owner = t.To
+		if err := PutPrefixInfo(c.Database, t.Prefix(), p, 0); err != nil { // make optional to update prefix expiry
+			return err
+		}
+	}
+	if !actionable {
+		return ErrNonActionable
 	}
 	return nil
 }
