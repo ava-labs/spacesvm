@@ -6,11 +6,13 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/rpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/fatih/color"
 
 	"github.com/ava-labs/quarkvm/chain"
@@ -34,7 +36,7 @@ type Client interface {
 	// Returns "true" if the block is valid.
 	ValidBlockID(blkID ids.ID) (bool, error)
 	// Requests for the estimated difficulty from VM.
-	EstimateDifficulty() (uint64, uint64, error)
+	SuggestedFee() (uint64, uint64, error)
 	// Issues the transaction and returns the transaction ID.
 	IssueTx(d []byte) (ids.ID, error)
 	// Checks the status of the transaction, and returns "true" if confirmed.
@@ -45,8 +47,10 @@ type Client interface {
 	Range(pfx, key []byte, opts ...OpOption) (kvs []chain.KeyValue, err error)
 	// Resolve returns the value associated with a path
 	Resolve(path string) (exists bool, value []byte, err error)
-	// Performs Proof-of-Work (PoW) by enumerating the graffiti.
-	Mine(ctx context.Context, gen *chain.Genesis, utx chain.UnsignedTransaction) (chain.UnsignedTransaction, error)
+	// Issues a human-readable transaction and returns the transaction ID.
+	IssueTxHR(d []byte, sig []byte) (ids.ID, error)
+	// Balance returns the balance of an account
+	Balance(addr common.Address) (bal uint64, err error)
 }
 
 // New creates a new client object.
@@ -231,6 +235,14 @@ func (cli *client) Resolve(path string) (exists bool, value []byte, err error) {
 		return false, nil, err
 	}
 	return resp.Exists, resp.Value, nil
+}
+
+func (cli *client) IssueTxHR(d []byte, sig []byte) (ids.ID, error) {
+	return ids.ID{}, errors.New("not implemented")
+}
+
+func (cli *client) Balance(addr common.Address) (uint64, error) {
+	return 0, errors.New("not implemented")
 }
 
 type Op struct {

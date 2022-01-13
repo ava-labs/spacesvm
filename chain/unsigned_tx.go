@@ -10,10 +10,15 @@ import (
 
 type UnsignedTransaction interface {
 	Copy() UnsignedTransaction
+
 	BlockID() ids.ID
 	Prefix() []byte
 	Magic() uint64
 	Price() uint64
+
+	SetBlockID(ids.ID)
+	SetMagic(uint64)
+	SetPrice(uint64)
 
 	FeeUnits(*Genesis) uint64  // number of units to mine tx
 	LoadUnits(*Genesis) uint64 // units that should impact fee rate

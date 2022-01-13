@@ -31,6 +31,10 @@ func (b *BaseTx) BlockID() ids.ID {
 	return b.BlkID
 }
 
+func (b *BaseTx) SetBlockID(bid ids.ID) {
+	b.BlkID = bid
+}
+
 func (b *BaseTx) Prefix() []byte {
 	return b.Pfx
 }
@@ -39,8 +43,16 @@ func (b *BaseTx) Magic() uint64 {
 	return b.Mgc
 }
 
+func (b *BaseTx) SetMagic(magic uint64) {
+	b.Mgc = magic
+}
+
 func (b *BaseTx) Price() uint64 {
 	return b.Prce
+}
+
+func (b *BaseTx) SetPrice(price uint64) {
+	b.Prce = price
 }
 
 func (b *BaseTx) ExecuteBase(g *Genesis) error {

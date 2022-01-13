@@ -7,6 +7,7 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
@@ -16,11 +17,11 @@ type Transaction struct {
 	UnsignedTransaction `serialize:"true" json:"unsignedTransaction"`
 	Signature           []byte `serialize:"true" json:"signature"`
 
-	unsignedBytes []byte
-	bytes         []byte
-	id            ids.ID
-	size          uint64
-	sender        common.Address
+	digestHash []byte
+	bytes      []byte
+	id         ids.ID
+	size       uint64
+	sender     common.Address
 }
 
 func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
@@ -39,21 +40,13 @@ func (t *Transaction) Copy() *Transaction {
 	}
 }
 
-func UnsignedBytes(utx UnsignedTransaction) ([]byte, error) {
-	// TODO: change to human readable
-	b, err := Marshal(utx)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
+func DigestHash(utx UnsignedTransaction) []byte {
+	// TODO: convert utx to HR bytes
+	return accounts.TextHash(nil)
 }
 
 func (t *Transaction) Init(g *Genesis) error {
-	utx, err := UnsignedBytes(t.UnsignedTransaction)
-	if err != nil {
-		return err
-	}
-	t.unsignedBytes = utx
+	t.digestHash = DigestHash(t.UnsignedTransaction)
 
 	stx, err := Marshal(t)
 	if err != nil {
@@ -69,11 +62,7 @@ func (t *Transaction) Init(g *Genesis) error {
 	t.id = id
 
 	// Extract address
-	cpk, err := secp256k1.RecoverPubkey(t.UnsignedBytes(), t.Signature)
-	if err != nil {
-		return err
-	}
-	pk, err := crypto.DecompressPubkey(cpk)
+	pk, err := crypto.SigToPub(t.digestHash, t.Signature)
 	if err != nil {
 		return err
 	}
@@ -85,7 +74,7 @@ func (t *Transaction) Init(g *Genesis) error {
 
 func (t *Transaction) Bytes() []byte { return t.bytes }
 
-func (t *Transaction) UnsignedBytes() []byte { return t.unsignedBytes }
+func (t *Transaction) DigestHash() []byte { return t.digestHash }
 
 func (t *Transaction) Size() uint64 { return t.size }
 
