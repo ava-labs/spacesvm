@@ -5,11 +5,9 @@ package chain
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/quarkvm/parser"
 )
 
@@ -54,17 +52,18 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 	if i.Expiry < t.BlockTime {
 		return ErrPrefixExpired
 	}
-	// If Key is equal to hash length, ensure it is equal to the hash of the
-	// value
-	if len(s.Key) == IDLen && len(s.Value) > 0 {
-		id, err := ids.ToID(hashing.ComputeHash256(s.Value))
-		if err != nil {
-			return err
-		}
-		if !bytes.Equal(s.Key, id[:]) {
-			return fmt.Errorf("%w: expected %x got %x", ErrInvalidKey, id[:], s.Key)
-		}
-	}
+	// TODO: hash could contain `/`
+	// // If Key is equal to hash length, ensure it is equal to the hash of the
+	// // value
+	// if len(s.Key) == IDLen && len(s.Value) > 0 {
+	// 	id, err := ids.ToID(hashing.ComputeHash256(s.Value))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	if !bytes.Equal(s.Key, id[:]) {
+	// 		return fmt.Errorf("%w: expected %x got %x", ErrInvalidKey, id[:], s.Key)
+	// 	}
+	// }
 	return s.updatePrefix(g, t.Database, t.BlockTime, t.TxID, i)
 }
 

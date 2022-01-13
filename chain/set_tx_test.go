@@ -6,12 +6,11 @@ package chain
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/hashing"
+	// "github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
@@ -91,55 +90,54 @@ func TestSetTx(t *testing.T) {
 			sender:    sender,
 			err:       nil,
 		},
-		{ // write hashed value
-			utx: &SetTx{
-				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
-				},
-				Key: func() []byte {
-					h := hashing.ComputeHash256([]byte("value"))
-					return h[:]
-				}(),
-				Value: []byte("value"),
-			},
-			blockTime: 1,
-			sender:    sender,
-			err:       nil,
-		},
-		{ // write incorrect hashed value
-			utx: &SetTx{
-				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
-				},
-				Key: func() []byte {
-					// TODO: handle case where hash contains a `/`
-					h := hashing.ComputeHash256([]byte("not value"))
-					fmt.Println(string(h))
-					return h[:]
-				}(),
-				Value: []byte("value"),
-			},
-			blockTime: 1,
-			sender:    sender,
-			err:       ErrInvalidKey,
-		},
-		{ // delete hashed value
-			utx: &SetTx{
-				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
-				},
-				Key: func() []byte {
-					h := hashing.ComputeHash256([]byte("value"))
-					return h[:]
-				}(),
-			},
-			blockTime: 1,
-			sender:    sender,
-			err:       nil,
-		},
+		// { // write hashed value
+		// 	utx: &SetTx{
+		// 		BaseTx: &BaseTx{
+		// 			Pfx:   []byte("foo"),
+		// 			BlkID: ids.GenerateTestID(),
+		// 		},
+		// 		Key: func() []byte {
+		// 			h := hashing.ComputeHash256([]byte("value"))
+		// 			return h[:]
+		// 		}(),
+		// 		Value: []byte("value"),
+		// 	},
+		// 	blockTime: 1,
+		// 	sender:    sender,
+		// 	err:       nil,
+		// },
+		// { // write incorrect hashed value
+		// 	utx: &SetTx{
+		// 		BaseTx: &BaseTx{
+		// 			Pfx:   []byte("foo"),
+		// 			BlkID: ids.GenerateTestID(),
+		// 		},
+		// 		Key: func() []byte {
+		// 			// TODO: handle case where hash contains a `/`
+		// 			h := hashing.ComputeHash256([]byte("not value"))
+		// 			return h[:]
+		// 		}(),
+		// 		Value: []byte("value"),
+		// 	},
+		// 	blockTime: 1,
+		// 	sender:    sender,
+		// 	err:       ErrInvalidKey,
+		// },
+		// { // delete hashed value
+		// 	utx: &SetTx{
+		// 		BaseTx: &BaseTx{
+		// 			Pfx:   []byte("foo"),
+		// 			BlkID: ids.GenerateTestID(),
+		// 		},
+		// 		Key: func() []byte {
+		// 			h := hashing.ComputeHash256([]byte("value"))
+		// 			return h[:]
+		// 		}(),
+		// 	},
+		// 	blockTime: 1,
+		// 	sender:    sender,
+		// 	err:       nil,
+		// },
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{

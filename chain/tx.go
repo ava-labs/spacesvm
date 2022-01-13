@@ -58,6 +58,9 @@ func (t *Transaction) Init(g *Genesis) error {
 	t.id = id
 
 	// Extract address
+	if len(t.Signature) != crypto.SignatureLength {
+		return ErrInvalidSignature
+	}
 	pk, err := crypto.SigToPub(t.DigestHash(), t.Signature)
 	if err != nil {
 		return err
@@ -75,6 +78,8 @@ func (t *Transaction) DigestHash() []byte { return DigestHash(t.UnsignedTransact
 func (t *Transaction) Size() uint64 { return t.size }
 
 func (t *Transaction) ID() ids.ID { return t.id }
+
+func (t *Transaction) Sender() common.Address { return t.sender }
 
 func (t *Transaction) Execute(g *Genesis, db database.Database, blockTime int64, context *Context) error {
 	if err := t.UnsignedTransaction.ExecuteBase(g); err != nil {

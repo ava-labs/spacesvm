@@ -188,7 +188,7 @@ func createTestBlk(
 	}
 	blk.StatefulBlock.Txs = make([]*Transaction, txsN)
 	for i := 0; i < txsN; i++ {
-		blk.StatefulBlock.Txs[i] = createTestTx(t, blk.id)
+		blk.StatefulBlock.Txs[i] = createTestTx(t, blk.id, false)
 	}
 	if execCtx != nil {
 		execCtx.RecentBlockIDs.Add(parentBlk.ID(), blk.id)
