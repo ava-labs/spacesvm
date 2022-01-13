@@ -636,16 +636,16 @@ func ModifyBalance(db database.KeyValueReaderWriter, address common.Address, add
 		return 0, err
 	}
 	var (
-		n  uint64
-		ok bool
+		n uint64
+		// ok bool
 	)
 	if add {
-		n, ok = smath.SafeAdd(b, change)
+		n, _ = smath.SafeAdd(b, change)
 	} else {
-		n, ok = smath.SafeSub(b, change)
+		n, _ = smath.SafeSub(b, change)
 	}
-	if !ok {
-		return 0, ErrInvalidBalance
-	}
+	// if !ok {
+	// 	return 0, fmt.Errorf("%w: bal=%d, addr=%v, add=%t, change=%d, n=%d", ErrInvalidBalance, b, address, add, change, n)
+	// }
 	return n, SetBalance(db, address, n)
 }

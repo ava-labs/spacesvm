@@ -113,7 +113,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	genesis.Allocations = []*chain.Allocation{
 		{
 			Address: sender.Hex(),
-			Balance: 100000,
+			Balance: 10000000,
 		},
 	}
 	genesisBytes, err = chain.Marshal(genesis)
@@ -170,6 +170,21 @@ var _ = ginkgo.BeforeSuite(func() {
 		}
 	}
 
+	// Verify genesis allocations loaded correctly (do here otherwise test may
+	// check during and it will be inaccurate)
+	for _, inst := range instances {
+		cli := inst.cli
+		g, err := cli.Genesis()
+		gomega.Ω(err).Should(gomega.BeNil())
+
+		for _, alloc := range g.Allocations {
+			paddr := ecommon.HexToAddress(alloc.Address)
+			bal, err := cli.Balance(paddr)
+			gomega.Ω(err).Should(gomega.BeNil())
+			gomega.Ω(bal).Should(gomega.Equal(alloc.Balance))
+		}
+	}
+
 	app.instances = instances
 	color.Blue("created %d VMs", vms)
 })
@@ -189,23 +204,6 @@ var _ = ginkgo.Describe("[Ping]", func() {
 			ok, err := cli.Ping()
 			gomega.Ω(ok).Should(gomega.BeTrue())
 			gomega.Ω(err).Should(gomega.BeNil())
-		}
-	})
-})
-
-var _ = ginkgo.Describe("[Genesis]", func() {
-	ginkgo.It("can ping", func() {
-		for _, inst := range instances {
-			cli := inst.cli
-			g, err := cli.Genesis()
-			gomega.Ω(err).Should(gomega.BeNil())
-
-			for _, alloc := range g.Allocations {
-				paddr := ecommon.HexToAddress(alloc.Address)
-				bal, err := cli.Balance(paddr)
-				gomega.Ω(err).Should(gomega.BeNil())
-				gomega.Ω(bal).Should(gomega.Equal(alloc.Balance))
-			}
 		}
 	})
 })
