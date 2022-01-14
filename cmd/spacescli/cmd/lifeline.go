@@ -40,7 +40,8 @@ func lifelineFunc(cmd *cobra.Command, args []string) error {
 		Units:  units,
 	}
 
-	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, space)
+	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
+	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, opts...)
 	return err
 }
 

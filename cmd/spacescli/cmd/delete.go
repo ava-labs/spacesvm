@@ -85,6 +85,7 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 		Key:    key,
 	}
 
-	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, space)
+	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
+	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, opts...)
 	return err
 }

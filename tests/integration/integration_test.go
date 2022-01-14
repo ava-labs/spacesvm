@@ -230,7 +230,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 		ginkgo.By("mine and issue ClaimTx", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv, space)
+			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
@@ -302,7 +302,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(pf).NotTo(gomega.BeNil())
 			gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
 			gomega.Ω(pf.Owner).To(gomega.Equal(sender))
-			gomega.Ω(len(values)).To(gomega.Equal(uint64(0)))
+			gomega.Ω(len(values)).To(gomega.Equal(0))
 		})
 
 		k, v := "avax.kvm", []byte("hello")
@@ -344,7 +344,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 		ginkgo.By("mine and issue ClaimTx", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv, space)
+			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 		})

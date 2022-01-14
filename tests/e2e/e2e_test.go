@@ -150,7 +150,8 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				instances[0].cli,
 				claimTx,
 				priv,
-				space,
+				client.WithPollTx(),
+				client.WithInfo(space),
 			)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
@@ -190,7 +191,8 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				cli,
 				setTx,
 				priv,
-				space,
+				client.WithPollTx(),
+				client.WithInfo(space),
 			)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
@@ -236,7 +238,8 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				cli,
 				setTx,
 				priv,
-				space,
+				client.WithPollTx(),
+				client.WithInfo(space),
 			)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
@@ -280,7 +283,8 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				cli,
 				setTx,
 				priv,
-				space,
+				client.WithPollTx(),
+				client.WithInfo(space),
 			)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())

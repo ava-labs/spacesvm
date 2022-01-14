@@ -21,8 +21,11 @@ func SignIssueTx(
 	cli Client,
 	utx chain.UnsignedTransaction,
 	priv *ecdsa.PrivateKey,
-	space string,
+	opts ...OpOption,
 ) (txID ids.ID, err error) {
+	ret := &Op{}
+	ret.applyOpts(opts)
+
 	g, err := cli.Genesis()
 	if err != nil {
 		return ids.Empty, err
@@ -61,19 +64,21 @@ func SignIssueTx(
 		return ids.Empty, err
 	}
 
-	color.Green("issued transaction %s (now polling)", txID)
-	confirmed, err := cli.PollTx(ctx, txID)
-	if err != nil {
-		return ids.Empty, err
-	}
-	if !confirmed {
-		color.Yellow("transaction %s not confirmed", txID)
-	} else {
-		color.Green("transaction %s confirmed", txID)
+	if ret.pollTx {
+		color.Green("issued transaction %s (now polling)", txID)
+		confirmed, err := cli.PollTx(ctx, txID)
+		if err != nil {
+			return ids.Empty, err
+		}
+		if !confirmed {
+			color.Yellow("transaction %s not confirmed", txID)
+		} else {
+			color.Green("transaction %s confirmed", txID)
+		}
 	}
 
-	if len(space) > 0 {
-		info, _, err := cli.Info(space)
+	if len(ret.space) > 0 {
+		info, _, err := cli.Info(ret.space)
 		if err != nil {
 			color.Red("cannot get prefix info %v", err)
 			return ids.Empty, err

@@ -218,3 +218,26 @@ func (cli *client) Balance(addr common.Address) (bal uint64, err error) {
 	}
 	return resp.Balance, nil
 }
+
+type Op struct {
+	pollTx bool
+	space  string
+}
+
+type OpOption func(*Op)
+
+func (op *Op) applyOpts(opts []OpOption) {
+	for _, opt := range opts {
+		opt(op)
+	}
+}
+
+// "true" to poll transaction for its confirmation.
+func WithPollTx() OpOption {
+	return func(op *Op) { op.pollTx = true }
+}
+
+// Non-empty to print out space information.
+func WithInfo(space string) OpOption {
+	return func(op *Op) { op.space = space }
+}
