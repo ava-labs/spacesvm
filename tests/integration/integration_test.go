@@ -10,7 +10,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"flag"
-	"math/rand"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -114,7 +113,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	if minBlockCost >= 0 {
 		genesis.MinBlockCost = uint64(minBlockCost)
 	}
-	genesis.Magic = rand.Uint64()
+	genesis.Magic = 5
 	genesis.Allocations = []*chain.Allocation{
 		{
 			Address: sender.Hex(),

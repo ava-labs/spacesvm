@@ -18,7 +18,7 @@ type TransferTx struct {
 }
 
 func (t *TransferTx) Execute(c *TransactionContext) error {
-	// Note this also prevents someone from transfering a prefix to themselves.
+	// Note this also prevents someone from transferring a prefix to themselves.
 	if t.To == c.Sender {
 		return ErrNonActionable
 	}
@@ -34,7 +34,7 @@ func (t *TransferTx) Execute(c *TransactionContext) error {
 		}
 	}
 	// TODO: move prefix to tx model outside of base
-	if len(t.Prefix()) > 0 {
+	if len(t.Prefix()) > 0 { //nolint:nestif
 		if err := parser.CheckPrefix(t.Prefix()); err != nil {
 			return err
 		}

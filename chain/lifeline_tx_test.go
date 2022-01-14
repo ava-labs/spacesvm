@@ -55,7 +55,7 @@ func TestLifelineTx(t *testing.T) {
 		tc := &TransactionContext{
 			Genesis:   g,
 			Database:  db,
-			BlockTime: uint64(tv.blockTime),
+			BlockTime: tv.blockTime,
 			TxID:      ids.Empty,
 			Sender:    tv.sender,
 		}
