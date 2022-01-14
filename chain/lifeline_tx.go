@@ -4,8 +4,6 @@
 package chain
 
 import (
-	"github.com/ava-labs/avalanchego/database"
-
 	"github.com/ava-labs/spacesvm/parser"
 )
 
@@ -20,8 +18,8 @@ type LifelineTx struct {
 	// The space must be ^[a-z0-9]{1,256}$.
 	Space string `serialize:"true" json:"space"`
 
-	// Units is the additional work the sender does to extend the life of their
-	// prefix. The added expiry time is a function of:
+	// Units is the additional fee the sender pays to extend the life of their
+	// space. The added expiry time is a function of:
 	// [Units] * [LifelineInterval].
 	Units uint64 `serialize:"true" json:"units"`
 }
@@ -36,9 +34,9 @@ func (l *LifelineTx) Execute(t *TransactionContext) error {
 	if err != nil {
 		return err
 	}
-	// Cannot add time to missing prefix
+	// Cannot add time to missing space
 	if !has {
-		return ErrPrefixMissing
+		return ErrSpaceMissing
 	}
 	// Lifeline spread across all units
 	lastExpiry := i.Expiry
@@ -48,19 +46,20 @@ func (l *LifelineTx) Execute(t *TransactionContext) error {
 
 func (l *LifelineTx) FeeUnits(g *Genesis) uint64 {
 	// FeeUnits are discounted so that, all else equal, it is easier for an owner
-	// to retain their prefix than for another to claim it.
-	discountedPrefixUnits := prefixUnits(g, l.Space) / g.PrefixRenewalDiscount
+	// to retain their space than for another to claim it.
+	discountedPrefixUnits := spaceUnits(g, l.Space) / g.PrefixRenewalDiscount
 
-	// The more desirable the prefix, the more it costs to maintain it.
+	// The more desirable the space, the more it costs to maintain it.
 	//
 	// Note, this heavy base cost incentivizes users to send fewer transactions
-	// to extend their prefix's life instead of many small ones.
+	// to extend their space's life instead of many small ones.
 	return l.LoadUnits(g) + discountedPrefixUnits + l.Units
 }
 
 func (l *LifelineTx) Copy() UnsignedTransaction {
 	return &LifelineTx{
 		BaseTx: l.BaseTx.Copy(),
+		Space:  l.Space,
 		Units:  l.Units,
 	}
 }
