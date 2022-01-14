@@ -75,37 +75,31 @@ func setFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	pfx, key, val := getSetOp(args)
+	space, key, val := getSetOp(args)
 	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.SetTx{
-		BaseTx: &chain.BaseTx{
-			Pfx: pfx,
-		},
-		Key:   key,
-		Value: val,
+		BaseTx: &chain.BaseTx{},
+		Space:  space,
+		Key:    key,
+		Value:  val,
 	}
 
-	opts := []client.OpOption{client.WithPollTx(), client.WithPrefixInfo(pfx)}
-	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, opts...)
+	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, space)
 	return err
 }
 
-func getSetOp(args []string) (pfx []byte, key []byte, val []byte) {
+func getSetOp(args []string) (space string, key string, val []byte) {
 	if len(args) != 2 {
 		fmt.Fprintf(os.Stderr, "expected exactly 2 arguments, got %d", len(args))
 		os.Exit(128)
 	}
 
-	// [prefix/key] == "foo/bar"
-	pfxKey := args[0]
+	// [space/key] == "foo/bar"
+	spaceKey := args[0]
 
 	var err error
-	pfx, key, _, err = parser.ParsePrefixKey(
-		[]byte(pfxKey),
-		parser.WithCheckPrefix(),
-		parser.WithCheckKey(),
-	)
+	space, key, err = parser.ResolvePath(spaceKey)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
 		os.Exit(128)
@@ -113,5 +107,5 @@ func getSetOp(args []string) (pfx []byte, key []byte, val []byte) {
 
 	val = []byte(args[1])
 
-	return pfx, key, val
+	return space, key, val
 }

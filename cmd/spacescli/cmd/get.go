@@ -7,32 +7,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/spacesvm/client"
-	"github.com/ava-labs/spacesvm/parser"
 )
-
-var (
-	limit      uint32
-	withPrefix bool
-)
-
-func init() {
-	getCmd.PersistentFlags().Uint32Var(
-		&limit,
-		"limit",
-		0,
-		"non-zero to limit the number of key-values in the response",
-	)
-	getCmd.PersistentFlags().BoolVar(
-		&withPrefix,
-		"with-prefix",
-		false,
-		"'true' for prefix query",
-	)
-}
 
 var getCmd = &cobra.Command{
 	Use:   "get [options] <prefix/key> <rangeEnd>",
@@ -98,59 +76,16 @@ COMMENT
 
 // TODO: move all this to a separate client code
 func getFunc(cmd *cobra.Command, args []string) error {
-	pfx, key, rangeEnd := getGetOp(args, withPrefix)
+	if len(args) != 1 {
+		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
+		os.Exit(128)
+	}
 	cli := client.New(uri, requestTimeout)
-
-	opts := []client.OpOption{}
-	if len(rangeEnd) > 0 {
-		opts = append(opts, client.WithRangeEnd(rangeEnd))
-	}
-	if limit > 0 {
-		opts = append(opts, client.WithRangeLimit(limit))
-	}
-	kvs, err := cli.Range(pfx, key, opts...)
+	_, v, err := cli.Resolve(args[0])
 	if err != nil {
 		return err
 	}
 
-	// TODO: suppport custom output types (e.g., JSON)
-	color.Green("range success %d key-values", len(kvs))
-	for _, kv := range kvs {
-		fmt.Printf("key: %q, value: %q\n", kv.Key, kv.Value)
-	}
-
+	fmt.Printf("%s=>%q\n", args[0], v)
 	return nil
-}
-
-func getGetOp(args []string, withPrefix bool) (pfx []byte, key []byte, rangeEnd []byte) {
-	if len(args) < 1 {
-		fmt.Fprintf(os.Stderr, "expected at least 1 arguments, got %d", len(args))
-		os.Exit(128)
-	}
-
-	// [prefix/key] == "foo/bar"
-	pfxKey := args[0]
-
-	var err error
-	pfx, key, rangeEnd, err = parser.ParsePrefixKey(
-		[]byte(pfxKey),
-		parser.WithCheckPrefix(),
-		parser.WithCheckKey(),
-	)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
-		os.Exit(128)
-	}
-
-	if !withPrefix {
-		rangeEnd = nil
-	}
-	if len(args) > 1 {
-		if withPrefix {
-			fmt.Fprintf(os.Stderr, "--with-prefix cannot be used with range end")
-			os.Exit(128)
-		}
-		rangeEnd = []byte(args[1])
-	}
-	return pfx, key, rangeEnd
 }

@@ -4,10 +4,11 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
@@ -18,7 +19,7 @@ import (
 )
 
 var lifelineCmd = &cobra.Command{
-	Use:   "lifeline [options] <prefix>",
+	Use:   "lifeline [options] <prefix> <units>",
 	Short: "Extends the life of a given prefix",
 	RunE:  lifelineFunc,
 }
@@ -30,40 +31,40 @@ func lifelineFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	pfx := getLifelineOp(args)
+	space, units := getLifelineOp(args)
 	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.LifelineTx{
-		BaseTx: &chain.BaseTx{
-			Pfx: pfx,
-		},
+		BaseTx: &chain.BaseTx{},
+		Space:  space,
+		Units:  units,
 	}
 
-	opts := []client.OpOption{client.WithPollTx(), client.WithPrefixInfo(pfx)}
-	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, opts...)
+	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, space)
 	return err
 }
 
-func getLifelineOp(args []string) (pfx []byte) {
-	if len(args) != 1 {
+func getLifelineOp(args []string) (space string, units uint64) {
+	if len(args) != 2 {
 		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
 		os.Exit(128)
 	}
 
-	pfx = []byte(args[0])
-	if bytes.HasSuffix(pfx, []byte{'/'}) {
-		pfx = pfx[:len(pfx)-1]
-	}
+	space = args[0]
+	splits := strings.Split(space, "/")
+	space = splits[0]
 
 	// check here first before parsing in case "pfx" is empty
-	if err := parser.CheckPrefix(pfx); err != nil {
+	if err := parser.CheckContents(space); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to verify prefix %v", err)
 		os.Exit(128)
 	}
-	if _, _, _, err := parser.ParsePrefixKey(pfx); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
+
+	units, err := strconv.ParseUint(args[1], 10, 64)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to parse units %v", err)
 		os.Exit(128)
 	}
 
-	return pfx
+	return space, units
 }
