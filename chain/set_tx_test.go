@@ -6,11 +6,11 @@ package chain
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
@@ -45,21 +45,22 @@ func TestSetTx(t *testing.T) {
 		{ // write with no previous claim should fail
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
-				Key:   []byte("bar"),
+				Space: "foo",
+				Key:   "bar",
 				Value: []byte("value"),
 			},
 			blockTime: 1,
 			sender:    sender,
-			err:       ErrPrefixMissing,
+			err:       ErrSpaceMissing,
 		},
 		{ // successful claim
 			utx: &ClaimTx{
 				BaseTx: &BaseTx{
-					Pfx: []byte("foo"),
+					BlockID: ids.GenerateTestID(),
 				},
+				Space: "foo",
 			},
 			blockTime: 1,
 			sender:    sender,
@@ -68,23 +69,35 @@ func TestSetTx(t *testing.T) {
 		{ // write
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
-				Key:   []byte("bar"),
+				Space: "foo",
+				Key:   "bar",
 				Value: []byte("value"),
 			},
 			blockTime: 1,
 			sender:    sender,
 			err:       nil,
 		},
-		{ // empty value to delete by prefix
+		{ // write empty
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
-				Key: []byte("bar"),
+				Space: "foo",
+				Key:   "bar",
+			},
+			blockTime: 1,
+			sender:    sender,
+			err:       ErrValueEmpty,
+		},
+		{ // delete
+			utx: &DeleteTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+				Key:   "bar",
 			},
 			blockTime: 1,
 			sender:    sender,
@@ -93,14 +106,10 @@ func TestSetTx(t *testing.T) {
 		{ // write hashed value
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
-				Key: func() []byte {
-					b := hashing.ComputeHash256([]byte("value"))
-					h := common.Bytes2Hex(b)
-					return []byte(h)
-				}(),
+				Space: "foo",
+				Key:   valueHash([]byte("value")),
 				Value: []byte("value"),
 			},
 			blockTime: 1,
@@ -110,14 +119,10 @@ func TestSetTx(t *testing.T) {
 		{ // write incorrect hashed value
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
-				Key: func() []byte {
-					b := hashing.ComputeHash256([]byte("not value"))
-					h := common.Bytes2Hex(b)
-					return []byte(h)
-				}(),
+				Space: "foo",
+				Key:   valueHash([]byte("not value")),
 				Value: []byte("value"),
 			},
 			blockTime: 1,
@@ -125,16 +130,12 @@ func TestSetTx(t *testing.T) {
 			err:       ErrInvalidKey,
 		},
 		{ // delete hashed value
-			utx: &SetTx{
+			utx: &DeleteTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
-				Key: func() []byte {
-					b := hashing.ComputeHash256([]byte("value"))
-					h := common.Bytes2Hex(b)
-					return []byte(h)
-				}(),
+				Space: "foo",
+				Key:   valueHash([]byte("not value")),
 			},
 			blockTime: 1,
 			sender:    sender,
@@ -143,10 +144,10 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
-				Key: []byte("bar"),
+				Space: "foo",
+				Key:   "bar",
 			},
 			blockTime: 1,
 			sender:    sender2,
@@ -155,65 +156,43 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
+				Space: "foo",
 			},
 			blockTime: 1,
-			err:       parser.ErrKeyEmpty,
+			err:       parser.ErrInvalidContents,
 		},
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Pfx: []byte("foo"),
+					BlockID: ids.GenerateTestID(),
 				},
+				Space: "foo",
+				Key:   strings.Repeat("a", parser.MaxIdentifierSize+1),
 			},
 			blockTime: 1,
-			sender:    sender,
-			err:       parser.ErrKeyEmpty,
+			err:       parser.ErrInvalidContents,
 		},
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
-				Key: bytes.Repeat([]byte{'a'}, parser.MaxKeySize+1),
-			},
-			blockTime: 1,
-			err:       parser.ErrKeyTooBig,
-		},
-		{
-			utx: &SetTx{
-				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
-				},
-				Key:   []byte("bar"),
+				Space: "foo",
+				Key:   "bar",
 				Value: bytes.Repeat([]byte{'b'}, int(g.MaxValueSize)+1),
 			},
 			blockTime: 1,
 			err:       ErrValueTooBig,
 		},
 		{
-			utx: &SetTx{
+			utx: &DeleteTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
-				Key: []byte("bar///"),
-			},
-			blockTime: 1,
-			sender:    sender,
-			err:       parser.ErrInvalidDelimiter,
-		},
-		{
-			utx: &SetTx{
-				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
-				},
-				Key: []byte("bar"),
+				Space: "foo",
+				Key:   "bar",
 			},
 			blockTime: 100,
 			sender:    sender,
@@ -222,14 +201,15 @@ func TestSetTx(t *testing.T) {
 		{
 			utx: &SetTx{
 				BaseTx: &BaseTx{
-					Pfx:   []byte("foo"),
-					BlkID: ids.GenerateTestID(),
+					BlockID: ids.GenerateTestID(),
 				},
-				Key: []byte("bar"),
+				Space: "foo",
+				Key:   "bar",
+				Value: []byte("value"),
 			},
 			blockTime: int64(g.ClaimReward) * 2,
 			sender:    sender,
-			err:       ErrPrefixMissing,
+			err:       ErrSpaceMissing,
 		},
 	}
 	for i, tv := range tt {
@@ -265,8 +245,8 @@ func TestSetTx(t *testing.T) {
 
 		// check committed states from db
 		switch tp := tv.utx.(type) {
-		case *ClaimTx: // "ClaimTx.Execute" must persist "PrefixInfo"
-			info, exists, err := GetPrefixInfo(db, tp.Prefix())
+		case *ClaimTx: // "ClaimTx.Execute" must persist "SpaceInfo"
+			info, exists, err := GetSpaceInfo(db, []byte(tp.Space))
 			if err != nil {
 				t.Fatalf("#%d: failed to get prefix info %v", i, err)
 			}
@@ -276,30 +256,26 @@ func TestSetTx(t *testing.T) {
 			if !bytes.Equal(info.Owner[:], tv.sender[:]) {
 				t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(sender[:]))
 			}
-			// each claim must delete all existing keys with the value key
-			kvs, err := Range(db, tp.Prefix(), nil, WithPrefix())
-			if err != nil {
-				t.Fatalf("#%d: unexpected error when fetching range %v", i, err)
-			}
-			if len(kvs) > 0 {
-				t.Fatalf("#%d: unexpected key-values for the prefix after claim", i)
-			}
-
 		case *SetTx:
-			emptyValue := len(tp.Value) == 0
-			val, exists, err := GetValue(db, tp.Prefix(), tp.Key)
+			val, exists, err := GetValue(db, []byte(tp.Space), []byte(tp.Key))
 			if err != nil {
 				t.Fatalf("#%d: failed to get key info %v", i, err)
 			}
 			switch {
-			case emptyValue && exists:
-				t.Fatalf("#%d: empty value should have deleted keys", i)
-			case !emptyValue && !exists:
+			case !exists:
 				t.Fatalf("#%d: non-empty value should have been persisted but not found", i)
-			case !emptyValue && exists:
-				if !emptyValue && exists && !bytes.Equal(tp.Value, val) {
+			case exists:
+				if !bytes.Equal(tp.Value, val) {
 					t.Fatalf("#%d: unexpected value %q, expected %q", i, val, tp.Value)
 				}
+			}
+		case *DeleteTx:
+			_, exists, err := GetValue(db, []byte(tp.Space), []byte(tp.Key))
+			if err != nil {
+				t.Fatalf("#%d: failed to get key info %v", i, err)
+			}
+			if exists {
+				t.Fatalf("#%d: empty value should have deleted keys", i)
 			}
 		}
 	}

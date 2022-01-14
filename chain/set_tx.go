@@ -57,8 +57,7 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 	// If Key is equal to hash length, ensure it is equal to the hash of the
 	// value
 	if len(s.Key) == hashLen {
-		h := common.BytesToHash(crypto.Keccak256(s.Value)).Hex()
-		h = strings.ToLower(h)
+		h := valueHash(s.Value)
 		if s.Key != h {
 			return fmt.Errorf("%w: expected %s got %x", ErrInvalidKey, h, s.Key)
 		}

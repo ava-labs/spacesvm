@@ -5,8 +5,10 @@ package chain
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func (t *TransactionContext) authorized(owner common.Address) bool {
@@ -46,4 +48,9 @@ func updateSpace(s string, t *TransactionContext, timeRemaining uint64, i *Space
 
 func valueUnits(g *Genesis, b []byte) uint64 {
 	return uint64(len(b))/g.ValueUnitSize + 1
+}
+
+func valueHash(v []byte) string {
+	h := common.BytesToHash(crypto.Keccak256(v)).Hex()
+	return strings.ToLower(h)
 }

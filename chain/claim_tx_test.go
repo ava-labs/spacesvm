@@ -6,6 +6,7 @@ package chain
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
@@ -40,41 +41,47 @@ func TestClaimTx(t *testing.T) {
 		sender    common.Address
 		err       error
 	}{
-		{ // invalid claim, [20]byte prefix is reserved for pubkey
-			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: bytes.Repeat([]byte{'a'}, common.AddressLength)}},
+		{ // invalid claim, [42]byte prefix is reserved for pubkey
+			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: strings.Repeat("a", hexAddressLen)},
+			blockTime: 1,
+			sender:    sender,
+			err:       ErrAddressMismatch,
+		},
+		{ // valid claim, [42]byte prefix is reserved for pubkey
+			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: strings.ToLower(sender.Hex())},
 			blockTime: 1,
 			sender:    sender,
 			err:       ErrAddressMismatch,
 		},
 		{ // successful claim with expiry time "blockTime" + "expiryTime"
-			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
+			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: "foo"},
 			blockTime: 1,
 			sender:    sender,
 			err:       nil,
 		},
 		{ // invalid claim due to expiration
-			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
+			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: "foo"},
 			blockTime: 100,
 			sender:    sender,
-			err:       ErrPrefixNotExpired,
+			err:       ErrSpaceNotExpired,
 		},
 		{ // successful new claim
-			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
+			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: "foo"},
 			blockTime: ClaimReward * 2,
 			sender:    sender,
 			err:       nil,
 		},
 		{ // successful new claim by different owner
-			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
+			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: "foo"},
 			blockTime: ClaimReward * 4,
 			sender:    sender2,
 			err:       nil,
 		},
 		{ // invalid claim due to expiration by different owner
-			tx:        &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
+			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: "foo"},
 			blockTime: ClaimReward*4 + 3,
 			sender:    sender2,
-			err:       ErrPrefixNotExpired,
+			err:       ErrSpaceNotExpired,
 		},
 	}
 	for i, tv := range tt {
@@ -98,7 +105,7 @@ func TestClaimTx(t *testing.T) {
 		if tv.err != nil {
 			continue
 		}
-		info, exists, err := GetPrefixInfo(db, tv.tx.Prefix())
+		info, exists, err := GetSpaceInfo(db, []byte(tv.tx.Space))
 		if err != nil {
 			t.Fatalf("#%d: failed to get prefix info %v", i, err)
 		}
@@ -121,7 +128,7 @@ func TestClaimTx(t *testing.T) {
 	if pruned != 3 {
 		t.Fatalf("expected to prune 3 but got %d", pruned)
 	}
-	_, exists, err := GetPrefixInfo(db, []byte("foo"))
+	_, exists, err := GetSpaceInfo(db, []byte("foo"))
 	if err != nil {
 		t.Fatalf("failed to get prefix info %v", err)
 	}
