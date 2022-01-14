@@ -16,7 +16,6 @@ require (
 	github.com/onsi/ginkgo/v2 v2.0.0-rc2
 	github.com/onsi/gomega v1.17.0
 	github.com/spf13/cobra v1.2.1
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -55,6 +54,7 @@ require (
 	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	go.opencensus.io v0.23.0 // indirect
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect

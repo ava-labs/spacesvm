@@ -4,6 +4,8 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 
@@ -16,7 +18,7 @@ import (
 var (
 	genesisFile string
 
-	minDifficulty      int64
+	minPrice           int64
 	minBlockCost       int64
 	claimReward        int64
 	lifelineUnitReward int64
@@ -31,10 +33,10 @@ func init() {
 		"genesis file path",
 	)
 	genesisCmd.PersistentFlags().Int64Var(
-		&minDifficulty,
-		"min-difficulty",
+		&minPrice,
+		"min-price",
 		-1,
-		"minimum difficulty for mining",
+		"minimum price",
 	)
 	genesisCmd.PersistentFlags().Int64Var(
 		&minBlockCost,
@@ -65,13 +67,19 @@ func init() {
 var genesisCmd = &cobra.Command{
 	Use:   "genesis [options]",
 	Short: "Creates a new genesis in the default location",
-	RunE:  genesisFunc,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return errors.New("missing allocations file")
+		}
+		return nil
+	},
+	RunE: genesisFunc,
 }
 
 func genesisFunc(cmd *cobra.Command, args []string) error {
 	genesis := chain.DefaultGenesis()
-	if minDifficulty >= 0 {
-		genesis.MinDifficulty = uint64(minDifficulty)
+	if minPrice >= 0 {
+		genesis.MinPrice = uint64(minPrice)
 	}
 	if minBlockCost >= 0 {
 		genesis.MinBlockCost = uint64(minBlockCost)
@@ -85,6 +93,18 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	if beneficiaryReward >= 0 {
 		genesis.BeneficiaryReward = uint64(beneficiaryReward)
 	}
+
+	a, err := os.ReadFile(args[0])
+	if err != nil {
+		return err
+	}
+	allocs := []*chain.Allocation{}
+	if err := json.Unmarshal(a, &allocs); err != nil {
+		return err
+	}
+	// Store hash instead
+	genesis.Allocations = allocs
+
 	b, err := chain.Marshal(genesis)
 	if err != nil {
 		return err

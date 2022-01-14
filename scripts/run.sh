@@ -65,9 +65,16 @@ find /tmp/avalanchego-v${VERSION}
 echo "building quark-cli"
 go build -v -o /tmp/quark-cli ./cmd/quarkcli
 
+echo "creating allocations file"
+cat <<EOF > /tmp/allocations.json
+[{
+  "address":"0xa6273", "balance":100000
+}]
+EOF
+
 echo "creating VM genesis file"
 rm -f /tmp/quarkvm.genesis
-/tmp/quark-cli genesis --genesis-file /tmp/quarkvm.genesis
+/tmp/quark-cli genesis /tmp/allocations.json --genesis-file /tmp/quarkvm.genesis
 
 echo "building runner"
 pushd ./tests/runner
