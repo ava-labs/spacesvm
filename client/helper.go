@@ -21,11 +21,8 @@ func SignIssueTx(
 	cli Client,
 	utx chain.UnsignedTransaction,
 	priv *ecdsa.PrivateKey,
-	opts ...OpOption,
+	space string,
 ) (txID ids.ID, err error) {
-	ret := &Op{}
-	ret.applyOpts(opts)
-
 	g, err := cli.Genesis()
 	if err != nil {
 		return ids.Empty, err
@@ -57,28 +54,26 @@ func SignIssueTx(
 
 	color.Yellow(
 		"issuing tx %s (fee units=%d, load units=%d, price=%d, blkID=%s)",
-		tx.ID(), tx.FeeUnits(g), tx.LoadUnits(g), tx.Price(), tx.BlockID(),
+		tx.ID(), tx.FeeUnits(g), tx.LoadUnits(g), tx.GetPrice(), tx.GetBlockID(),
 	)
 	txID, err = cli.IssueTx(tx.Bytes())
 	if err != nil {
 		return ids.Empty, err
 	}
 
-	if ret.pollTx {
-		color.Green("issued transaction %s (now polling)", txID)
-		confirmed, err := cli.PollTx(ctx, txID)
-		if err != nil {
-			return ids.Empty, err
-		}
-		if !confirmed {
-			color.Yellow("transaction %s not confirmed", txID)
-		} else {
-			color.Green("transaction %s confirmed", txID)
-		}
+	color.Green("issued transaction %s (now polling)", txID)
+	confirmed, err := cli.PollTx(ctx, txID)
+	if err != nil {
+		return ids.Empty, err
+	}
+	if !confirmed {
+		color.Yellow("transaction %s not confirmed", txID)
+	} else {
+		color.Green("transaction %s confirmed", txID)
 	}
 
-	if len(ret.prefixInfo) > 0 {
-		info, err := cli.PrefixInfo(ret.prefixInfo)
+	if len(space) > 0 {
+		info, _, err := cli.SpaceInfo(space)
 		if err != nil {
 			color.Red("cannot get prefix info %v", err)
 			return ids.Empty, err
@@ -86,7 +81,7 @@ func SignIssueTx(
 		expiry := time.Unix(int64(info.Expiry), 0)
 		color.Blue(
 			"raw prefix %s: units=%d expiry=%v (%v remaining)",
-			info.RawPrefix, info.Units, expiry, time.Until(expiry),
+			info.RawSpace, info.Units, expiry, time.Until(expiry),
 		)
 	}
 

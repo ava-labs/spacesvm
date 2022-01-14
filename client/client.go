@@ -16,7 +16,6 @@ import (
 	"github.com/fatih/color"
 
 	"github.com/ava-labs/spacesvm/chain"
-	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/vm"
 )
 
@@ -24,33 +23,31 @@ import (
 type Client interface {
 	// Pings the VM.
 	Ping() (bool, error)
+
 	// Returns the VM genesis.
 	Genesis() (*chain.Genesis, error)
-	// Returns if a prefix is already claimed
-	Claimed(pfx []byte) (bool, error)
-	// Returns the corresponding prefix information.
-	PrefixInfo(pfx []byte) (*chain.PrefixInfo, error)
 	// Accepted fetches the ID of the last accepted block.
 	Accepted() (ids.ID, error)
-	// Checks the validity of the blockID.
-	// Returns "true" if the block is valid.
-	ValidBlockID(blkID ids.ID) (bool, error)
+
+	// Returns if a space is already claimed
+	Claimed(space string) (bool, error)
+	// Returns the corresponding prefix information.
+	SpaceInfo(space string) (*chain.SpaceInfo, []*chain.KeyValue, error)
+	// Balance returns the balance of an account
+	Balance(addr common.Address) (bal uint64, err error)
+	// Resolve returns the value associated with a path
+	Resolve(path string) (exists bool, value []byte, err error)
+
 	// Requests for the estimated difficulty from VM.
 	SuggestedFee() (uint64, uint64, error)
 	// Issues the transaction and returns the transaction ID.
 	IssueTx(d []byte) (ids.ID, error)
+	// Issues a human-readable transaction and returns the transaction ID.
+	IssueTxHR(d []byte, sig []byte) (ids.ID, error)
 	// Checks the status of the transaction, and returns "true" if confirmed.
 	CheckTx(id ids.ID) (bool, error)
 	// Polls the transactions until its status is confirmed.
 	PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error)
-	// Range runs range-query and returns the results.
-	Range(pfx, key []byte, opts ...OpOption) (kvs []chain.KeyValue, err error)
-	// Resolve returns the value associated with a path
-	Resolve(path string) (exists bool, value []byte, err error)
-	// Issues a human-readable transaction and returns the transaction ID.
-	IssueTxHR(d []byte, sig []byte) (ids.ID, error)
-	// Balance returns the balance of an account
-	Balance(addr common.Address) (bal uint64, err error)
 }
 
 // New creates a new client object.
@@ -91,11 +88,11 @@ func (cli *client) Genesis() (*chain.Genesis, error) {
 	return resp.Genesis, err
 }
 
-func (cli *client) Claimed(pfx []byte) (bool, error) {
+func (cli *client) Claimed(space string) (bool, error) {
 	resp := new(vm.ClaimedReply)
 	if err := cli.req.SendRequest(
 		"claimed",
-		&vm.ClaimedArgs{Prefix: pfx},
+		&vm.ClaimedArgs{Space: space},
 		resp,
 	); err != nil {
 		return false, err
@@ -103,16 +100,16 @@ func (cli *client) Claimed(pfx []byte) (bool, error) {
 	return resp.Claimed, nil
 }
 
-func (cli *client) PrefixInfo(pfx []byte) (*chain.PrefixInfo, error) {
-	resp := new(vm.PrefixInfoReply)
+func (cli *client) SpaceInfo(space string) (*chain.SpaceInfo, []*chain.KeyValue, error) {
+	resp := new(vm.SpaceInfoReply)
 	if err := cli.req.SendRequest(
-		"prefixInfo",
-		&vm.PrefixInfoArgs{Prefix: pfx},
+		"spaceInfo",
+		&vm.SpaceInfoArgs{Space: space},
 		resp,
 	); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return resp.Info, nil
+	return resp.Info, resp.Values, nil
 }
 
 func (cli *client) Accepted() (ids.ID, error) {
@@ -126,18 +123,6 @@ func (cli *client) Accepted() (ids.ID, error) {
 		return ids.ID{}, err
 	}
 	return resp.BlockID, nil
-}
-
-func (cli *client) ValidBlockID(blkID ids.ID) (bool, error) {
-	resp := new(vm.ValidBlockIDReply)
-	if err := cli.req.SendRequest(
-		"validBlockID",
-		&vm.ValidBlockIDArgs{BlockID: blkID},
-		resp,
-	); err != nil {
-		return false, err
-	}
-	return resp.Valid, nil
 }
 
 func (cli *client) SuggestedFee() (uint64, uint64, error) {
@@ -179,27 +164,6 @@ func (cli *client) CheckTx(txID ids.ID) (bool, error) {
 		return false, err
 	}
 	return resp.Confirmed, nil
-}
-
-func (cli *client) Range(pfx, key []byte, opts ...OpOption) (kvs []chain.KeyValue, err error) {
-	ret := &Op{key: key}
-	ret.applyOpts(opts)
-
-	resp := new(vm.RangeReply)
-	if err = cli.req.SendRequest(
-		"range",
-		&vm.RangeArgs{
-			Prefix:   pfx,
-			Key:      key,
-			RangeEnd: ret.rangeEnd,
-			Limit:    ret.rangeLimit,
-		},
-		resp,
-	); err != nil {
-		return nil, err
-	}
-	kvs = resp.KeyValues
-	return kvs, nil
 }
 
 func (cli *client) PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error) {
@@ -253,46 +217,4 @@ func (cli *client) Balance(addr common.Address) (bal uint64, err error) {
 		return 0, err
 	}
 	return resp.Balance, nil
-}
-
-type Op struct {
-	key        []byte
-	rangeEnd   []byte
-	rangeLimit uint32
-
-	pollTx     bool
-	prefixInfo []byte
-}
-
-type OpOption func(*Op)
-
-func (op *Op) applyOpts(opts []OpOption) {
-	for _, opt := range opts {
-		opt(op)
-	}
-}
-
-func WithPrefix() OpOption {
-	return func(op *Op) {
-		op.rangeEnd = parser.GetRangeEnd(op.key)
-	}
-}
-
-// Queries range [start,end).
-func WithRangeEnd(end []byte) OpOption {
-	return func(op *Op) { op.rangeEnd = end }
-}
-
-func WithRangeLimit(limit uint32) OpOption {
-	return func(op *Op) { op.rangeLimit = limit }
-}
-
-// "true" to poll transaction for its confirmation.
-func WithPollTx() OpOption {
-	return func(op *Op) { op.pollTx = true }
-}
-
-// Non-empty to print out prefix information.
-func WithPrefixInfo(pfx []byte) OpOption {
-	return func(op *Op) { op.prefixInfo = pfx }
 }

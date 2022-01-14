@@ -222,16 +222,15 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	})
 
 	ginkgo.It("Gossip ClaimTx to a different node", func() {
-		pfx := []byte(strings.Repeat("a", parser.MaxPrefixSize))
+		space := strings.Repeat("a", parser.MaxIdentifierSize)
 		claimTx := &chain.ClaimTx{
-			BaseTx: &chain.BaseTx{
-				Pfx: pfx,
-			},
+			BaseTx: &chain.BaseTx{},
+			Space:  space,
 		}
 
 		ginkgo.By("mine and issue ClaimTx", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv)
+			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv, space)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
@@ -270,9 +269,8 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 	ginkgo.It("fail ClaimTx with no block ID", func() {
 		utx := &chain.ClaimTx{
-			BaseTx: &chain.BaseTx{
-				Pfx: []byte("foo"),
-			},
+			BaseTx: &chain.BaseTx{},
+			Space:  "foo",
 		}
 
 		dh := chain.DigestHash(utx)
@@ -288,70 +286,49 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	})
 
 	ginkgo.It("Claim/SetTx in a single node", func() {
-		pfx := []byte(strings.Repeat("b", parser.MaxPrefixSize))
+		space := strings.Repeat("b", parser.MaxIdentifierSize)
 		claimTx := &chain.ClaimTx{
-			BaseTx: &chain.BaseTx{
-				Pfx: pfx,
-			},
+			BaseTx: &chain.BaseTx{},
+			Space:  space,
 		}
 
 		ginkgo.By("mine and accept block with the first ClaimTx", func() {
-			bpfx := []byte("junk")
-			instances[0].vm.SetBeneficiary(bpfx)
-
-			blk := expectBlkAccept(instances[0], claimTx)
-			gomega.Ω(blk.Beneficiary).Should(gomega.BeEmpty())
-
-			instances[0].vm.SetBeneficiary(nil)
+			expectBlkAccept(instances[0], claimTx)
 		})
 
 		ginkgo.By("check prefix after ClaimTx has been accepted", func() {
-			pf, err := instances[0].cli.PrefixInfo(pfx)
+			pf, values, err := instances[0].cli.SpaceInfo(space)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(pf).NotTo(gomega.BeNil())
 			gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
 			gomega.Ω(pf.Owner).To(gomega.Equal(sender))
+			gomega.Ω(len(values)).To(gomega.Equal(uint64(0)))
 		})
 
-		k, v := []byte("avax.kvm"), []byte("hello")
+		k, v := "avax.kvm", []byte("hello")
 		setTx := &chain.SetTx{
-			BaseTx: &chain.BaseTx{
-				Pfx: pfx,
-			},
-			Key:   k,
-			Value: v,
+			BaseTx: &chain.BaseTx{},
+			Space:  space,
+			Key:    k,
+			Value:  v,
 		}
 
 		// to work around "ErrInsufficientSurplus" for mining too fast
 		time.Sleep(5 * time.Second)
 
-		ginkgo.By("mine and accept block with a new SetTx (with beneficiary)", func() {
-			i, err := instances[0].cli.PrefixInfo(pfx)
-			gomega.Ω(err).To(gomega.BeNil())
-			instances[0].vm.SetBeneficiary(pfx)
-
-			blk := expectBlkAccept(instances[0], setTx)
-			gomega.Ω(blk.Beneficiary).Should(gomega.Equal(pfx))
-
-			i2, err := instances[0].cli.PrefixInfo(pfx)
-			gomega.Ω(err).To(gomega.BeNil())
-			n := uint64(time.Now().Unix())
-			irem := (i.Expiry - n) * i.Units
-			i2rem := (i2.Expiry - n) * i2.Units
-			gomega.Ω(i2rem > irem).To(gomega.BeTrue())
-
-			instances[0].vm.SetBeneficiary(nil)
+		ginkgo.By("mine and accept block with a new SetTx", func() {
+			expectBlkAccept(instances[0], setTx)
 		})
 
 		ginkgo.By("read back from VM with range query", func() {
-			kvs, err := instances[0].cli.Range(pfx, k)
+			_, kvs, err := instances[0].cli.SpaceInfo(space)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 			gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
 		})
 
 		ginkgo.By("read back from VM with resolve", func() {
-			exists, value, err := instances[0].cli.Resolve(string(pfx) + "/" + string(k))
+			exists, value, err := instances[0].cli.Resolve(space + "/" + k)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(exists).To(gomega.BeTrue())
 			gomega.Ω(value).To(gomega.Equal(v))
@@ -359,16 +336,15 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	})
 
 	ginkgo.It("fail Gossip ClaimTx to a stale node when missing previous blocks", func() {
-		pfx := []byte(strings.Repeat("c", parser.MaxPrefixSize))
+		space := strings.Repeat("c", parser.MaxIdentifierSize)
 		claimTx := &chain.ClaimTx{
-			BaseTx: &chain.BaseTx{
-				Pfx: pfx,
-			},
+			BaseTx: &chain.BaseTx{},
+			Space:  space,
 		}
 
 		ginkgo.By("mine and issue ClaimTx", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv)
+			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv, space)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
