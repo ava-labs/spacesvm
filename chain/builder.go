@@ -62,10 +62,10 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	b.Txs = []*Transaction{}
 	units := uint64(0)
 	for units < g.TargetUnits && mempool.Len() > 0 {
-		next, diff := mempool.PopMax()
-		if diff < b.Difficulty {
+		next, price := mempool.PopMax()
+		if price < b.Price {
 			mempool.Add(next)
-			log.Debug("skipping tx: too low difficulty", "block diff", b.Difficulty, "tx diff", next.Difficulty())
+			log.Debug("skipping tx: too low price", "block price", b.Price, "tx price", next.Price())
 			break
 		}
 		// Verify that changes pass

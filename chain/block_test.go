@@ -28,12 +28,12 @@ func TestBlock(t *testing.T) {
 						StatefulBlock: &StatefulBlock{
 							Tmstmp: 1,
 							Prnt:   ids.GenerateTestID(),
-							Hght:   1, Difficulty: 1, Cost: 1,
+							Hght:   1, Price: 1, Cost: 1,
 						},
 						st: choices.Processing,
 					},
 					2,
-					&Context{NextDifficulty: 1, NextCost: 1},
+					&Context{NextPrice: 1, NextCost: 1},
 					nil,
 					0,
 				)
@@ -49,12 +49,12 @@ func TestBlock(t *testing.T) {
 						StatefulBlock: &StatefulBlock{
 							Tmstmp: 10,
 							Prnt:   ids.GenerateTestID(),
-							Hght:   1, Difficulty: 1, Cost: 1,
+							Hght:   1, Price: 1, Cost: 1,
 						},
 						st: choices.Processing,
 					},
 					1,
-					&Context{NextDifficulty: 1, NextCost: 1},
+					&Context{NextPrice: 1, NextCost: 1},
 					nil,
 					1,
 				)
@@ -70,12 +70,12 @@ func TestBlock(t *testing.T) {
 						StatefulBlock: &StatefulBlock{
 							Tmstmp: 1,
 							Prnt:   ids.GenerateTestID(),
-							Hght:   1, Difficulty: 1, Cost: 1,
+							Hght:   1, Price: 1, Cost: 1,
 						},
 						st: choices.Processing,
 					},
 					int64(futureBound+time.Hour),
-					&Context{NextDifficulty: 1, NextCost: 1},
+					&Context{NextPrice: 1, NextCost: 1},
 					nil,
 					1,
 				)
@@ -91,13 +91,13 @@ func TestBlock(t *testing.T) {
 						StatefulBlock: &StatefulBlock{
 							Tmstmp: 1,
 							Prnt:   ids.GenerateTestID(),
-							Hght:   1, Difficulty: 1, Cost: 1,
+							Hght:   1, Price: 1, Cost: 1,
 						},
 						st: choices.Processing,
 					},
 					2,
-					&Context{NextDifficulty: 1, NextCost: 1},
-					&Context{NextDifficulty: 1, NextCost: 1},
+					&Context{NextPrice: 1, NextCost: 1},
+					&Context{NextPrice: 1, NextCost: 1},
 					1,
 				)
 				return blk
@@ -112,13 +112,13 @@ func TestBlock(t *testing.T) {
 						StatefulBlock: &StatefulBlock{
 							Tmstmp: 1,
 							Prnt:   ids.ID{0, 1, 2, 4, 5},
-							Hght:   1, Difficulty: 1000, Cost: 1000,
+							Hght:   1, Price: 1000, Cost: 1000,
 						},
 						st: choices.Accepted,
 					},
 					2,
-					&Context{NextDifficulty: 1, NextCost: 1},
-					&Context{NextDifficulty: 1, NextCost: 1000},
+					&Context{NextPrice: 1, NextCost: 1},
+					&Context{NextPrice: 1, NextCost: 1000},
 					1,
 				)
 				return blk
@@ -133,18 +133,18 @@ func TestBlock(t *testing.T) {
 						StatefulBlock: &StatefulBlock{
 							Tmstmp: 1,
 							Prnt:   ids.ID{0, 1, 2, 4, 5},
-							Hght:   1, Difficulty: 1000, Cost: 1000,
+							Hght:   1, Price: 1000, Cost: 1000,
 						},
 						st: choices.Accepted,
 					},
 					2,
-					&Context{NextDifficulty: 1, NextCost: 1},
-					&Context{NextDifficulty: 1000, NextCost: 1},
+					&Context{NextPrice: 1, NextCost: 1},
+					&Context{NextPrice: 1000, NextCost: 1},
 					1,
 				)
 				return blk
 			},
-			expectedVerifyErr: ErrInvalidDifficulty,
+			expectedVerifyErr: ErrInvalidPrice,
 		},
 	}
 	for i, tv := range tt {
@@ -188,7 +188,7 @@ func createTestBlk(
 	}
 	blk.StatefulBlock.Txs = make([]*Transaction, txsN)
 	for i := 0; i < txsN; i++ {
-		blk.StatefulBlock.Txs[i] = createTestTx(t, blk.id)
+		blk.StatefulBlock.Txs[i] = createTestTx(t, blk.id, false)
 	}
 	if execCtx != nil {
 		execCtx.RecentBlockIDs.Add(parentBlk.ID(), blk.id)

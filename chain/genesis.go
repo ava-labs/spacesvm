@@ -4,10 +4,23 @@
 package chain
 
 import (
+	"fmt"
+
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/units"
+	"github.com/ethereum/go-ethereum/common"
+	log "github.com/inconshreveable/log15"
 )
 
+type Allocation struct {
+	// Address strings are hex-formatted common.Address
+	Address string `serialize:"true" json:"address"`
+	Balance uint64 `serialize:"true" json:"balance"`
+}
+
 type Genesis struct {
+	Magic uint64 `serialize:"true" json:"magic"`
+
 	// Tx params
 	BaseTxUnits uint64 `serialize:"true" json:"baseTxUnits"`
 
@@ -29,14 +42,19 @@ type Genesis struct {
 	// Reward Params
 	ClaimReward        uint64 `serialize:"true" json:"claimReward"`
 	LifelineUnitReward uint64 `serialize:"true" json:"lifelineUnitReward"`
-	BeneficiaryReward  uint64 `serialize:"true" json:"beneficiaryReward"`
+	// TODO: replace with lottery mining
+	BeneficiaryReward uint64 `serialize:"true" json:"beneficiaryReward"`
 
 	// Fee Mechanism Params
 	LookbackWindow int64  `serialize:"true" json:"lookbackWindow"`
 	BlockTarget    int64  `serialize:"true" json:"blockTarget"`
 	TargetUnits    uint64 `serialize:"true" json:"targetUnits"`
-	MinDifficulty  uint64 `serialize:"true" json:"minDifficulty"`
+	MinPrice       uint64 `serialize:"true" json:"minPrice"`
 	MinBlockCost   uint64 `serialize:"true" json:"minBlockCost"`
+
+	// Allocations
+	// TODO: move to a hash and use external file to avoid 1MB limit
+	Allocations []*Allocation `serialize:"true" json:"allocations"`
 }
 
 func DefaultGenesis() *Genesis {
@@ -68,14 +86,32 @@ func DefaultGenesis() *Genesis {
 		LookbackWindow: 60,            // 60 Seconds
 		BlockTarget:    1,             // 1 Block per Second
 		TargetUnits:    10 * 512 * 60, // 5012 Units Per Block (~1.2MB of SetTx)
-		MinDifficulty:  100,           // ~100ms per unit (~5s for easiest claim)
-		MinBlockCost:   1,             // Minimum Unit Overhead
+		MinPrice:       1,             // (50 for easiest claim)
+		MinBlockCost:   0,             // Minimum Unit Overhead
 	}
 }
 
 func (g *Genesis) StatefulBlock() *StatefulBlock {
 	return &StatefulBlock{
-		Difficulty: g.MinDifficulty,
-		Cost:       g.MinBlockCost,
+		Price: g.MinPrice,
+		Cost:  g.MinBlockCost,
 	}
+}
+
+func (g *Genesis) Verify() error {
+	if g.Magic == 0 {
+		return ErrInvalidMagic
+	}
+	return nil
+}
+
+func (g *Genesis) Load(db database.KeyValueWriter) error {
+	for _, alloc := range g.Allocations {
+		paddr := common.HexToAddress(alloc.Address)
+		if err := SetBalance(db, paddr, alloc.Balance); err != nil {
+			return fmt.Errorf("%w: addr=%s, bal=%d", err, alloc.Address, alloc.Balance)
+		}
+		log.Debug("loaded genesis balance", "addr", paddr, "balance", alloc.Balance)
+	}
+	return nil
 }

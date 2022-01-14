@@ -6,19 +6,32 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto"
+	"github.com/ethereum/go-ethereum/common"
 )
+
+type TransactionContext struct {
+	Genesis   *Genesis
+	Database  database.Database
+	BlockTime uint64
+	TxID      ids.ID
+	Sender    common.Address
+}
 
 type UnsignedTransaction interface {
 	Copy() UnsignedTransaction
-	SetBlockID(block ids.ID)
-	SetGraffiti(graffiti uint64)
-	GetSender() [crypto.SECP256K1RPKLen]byte
-	GetBlockID() ids.ID
+
+	BlockID() ids.ID
+	Prefix() []byte
+	Magic() uint64
+	Price() uint64
+
+	SetBlockID(ids.ID)
+	SetMagic(uint64)
+	SetPrice(uint64)
 
 	FeeUnits(*Genesis) uint64  // number of units to mine tx
 	LoadUnits(*Genesis) uint64 // units that should impact fee rate
 
-	ExecuteBase() error
-	Execute(*Genesis, database.Database, uint64, ids.ID) error
+	ExecuteBase(*Genesis) error
+	Execute(*TransactionContext) error
 }

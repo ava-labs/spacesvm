@@ -52,7 +52,7 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 	return foundBlockID, err
 }
 
-func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
+func (vm *VM) SuggestedFee() (uint64, uint64, error) {
 	g := vm.genesis
 	prnt, err := vm.GetBlock(vm.preferred)
 	if err != nil {
@@ -68,11 +68,11 @@ func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
 		return 0, 0, err
 	}
 
-	// Sort useful costs/difficulties
-	sort.Slice(ctx.Difficulties, func(i, j int) bool { return ctx.Difficulties[i] < ctx.Difficulties[j] })
-	pDiff := ctx.Difficulties[(len(ctx.Difficulties)-1)*feePercentile/100]
-	if pDiff < g.MinDifficulty {
-		pDiff = g.MinDifficulty
+	// Sort useful costs/prices
+	sort.Slice(ctx.Prices, func(i, j int) bool { return ctx.Prices[i] < ctx.Prices[j] })
+	pPrice := ctx.Prices[(len(ctx.Prices)-1)*feePercentile/100]
+	if pPrice < g.MinPrice {
+		pPrice = g.MinPrice
 	}
 	sort.Slice(ctx.Costs, func(i, j int) bool { return ctx.Costs[i] < ctx.Costs[j] })
 	pCost := ctx.Costs[(len(ctx.Costs)-1)*feePercentile/100]
@@ -83,7 +83,7 @@ func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
 	// Adjust cost estimate based on recent txs
 	recentTxs := ctx.RecentTxIDs.Len()
 	if recentTxs == 0 {
-		return pDiff, pCost, nil
+		return pPrice, pCost, nil
 	}
 	cPerTx := pCost / uint64(recentTxs) / uint64(ctx.RecentBlockIDs.Len())
 	if cPerTx < g.MinBlockCost {
@@ -91,5 +91,5 @@ func (vm *VM) DifficultyEstimate() (uint64, uint64, error) {
 		// transactions.
 		cPerTx = g.MinBlockCost
 	}
-	return pDiff, cPerTx, nil
+	return pPrice, cPerTx, nil
 }

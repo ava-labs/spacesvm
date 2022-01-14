@@ -7,12 +7,15 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math"
 
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
+	"github.com/ethereum/go-ethereum/common"
+	smath "github.com/ethereum/go-ethereum/common/math"
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/quarkvm/parser"
@@ -42,6 +45,7 @@ const (
 	keyPrefix     = 0x4
 	expiryPrefix  = 0x5
 	pruningPrefix = 0x6
+	balancePrefx  = 0x7
 
 	shortIDLen = 20
 
@@ -134,6 +138,15 @@ func PrefixExpiryKey(expiry uint64, rprefix ids.ShortID) (k []byte) {
 // [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
 func PrefixPruningKey(expired uint64, rprefix ids.ShortID) (k []byte) {
 	return specificTimeKey(pruningPrefix, expired, rprefix)
+}
+
+// [balancePrefix] + [delimiter] + [address]
+func PrefixBalanceKey(address common.Address) (k []byte) {
+	k = make([]byte, 2+common.AddressLength)
+	k[0] = balancePrefx
+	k[1] = parser.Delimiter
+	copy(k[2:], address[:])
+	return
 }
 
 const specificTimeKeyLen = 2 + 8 + 1 + shortIDLen
@@ -597,4 +610,43 @@ func WithRangeEnd(end []byte) OpOption {
 
 func WithRangeLimit(limit uint32) OpOption {
 	return func(op *Op) { op.rangeLimit = limit }
+}
+
+func GetBalance(db database.KeyValueReader, address common.Address) (uint64, error) {
+	k := PrefixBalanceKey(address)
+	v, err := db.Get(k)
+	if errors.Is(err, database.ErrNotFound) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	return binary.BigEndian.Uint64(v), nil
+}
+
+func SetBalance(db database.KeyValueWriter, address common.Address, bal uint64) error {
+	k := PrefixBalanceKey(address)
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, bal)
+	return db.Put(k, b)
+}
+
+func ModifyBalance(db database.KeyValueReaderWriter, address common.Address, add bool, change uint64) (uint64, error) {
+	b, err := GetBalance(db, address)
+	if err != nil {
+		return 0, err
+	}
+	var (
+		n     uint64
+		xflow bool
+	)
+	if add {
+		n, xflow = smath.SafeAdd(b, change)
+	} else {
+		n, xflow = smath.SafeSub(b, change)
+	}
+	if xflow {
+		return 0, fmt.Errorf("%w: bal=%d, addr=%v, add=%t, prev=%d, change=%d", ErrInvalidBalance, b, address, add, b, change)
+	}
+	return n, SetBalance(db, address, n)
 }

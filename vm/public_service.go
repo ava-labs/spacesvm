@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ethereum/go-ethereum/common"
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/quarkvm/chain"
@@ -119,23 +120,23 @@ func (svc *PublicService) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, 
 	return nil
 }
 
-type DifficultyEstimateArgs struct{}
+type SuggestedFeeArgs struct{}
 
-type DifficultyEstimateReply struct {
-	Difficulty uint64 `serialize:"true" json:"difficulty"`
-	Cost       uint64 `serialize:"true" json:"cost"`
+type SuggestedFeeReply struct {
+	Price uint64 `serialize:"true" json:"price"`
+	Cost  uint64 `serialize:"true" json:"cost"`
 }
 
-func (svc *PublicService) DifficultyEstimate(
+func (svc *PublicService) SuggestedFee(
 	_ *http.Request,
-	_ *DifficultyEstimateArgs,
-	reply *DifficultyEstimateReply,
+	_ *SuggestedFeeArgs,
+	reply *SuggestedFeeReply,
 ) error {
-	diff, cost, err := svc.vm.DifficultyEstimate()
+	price, cost, err := svc.vm.SuggestedFee()
 	if err != nil {
 		return err
 	}
-	reply.Difficulty = diff
+	reply.Price = price
 	reply.Cost = cost
 	return nil
 }
@@ -149,6 +150,7 @@ type ClaimedReply struct {
 }
 
 func (svc *PublicService) Claimed(_ *http.Request, args *ClaimedArgs, reply *ClaimedReply) error {
+	// TODO: return estimated cost of how much it would take
 	has, err := chain.HasPrefix(svc.vm.db, args.Prefix)
 	if err != nil {
 		return err
@@ -237,5 +239,24 @@ func (svc *PublicService) Resolve(_ *http.Request, args *ResolveArgs, reply *Res
 	v, exists, err := chain.GetValue(svc.vm.db, pfx, key)
 	reply.Exists = exists
 	reply.Value = v
+	return err
+}
+
+// TODO: IssueTxHR, Balance
+type BalanceArgs struct {
+	Address string `serialize:"true" json:"address"`
+}
+
+type BalanceReply struct {
+	Balance uint64 `serialize:"true" json:"balance"`
+}
+
+func (svc *PublicService) Balance(_ *http.Request, args *BalanceArgs, reply *BalanceReply) error {
+	paddr := common.HexToAddress(args.Address)
+	bal, err := chain.GetBalance(svc.vm.db, paddr)
+	if err != nil {
+		return err
+	}
+	reply.Balance = bal
 	return err
 }

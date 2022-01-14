@@ -6,9 +6,7 @@ package chain
 import (
 	"bytes"
 
-	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ava-labs/quarkvm/parser"
 )
@@ -19,15 +17,18 @@ type ClaimTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 }
 
-func (c *ClaimTx) Execute(g *Genesis, db database.Database, blockTime uint64, _ ids.ID) error {
-	// Restrict address prefix to be owned by pk
-	// [33]byte prefix is reserved for pubkey
-	if len(c.Prefix) == crypto.SECP256K1RPKLen && !bytes.Equal(c.Sender[:], c.Prefix) {
-		return ErrPublicKeyMismatch
+func (c *ClaimTx) Execute(t *TransactionContext) error {
+	if err := parser.CheckPrefix(c.Prefix()); err != nil {
+		return err
+	}
+
+	// Restrict address prefix to be owned by address
+	if len(c.Prefix()) == common.AddressLength && !bytes.Equal(t.Sender[:], c.Prefix()) {
+		return ErrAddressMismatch
 	}
 
 	// Prefix keys only exist if they are still valid
-	exists, err := HasPrefix(db, c.Prefix)
+	exists, err := HasPrefix(t.Database, c.Prefix())
 	if err != nil {
 		return err
 	}
@@ -37,19 +38,19 @@ func (c *ClaimTx) Execute(g *Genesis, db database.Database, blockTime uint64, _ 
 
 	// Anything previously at the prefix was previously removed...
 	newInfo := &PrefixInfo{
-		Owner:       c.Sender,
-		Created:     blockTime,
-		LastUpdated: blockTime,
-		Expiry:      blockTime + g.ClaimReward,
+		Owner:       t.Sender,
+		Created:     t.BlockTime,
+		LastUpdated: t.BlockTime,
+		Expiry:      t.BlockTime + t.Genesis.ClaimReward,
 		Units:       1,
 	}
-	if err := PutPrefixInfo(db, c.Prefix, newInfo, 0); err != nil {
+	if err := PutPrefixInfo(t.Database, c.Prefix(), newInfo, 0); err != nil {
 		return err
 	}
 	return nil
 }
 
-// [prefixUnits] requires the caller to produce more work to get prefixes of
+// [prefixUnits] requires the caller to pay more to get prefixes of
 // a shorter length because they are more desirable. This creates a "lottery"
 // mechanism where the people that spend the most mining power will win the
 // prefix.
@@ -67,7 +68,7 @@ func prefixUnits(g *Genesis, p []byte) uint64 {
 }
 
 func (c *ClaimTx) FeeUnits(g *Genesis) uint64 {
-	return c.LoadUnits(g) + prefixUnits(g, c.Prefix)
+	return c.LoadUnits(g) + prefixUnits(g, c.Prefix())
 }
 
 func (c *ClaimTx) LoadUnits(g *Genesis) uint64 {

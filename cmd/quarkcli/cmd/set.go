@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/quarkvm/chain"
@@ -69,11 +70,7 @@ COMMENT
 
 // TODO: move all this to a separate client code
 func setFunc(cmd *cobra.Command, args []string) error {
-	priv, err := LoadPK(privateKeyFile)
-	if err != nil {
-		return err
-	}
-	pk, err := chain.FormatPK(priv.PublicKey())
+	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
 		return err
 	}
@@ -83,15 +80,14 @@ func setFunc(cmd *cobra.Command, args []string) error {
 
 	utx := &chain.SetTx{
 		BaseTx: &chain.BaseTx{
-			Sender: pk,
-			Prefix: pfx,
+			Pfx: pfx,
 		},
 		Key:   key,
 		Value: val,
 	}
 
 	opts := []client.OpOption{client.WithPollTx(), client.WithPrefixInfo(pfx)}
-	_, err = client.MineSignIssueTx(context.Background(), cli, utx, priv, opts...)
+	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, opts...)
 	return err
 }
 

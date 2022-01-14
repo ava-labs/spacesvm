@@ -67,7 +67,7 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 	recentBlockIDs := ids.Set{}
 	recentTxIDs := ids.Set{}
 	recentUnits := uint64(0)
-	difficulties := []uint64{}
+	prices := []uint64{}
 	costs := []uint64{}
 	err := vm.lookback(currTime, lastBlock.ID(), func(b *chain.StatelessBlock) (bool, error) {
 		recentBlockIDs.Add(b.ID())
@@ -75,7 +75,7 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 			recentTxIDs.Add(tx.ID())
 			recentUnits += tx.LoadUnits(g)
 		}
-		difficulties = append(difficulties, b.Difficulty)
+		prices = append(prices, b.Price)
 		costs = append(costs, b.Cost)
 		return true, nil
 	})
@@ -99,15 +99,15 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 	}
 
 	// compute new min difficulty
-	nextDifficulty := lastBlock.Difficulty
+	nextPrice := lastBlock.Price
 	if recentUnits > g.TargetUnits {
-		nextDifficulty++
+		nextPrice++
 	} else if recentUnits < g.TargetUnits {
 		elapsedWindows := uint64(secondsSinceLast/g.LookbackWindow) + 1 // account for current window being less
-		if nextDifficulty >= g.MinDifficulty && elapsedWindows < nextDifficulty-g.MinDifficulty {
-			nextDifficulty -= elapsedWindows
+		if nextPrice >= g.MinPrice && elapsedWindows < nextPrice-g.MinPrice {
+			nextPrice -= elapsedWindows
 		} else {
-			nextDifficulty = g.MinDifficulty
+			nextPrice = g.MinPrice
 		}
 	}
 
@@ -116,10 +116,10 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		RecentTxIDs:     recentTxIDs,
 		RecentLoadUnits: recentUnits,
 
-		Difficulties: difficulties,
-		Costs:        costs,
+		Prices: prices,
+		Costs:  costs,
 
-		NextCost:       nextCost,
-		NextDifficulty: nextDifficulty,
+		NextPrice: nextPrice,
+		NextCost:  nextCost,
 	}, nil
 }

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/ava-labs/avalanchego/utils/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -34,22 +34,13 @@ func createFunc(cmd *cobra.Command, args []string) error {
 
 	// Generate new key and save to disk
 	// TODO: encrypt key
-	pk, err := f.NewPrivateKey()
+	priv, err := crypto.GenerateKey()
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(privateKeyFile, pk.Bytes(), fsModeWrite); err != nil {
+	if err := crypto.SaveECDSA(privateKeyFile, priv); err != nil {
 		return err
 	}
-	color.Green("created address %s and saved to %s", pk.PublicKey().Address(), privateKeyFile)
+	color.Green("created address %s and saved to %s", crypto.PubkeyToAddress(priv.PublicKey), privateKeyFile)
 	return nil
-}
-
-// TODO: run before all functions (erroring if can't load)
-func LoadPK(privPath string) (crypto.PrivateKey, error) {
-	pk, err := os.ReadFile(privPath)
-	if err != nil {
-		return nil, err
-	}
-	return f.ToPrivateKey(pk)
 }

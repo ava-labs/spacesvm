@@ -5,23 +5,22 @@ package client
 
 import (
 	"context"
-	"errors"
+	"crypto/ecdsa"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 
 	"github.com/ava-labs/quarkvm/chain"
 )
 
-// Mines against the unsigned transaction first.
-// And signs and issues the transaction.
-func MineSignIssueTx(
+// Signs and issues the transaction.
+func SignIssueTx(
 	ctx context.Context,
 	cli Client,
-	rtx chain.UnsignedTransaction,
-	priv crypto.PrivateKey,
+	utx chain.UnsignedTransaction,
+	priv *ecdsa.PrivateKey,
 	opts ...OpOption,
 ) (txID ids.ID, err error) {
 	ret := &Op{}
@@ -32,20 +31,21 @@ func MineSignIssueTx(
 		return ids.Empty, err
 	}
 
-	utx, err := cli.Mine(ctx, g, rtx)
+	la, err := cli.Accepted()
 	if err != nil {
 		return ids.Empty, err
 	}
 
-	b, err := chain.UnsignedBytes(utx)
+	price, blockCost, err := cli.SuggestedFee()
 	if err != nil {
 		return ids.Empty, err
 	}
-	parsedPriv, ok := priv.(*crypto.PrivateKeySECP256K1R)
-	if !ok {
-		return ids.Empty, errors.New("incorrect key type")
-	}
-	sig, err := parsedPriv.Sign(b)
+
+	utx.SetBlockID(la)
+	utx.SetMagic(g.Magic)
+	utx.SetPrice(price + blockCost/utx.FeeUnits(g))
+
+	sig, err := crypto.Sign(chain.DigestHash(utx), priv)
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -56,8 +56,8 @@ func MineSignIssueTx(
 	}
 
 	color.Yellow(
-		"issuing tx %s (fee units=%d, load units=%d, difficulty=%d, blkID=%s)",
-		tx.ID(), tx.FeeUnits(g), tx.LoadUnits(g), tx.Difficulty(), tx.GetBlockID(),
+		"issuing tx %s (fee units=%d, load units=%d, price=%d, blkID=%s)",
+		tx.ID(), tx.FeeUnits(g), tx.LoadUnits(g), tx.Price(), tx.BlockID(),
 	)
 	txID, err = cli.IssueTx(tx.Bytes())
 	if err != nil {

@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-
-	"github.com/ava-labs/avalanchego/utils/crypto"
 )
 
 const (
@@ -22,7 +20,6 @@ var (
 	privateKeyFile string
 	uri            string
 	workDir        string
-	f              *crypto.FactorySECP256K1R
 
 	rootCmd = &cobra.Command{
 		Use:        "quark-cli",
@@ -37,7 +34,6 @@ func init() {
 		panic(err)
 	}
 	workDir = p
-	f = &crypto.FactorySECP256K1R{}
 
 	cobra.EnablePrefixMatching = true
 	rootCmd.AddCommand(

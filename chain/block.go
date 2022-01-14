@@ -12,8 +12,8 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
+	"github.com/ava-labs/avalanchego/utils/hashing"
 	log "github.com/inconshreveable/log15"
-	"golang.org/x/crypto/sha3"
 )
 
 const futureBound = 10 * time.Second
@@ -21,12 +21,12 @@ const futureBound = 10 * time.Second
 var _ snowman.Block = &StatelessBlock{}
 
 type StatefulBlock struct {
-	Prnt       ids.ID         `serialize:"true" json:"parent"`
-	Tmstmp     int64          `serialize:"true" json:"timestamp"`
-	Hght       uint64         `serialize:"true" json:"height"`
-	Difficulty uint64         `serialize:"true" json:"difficulty"` // difficulty per unit
-	Cost       uint64         `serialize:"true" json:"cost"`
-	Txs        []*Transaction `serialize:"true" json:"txs"`
+	Prnt   ids.ID         `serialize:"true" json:"parent"`
+	Tmstmp int64          `serialize:"true" json:"timestamp"`
+	Hght   uint64         `serialize:"true" json:"height"`
+	Price  uint64         `serialize:"true" json:"price"`
+	Cost   uint64         `serialize:"true" json:"cost"`
+	Txs    []*Transaction `serialize:"true" json:"txs"`
 
 	Beneficiary []byte `serialize:"true" json:"beneficiary"` // prefix to reward
 }
@@ -53,7 +53,7 @@ func NewBlock(vm VM, parent snowman.Block, tmstp int64, beneficiary []byte, cont
 			Tmstmp:      tmstp,
 			Prnt:        parent.ID(),
 			Hght:        parent.Height() + 1,
-			Difficulty:  context.NextDifficulty,
+			Price:       context.NextPrice,
 			Cost:        context.NextCost,
 			Beneficiary: beneficiary,
 		},
@@ -94,8 +94,7 @@ func ParseStatefulBlock(
 		st:            status,
 		vm:            vm,
 	}
-	h := sha3.Sum256(b.bytes)
-	id, err := ids.ToID(h[:])
+	id, err := ids.ToID(hashing.ComputeHash256(b.bytes))
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +115,7 @@ func (b *StatelessBlock) init() error {
 	}
 	b.bytes = bytes
 
-	h := sha3.Sum256(b.bytes)
-	id, err := ids.ToID(h[:])
+	id, err := ids.ToID(hashing.ComputeHash256(b.bytes))
 	if err != nil {
 		return err
 	}
@@ -162,8 +160,8 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	if b.Cost != context.NextCost {
 		return nil, nil, ErrInvalidCost
 	}
-	if b.Difficulty != context.NextDifficulty {
-		return nil, nil, ErrInvalidDifficulty
+	if b.Price != context.NextPrice {
+		return nil, nil, ErrInvalidPrice
 	}
 
 	parentState, err := parent.onAccept()
@@ -182,19 +180,20 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	}
 
 	// Process new transactions
-	log.Debug("build context", "height", b.Hght, "difficulty", b.Difficulty, "cost", b.Cost)
-	surplusWork := uint64(0)
+	log.Debug("build context", "height", b.Hght, "price", b.Price, "cost", b.Cost)
+	surplusFee := uint64(0)
 	for _, tx := range b.Txs {
 		if err := tx.Execute(g, onAcceptDB, b.Tmstmp, context); err != nil {
 			return nil, nil, err
 		}
-		surplusWork += (tx.Difficulty() - b.Difficulty) * tx.FeeUnits(g)
+		surplusFee += (tx.Price() - b.Price) * tx.FeeUnits(g)
 	}
-	// Ensure enough work is performed to compensate for block production speed
-	requiredSurplus := b.Difficulty * b.Cost
-	if surplusWork < requiredSurplus {
-		return nil, nil, fmt.Errorf("%w: required=%d found=%d", ErrInsufficientSurplus, requiredSurplus, surplusWork)
+	// Ensure enough fee is paid to compensate for block production speed
+	requiredSurplus := b.Price * b.Cost
+	if surplusFee < requiredSurplus {
+		return nil, nil, fmt.Errorf("%w: required=%d found=%d", ErrInsufficientSurplus, requiredSurplus, surplusFee)
 	}
+	// TODO: send non-surplus fee to a random prefix owner
 	return parent, onAcceptDB, nil
 }
 

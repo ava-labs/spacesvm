@@ -16,10 +16,10 @@ func TestBlockCache(t *testing.T) {
 	// create a block with "Unknown" status
 	blk := &chain.StatelessBlock{
 		StatefulBlock: &chain.StatefulBlock{
-			Prnt:       ids.GenerateTestID(),
-			Hght:       10000,
-			Difficulty: 1000,
-			Cost:       100,
+			Prnt:  ids.GenerateTestID(),
+			Hght:  10000,
+			Price: 1000,
+			Cost:  100,
 		},
 	}
 	blkID := blk.ID()

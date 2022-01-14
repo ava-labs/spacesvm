@@ -7,27 +7,23 @@ package e2e_test
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"flag"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
 
-	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/ava-labs/quarkvm/chain"
 	"github.com/ava-labs/quarkvm/client"
 	"github.com/ava-labs/quarkvm/parser"
 	"github.com/ava-labs/quarkvm/tests"
+	ecommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
-
-var f *crypto.FactorySECP256K1R
-
-func init() {
-	f = &crypto.FactorySECP256K1R{}
-}
 
 func TestIntegration(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
@@ -62,8 +58,8 @@ func init() {
 }
 
 var (
-	priv   crypto.PrivateKey
-	sender [crypto.SECP256K1RPKLen]byte
+	priv   *ecdsa.PrivateKey
+	sender ecommon.Address
 
 	clusterInfo tests.ClusterInfo
 	instances   []instance
@@ -78,10 +74,9 @@ type instance struct {
 
 var _ = ginkgo.BeforeSuite(func() {
 	var err error
-	priv, err = f.NewPrivateKey()
+	priv, err = crypto.HexToECDSA("a1c0bd71ff64aebd666b04db0531d61479c2c031e4de38410de0609cbd6e66f0")
 	gomega.Ω(err).Should(gomega.BeNil())
-	sender, err = chain.FormatPK(priv.PublicKey())
-	gomega.Ω(err).Should(gomega.BeNil())
+	sender = crypto.PubkeyToAddress(priv.PublicKey)
 
 	gomega.Ω(clusterInfoPath).ShouldNot(gomega.BeEmpty())
 	clusterInfo, err = tests.LoadClusterInfo(clusterInfoPath)
@@ -142,8 +137,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("mine and issue ClaimTx to the first node", func() {
 			claimTx := &chain.ClaimTx{
 				BaseTx: &chain.BaseTx{
-					Sender: sender,
-					Prefix: pfx,
+					Pfx: pfx,
 				},
 			}
 
@@ -152,7 +146,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			gomega.Ω(claimed).Should(gomega.BeFalse())
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err = client.MineSignIssueTx(
+			_, err = client.SignIssueTx(
 				ctx,
 				instances[0].cli,
 				claimTx,
@@ -182,8 +176,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("mine and issue SetTx to a different node (if available)", func() {
 			setTx := &chain.SetTx{
 				BaseTx: &chain.BaseTx{
-					Sender: sender,
-					Prefix: pfx,
+					Pfx: pfx,
 				},
 				Key:   k,
 				Value: v,
@@ -195,7 +188,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.MineSignIssueTx(
+			_, err := client.SignIssueTx(
 				ctx,
 				cli,
 				setTx,
@@ -231,8 +224,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("mine and issue large SetTx overwrite to a different node (if available)", func() {
 			setTx := &chain.SetTx{
 				BaseTx: &chain.BaseTx{
-					Sender: sender,
-					Prefix: pfx,
+					Pfx: pfx,
 				},
 				Key:   k,
 				Value: v2,
@@ -244,7 +236,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.MineSignIssueTx(
+			_, err := client.SignIssueTx(
 				ctx,
 				cli,
 				setTx,
@@ -279,8 +271,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("mine and issue delete SetTx to a different node (if available)", func() {
 			setTx := &chain.SetTx{
 				BaseTx: &chain.BaseTx{
-					Sender: sender,
-					Prefix: pfx,
+					Pfx: pfx,
 				},
 				Key: k,
 			}
@@ -291,7 +282,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.MineSignIssueTx(
+			_, err := client.SignIssueTx(
 				ctx,
 				cli,
 				setTx,

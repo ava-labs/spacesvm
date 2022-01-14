@@ -4,56 +4,68 @@
 package chain
 
 import (
-	"bytes"
-
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto"
-
-	"github.com/ava-labs/quarkvm/parser"
 )
 
-var emptyPublicKeyBytes [crypto.SECP256K1RPKLen]byte
-
 type BaseTx struct {
-	Sender   [crypto.SECP256K1RPKLen]byte `serialize:"true" json:"sender"`
-	Graffiti uint64                       `serialize:"true" json:"graffiti"`
-	BlockID  ids.ID                       `serialize:"true" json:"blockId"`
+	// BlkID is the ID of a block in the [lookbackWindow].
+	BlkID ids.ID `serialize:"true" json:"blockId"`
 
 	// Prefix is the namespace for the "PrefixInfo"
 	// whose owner can write and read value for the
 	// specific key space.
 	// The prefix must not have the delimiter '/' as suffix.
 	// Otherwise, the verification will fail.
-	Prefix []byte `serialize:"true" json:"prefix"`
+
+	// TODO: change to string
+	// TODO: move to each tx
+	Pfx []byte `serialize:"true" json:"prefix"`
+
+	// Magic is a value defined in genesis to protect against replay attacks on
+	// different VMs.
+	Mgc uint64 `serialize:"true" json:"magic"`
+
+	// Price is the value per unit to spend on this transaction.
+	Prce uint64 `serialize:"true" json:"fee"`
 }
 
-func (b *BaseTx) SetBlockID(blockID ids.ID) {
-	b.BlockID = blockID
+func (b *BaseTx) BlockID() ids.ID {
+	return b.BlkID
 }
 
-func (b *BaseTx) SetGraffiti(graffiti uint64) {
-	b.Graffiti = graffiti
+func (b *BaseTx) SetBlockID(bid ids.ID) {
+	b.BlkID = bid
 }
 
-func (b *BaseTx) GetBlockID() ids.ID {
-	return b.BlockID
+func (b *BaseTx) Prefix() []byte {
+	return b.Pfx
 }
 
-func (b *BaseTx) GetSender() [crypto.SECP256K1RPKLen]byte {
-	return b.Sender
+func (b *BaseTx) Magic() uint64 {
+	return b.Mgc
 }
 
-func (b *BaseTx) ExecuteBase() error {
-	if err := parser.CheckPrefix(b.Prefix); err != nil {
-		return err
-	}
+func (b *BaseTx) SetMagic(magic uint64) {
+	b.Mgc = magic
+}
 
-	if bytes.Equal(b.Sender[:], emptyPublicKeyBytes[:]) {
-		return ErrInvalidSender
-	}
+func (b *BaseTx) Price() uint64 {
+	return b.Prce
+}
 
-	if b.BlockID == ids.Empty {
+func (b *BaseTx) SetPrice(price uint64) {
+	b.Prce = price
+}
+
+func (b *BaseTx) ExecuteBase(g *Genesis) error {
+	if b.BlkID == ids.Empty {
 		return ErrInvalidBlockID
+	}
+	if g.Magic != b.Mgc {
+		return ErrInvalidMagic
+	}
+	if b.Prce < g.MinPrice {
+		return ErrInvalidPrice
 	}
 	return nil
 }
@@ -67,16 +79,14 @@ func (b *BaseTx) LoadUnits(g *Genesis) uint64 {
 }
 
 func (b *BaseTx) Copy() *BaseTx {
-	sender := [crypto.SECP256K1RPKLen]byte{}
-	copy(sender[:], b.Sender[:])
 	blockID := ids.ID{}
-	copy(blockID[:], b.BlockID[:])
-	prefix := make([]byte, len(b.Prefix))
-	copy(prefix, b.Prefix)
+	copy(blockID[:], b.BlkID[:])
+	prefix := make([]byte, len(b.Pfx))
+	copy(prefix, b.Pfx)
 	return &BaseTx{
-		Sender:   sender,
-		BlockID:  blockID,
-		Graffiti: b.Graffiti,
-		Prefix:   prefix,
+		BlkID: blockID,
+		Pfx:   prefix,
+		Mgc:   b.Mgc,
+		Prce:  b.Prce,
 	}
 }

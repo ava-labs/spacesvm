@@ -16,60 +16,58 @@ import (
 func TestBaseTx(t *testing.T) {
 	t.Parallel()
 
-	priv, err := f.NewPrivateKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-	sender, err := FormatPK(priv.PublicKey())
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	tt := []struct {
-		tx  *BaseTx
-		err error
+		tx        *BaseTx
+		baseTxErr error
+		prefixErr error
 	}{
 		{
-			tx:  &BaseTx{Sender: sender, Prefix: []byte("foo"), BlockID: ids.GenerateTestID()},
-			err: nil,
+			tx: &BaseTx{Pfx: []byte("foo"), BlkID: ids.GenerateTestID(), Prce: 1},
 		},
 		{
-			tx:  &BaseTx{Prefix: []byte("foo"), BlockID: ids.GenerateTestID()},
-			err: ErrInvalidSender,
+			tx:        &BaseTx{Pfx: []byte("foo"), BlkID: ids.GenerateTestID()},
+			baseTxErr: ErrInvalidPrice,
 		},
 		{
-			tx:  &BaseTx{Sender: sender, Prefix: []byte("fo/a")},
-			err: parser.ErrInvalidDelimiter,
+			tx:        &BaseTx{Pfx: []byte("fo/a"), BlkID: ids.GenerateTestID()},
+			prefixErr: parser.ErrInvalidDelimiter,
 		},
 		{
-			tx:  &BaseTx{Sender: sender, Prefix: []byte("foo/")},
-			err: parser.ErrInvalidDelimiter,
+			tx:        &BaseTx{Pfx: []byte("foo/"), BlkID: ids.GenerateTestID()},
+			prefixErr: parser.ErrInvalidDelimiter,
 		},
 		{
-			tx:  &BaseTx{Sender: sender, Prefix: []byte("foo")},
-			err: ErrInvalidBlockID,
-		},
-		{
-			tx: &BaseTx{
-				Sender:  sender,
-				BlockID: ids.GenerateTestID(),
-				Prefix:  nil,
-			},
-			err: parser.ErrPrefixEmpty,
+			tx:        &BaseTx{Pfx: []byte("foo")},
+			baseTxErr: ErrInvalidBlockID,
 		},
 		{
 			tx: &BaseTx{
-				Sender:  sender,
-				BlockID: ids.GenerateTestID(),
-				Prefix:  bytes.Repeat([]byte{'a'}, parser.MaxPrefixSize+1),
+				BlkID: ids.GenerateTestID(),
+				Pfx:   nil,
 			},
-			err: parser.ErrPrefixTooBig,
+			prefixErr: parser.ErrPrefixEmpty,
+		},
+		{
+			tx: &BaseTx{
+				BlkID: ids.GenerateTestID(),
+				Pfx:   bytes.Repeat([]byte{'a'}, parser.MaxPrefixSize+1),
+			},
+			prefixErr: parser.ErrPrefixTooBig,
 		},
 	}
+	g := DefaultGenesis()
 	for i, tv := range tt {
-		err := tv.tx.ExecuteBase()
-		if !errors.Is(err, tv.err) {
-			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
+		err := tv.tx.ExecuteBase(g)
+		if tv.baseTxErr != nil && !errors.Is(err, tv.baseTxErr) {
+			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.baseTxErr, err)
+		}
+		if tv.prefixErr == nil {
+			continue
+		}
+		tx := &ClaimTx{BaseTx: tv.tx}
+		err = tx.Execute(&TransactionContext{Genesis: g})
+		if !errors.Is(err, tv.prefixErr) {
+			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.prefixErr, err)
 		}
 	}
 }

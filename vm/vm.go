@@ -139,10 +139,16 @@ func (vm *VM) Initialize(
 
 	// Parse genesis data
 	vm.genesis = new(chain.Genesis)
-	if _, err := chain.Unmarshal(genesisBytes, vm.genesis); err != nil {
+	if err := ejson.Unmarshal(genesisBytes, vm.genesis); err != nil {
 		log.Error("could not unmarshal genesis bytes")
 		return err
 	}
+	if err := vm.genesis.Verify(); err != nil {
+		log.Error("genesis is invalid")
+		return err
+	}
+	log.Debug("loaded genesis", "genesis", string(genesisBytes))
+
 	vm.mempool = mempool.New(vm.genesis, vm.config.MempoolSize)
 
 	if has { //nolint:nestif
@@ -169,6 +175,12 @@ func (vm *VM) Initialize(
 		)
 		if err != nil {
 			log.Error("unable to init genesis block", "err", err)
+			return err
+		}
+
+		// Set Balances
+		if err := vm.genesis.Load(vm.db); err != nil {
+			log.Error("could not set genesis allocation", "err", err)
 			return err
 		}
 
@@ -401,7 +413,7 @@ func (vm *VM) submit(tx *chain.Transaction, db database.Database, blkTime int64,
 	if err := tx.Init(vm.genesis); err != nil {
 		return err
 	}
-	if err := tx.ExecuteBase(); err != nil {
+	if err := tx.ExecuteBase(vm.genesis); err != nil {
 		return err
 	}
 	if err := tx.Execute(vm.genesis, db, blkTime, ctx); err != nil {

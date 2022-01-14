@@ -4,8 +4,11 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -16,11 +19,13 @@ import (
 var (
 	genesisFile string
 
-	minDifficulty      int64
+	minPrice           int64
 	minBlockCost       int64
 	claimReward        int64
 	lifelineUnitReward int64
 	beneficiaryReward  int64
+
+	magic uint64
 )
 
 func init() {
@@ -31,10 +36,10 @@ func init() {
 		"genesis file path",
 	)
 	genesisCmd.PersistentFlags().Int64Var(
-		&minDifficulty,
-		"min-difficulty",
+		&minPrice,
+		"min-price",
 		-1,
-		"minimum difficulty for mining",
+		"minimum price",
 	)
 	genesisCmd.PersistentFlags().Int64Var(
 		&minBlockCost,
@@ -63,15 +68,32 @@ func init() {
 }
 
 var genesisCmd = &cobra.Command{
-	Use:   "genesis [options]",
+	Use:   "genesis [magic] [allocations file] [options]",
 	Short: "Creates a new genesis in the default location",
-	RunE:  genesisFunc,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 2 {
+			return errors.New("invalid args")
+		}
+
+		m, err := strconv.ParseUint(args[0], 10, 64)
+		if err != nil {
+			return err
+		}
+		magic = m
+		if magic == 0 {
+			return chain.ErrInvalidMagic
+		}
+
+		return nil
+	},
+	RunE: genesisFunc,
 }
 
 func genesisFunc(cmd *cobra.Command, args []string) error {
 	genesis := chain.DefaultGenesis()
-	if minDifficulty >= 0 {
-		genesis.MinDifficulty = uint64(minDifficulty)
+	genesis.Magic = magic
+	if minPrice >= 0 {
+		genesis.MinPrice = uint64(minPrice)
 	}
 	if minBlockCost >= 0 {
 		genesis.MinBlockCost = uint64(minBlockCost)
@@ -85,7 +107,19 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	if beneficiaryReward >= 0 {
 		genesis.BeneficiaryReward = uint64(beneficiaryReward)
 	}
-	b, err := chain.Marshal(genesis)
+
+	a, err := os.ReadFile(args[1])
+	if err != nil {
+		return err
+	}
+	allocs := []*chain.Allocation{}
+	if err := json.Unmarshal(a, &allocs); err != nil {
+		return err
+	}
+	// Store hash instead
+	genesis.Allocations = allocs
+
+	b, err := json.Marshal(genesis)
 	if err != nil {
 		return err
 	}
