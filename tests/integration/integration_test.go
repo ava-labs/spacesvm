@@ -368,7 +368,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 func expectBlkAccept(
 	i instance,
 	utx chain.UnsignedTransaction,
-) *chain.StatelessBlock {
+) {
 	g, err := i.cli.Genesis()
 	gomega.Ω(err).Should(gomega.BeNil())
 	utx.SetMagic(g.Magic)
@@ -413,8 +413,6 @@ func expectBlkAccept(
 	lastAccepted, err := i.vm.LastAccepted()
 	gomega.Ω(err).To(gomega.BeNil())
 	gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
-
-	return blk.(*chain.StatelessBlock)
 }
 
 var _ common.AppSender = &appSender{}

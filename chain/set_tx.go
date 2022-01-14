@@ -28,7 +28,7 @@ type SetTx struct {
 	// Key is parsed from the given input, with its space removed.
 	Key string `serialize:"true" json:"key"`
 
-	// Value is writen as the key-value pair to the storage. If a previous value
+	// Value is written as the key-value pair to the storage. If a previous value
 	// exists, it is overwritten.
 	Value []byte `serialize:"true" json:"value"`
 }
