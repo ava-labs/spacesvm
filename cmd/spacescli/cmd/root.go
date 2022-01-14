@@ -22,9 +22,9 @@ var (
 	workDir        string
 
 	rootCmd = &cobra.Command{
-		Use:        "quark-cli",
-		Short:      "QuarkVM client CLI",
-		SuggestFor: []string{"quark-cli", "quarkcli", "quarkctl"},
+		Use:        "spaces-cli",
+		Short:      "SpacesVM client CLI",
+		SuggestFor: []string{"spaces-cli", "spacescli", "spacesctl"},
 	}
 )
 
@@ -49,7 +49,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(
 		&privateKeyFile,
 		"private-key-file",
-		".quark-cli-pk",
+		".spaces-cli-pk",
 		"private key file path",
 	)
 	rootCmd.PersistentFlags().StringVar(
