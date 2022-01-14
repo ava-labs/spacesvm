@@ -9,11 +9,12 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-func TestTransferTx(t *testing.T) {
+func TestMoveTx(t *testing.T) {
 	t.Parallel()
 
 	priv, err := crypto.GenerateKey()
@@ -62,46 +63,28 @@ func TestTransferTx(t *testing.T) {
 		err       error
 	}{
 		{ // invalid when no amount is given
-			utx:       &TransferTx{BaseTx: &BaseTx{}},
+			utx:       &MoveTx{BaseTx: &BaseTx{}},
 			blockTime: 1,
 			sender:    sender,
 			err:       ErrNonActionable,
 		},
-		{ // invalid when no funds
-			utx:       &TransferTx{BaseTx: &BaseTx{}, To: sender, Value: 10},
-			blockTime: 1,
-			sender:    sender3,
-			err:       ErrInvalidBalance,
-		},
-		{ // invalid when little funds
-			utx:       &TransferTx{BaseTx: &BaseTx{}, To: sender, Value: 10},
-			blockTime: 1,
-			sender:    sender2,
-			err:       ErrInvalidBalance,
-		},
-		{ // valid send to new account
-			utx:       &TransferTx{BaseTx: &BaseTx{}, To: sender3, Value: 10},
+		{ // successful claim with expiry time "blockTime" + "expiryTime"
+			utx:       &ClaimTx{BaseTx: &BaseTx{}, Space: "foo"},
 			blockTime: 1,
 			sender:    sender,
 			err:       nil,
 		},
-		{ // valid send to existing account
-			utx:       &TransferTx{BaseTx: &BaseTx{}, To: sender2, Value: 10},
+		{ // successful prefix transfer
+			utx:       &MoveTx{BaseTx: &BaseTx{}, Space: "foo", To: sender3},
 			blockTime: 1,
 			sender:    sender,
 			err:       nil,
 		},
-		{ // now valid
-			utx:       &TransferTx{BaseTx: &BaseTx{}, To: sender, Value: 10},
+		{ // prefix looking bad
+			utx:       &MoveTx{BaseTx: &BaseTx{}, Space: "foo/", To: sender3},
 			blockTime: 1,
-			sender:    sender3,
-			err:       nil,
-		},
-		{ // now valid
-			utx:       &TransferTx{BaseTx: &BaseTx{}, To: sender, Value: 10},
-			blockTime: 1,
-			sender:    sender2,
-			err:       nil,
+			sender:    sender,
+			err:       parser.ErrInvalidContents,
 		},
 	}
 	for i, tv := range tt {

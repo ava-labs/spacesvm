@@ -5,11 +5,8 @@ package chain
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/ava-labs/spacesvm/parser"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const hashLen = 64
