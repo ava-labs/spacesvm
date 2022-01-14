@@ -12,8 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	log "github.com/inconshreveable/log15"
 
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/parser"
 )
 
 var (

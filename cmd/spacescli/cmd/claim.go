@@ -12,9 +12,9 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/client"
+	"github.com/ava-labs/spacesvm/parser"
 )
 
 var claimCmd = &cobra.Command{
@@ -26,14 +26,14 @@ with the prefix information.
 
 # Issues "ClaimTx" for the ownership of "hello.avax".
 # "hello.avax" is the prefix (or namespace)
-$ quark-cli claim hello.avax
+$ spaces-cli claim hello.avax
 <<COMMENT
 success
 COMMENT
 
 # The existing prefix can be overwritten by a different owner.
 # Once claimed, all existing key-value pairs are deleted.
-$ quark-cli claim hello.avax --private-key-file=.different-key
+$ spaces-cli claim hello.avax --private-key-file=.different-key
 <<COMMENT
 success
 COMMENT
@@ -42,7 +42,7 @@ COMMENT
 # the previous prefix (owner) info has not been expired.
 # Even if the prefix is claimed by the same owner,
 # all underlying key-values are deleted.
-$ quark-cli claim hello.avax
+$ spaces-cli claim hello.avax
 <<COMMENT
 success
 COMMENT

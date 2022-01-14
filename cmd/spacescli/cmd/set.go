@@ -11,16 +11,16 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/client"
+	"github.com/ava-labs/spacesvm/parser"
 )
 
-var deleteCmd = &cobra.Command{
-	Use:   "delete [options] <prefix/key>",
-	Short: "Deletes a key-value pair for the given prefix",
+var setCmd = &cobra.Command{
+	Use:   "set [options] <prefix/key> <value>",
+	Short: "Writes a key-value pair for the given prefix",
 	Long: `
-Issues "SetTx" to delete key-value pair(s).
+Issues "SetTx" to write a key-value pair.
 
 The prefix is automatically parsed with the delimiter "/".
 When given a key "foo/hello", the "set" creates the transaction
@@ -28,13 +28,12 @@ with "foo" as prefix and "hello" as key. The prefix/key cannot
 have more than one delimiter (e.g., "foo/hello/world" is invalid)
 in order to maintain the flat key space.
 
-It assumes the prefix is already claimed via "quark-cli claim",
-and the key already exists via "quark-cli set". Otherwise, the
-transaction will fail.
+It assumes the prefix is already claimed via "spaces-cli claim".
+Otherwise, the set transaction will fail.
 
 # claims the prefix "hello.avax"
 # "hello.avax" is the prefix (or namespace)
-$ quark-cli claim hello.avax
+$ spaces-cli claim hello.avax
 <<COMMENT
 success
 COMMENT
@@ -44,42 +43,39 @@ COMMENT
 # "hello.avax" is the prefix (or namespace)
 # "foo" is the key
 # "hello world" is the value
-$ quark-cli set hello.avax/foo "hello world"
+$ spaces-cli set hello.avax/foo "hello world"
 <<COMMENT
 success
-COMMENT
-
-# The prefix and key can be deleted by "delete" command.
-$ quark-cli delete hello.avax/foo
-<<COMMENT
-success
-COMMENT
-
-# The prefix itself cannot be deleted by "delete" command.
-$ quark-cli delete hello.avax
-<<COMMENT
-error
 COMMENT
 
 # The existing key-value cannot be overwritten by a different owner.
 # The prefix must be claimed before it allows key-value writes.
-$ quark-cli set hello.avax/foo "hello world" --private-key-file=.different-key
+$ spaces-cli set hello.avax/foo "hello world" --private-key-file=.different-key
 <<COMMENT
 error
 COMMENT
 
+# The prefix can be claimed if and only if
+# the previous prefix (owner) info has not been expired.
+# Even if the prefix is claimed by the same owner,
+# all underlying key-values are deleted.
+$ spaces-cli claim hello.avax
+<<COMMENT
+success
+COMMENT
+
 `,
-	RunE: deleteFunc,
+	RunE: setFunc,
 }
 
 // TODO: move all this to a separate client code
-func deleteFunc(cmd *cobra.Command, args []string) error {
+func setFunc(cmd *cobra.Command, args []string) error {
 	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
 		return err
 	}
 
-	pfx, key := getDeleteOp(args)
+	pfx, key, val := getSetOp(args)
 	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.SetTx{
@@ -87,7 +83,7 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 			Pfx: pfx,
 		},
 		Key:   key,
-		Value: nil,
+		Value: val,
 	}
 
 	opts := []client.OpOption{client.WithPollTx(), client.WithPrefixInfo(pfx)}
@@ -95,9 +91,9 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 	return err
 }
 
-func getDeleteOp(args []string) (pfx []byte, key []byte) {
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
+func getSetOp(args []string) (pfx []byte, key []byte, val []byte) {
+	if len(args) != 2 {
+		fmt.Fprintf(os.Stderr, "expected exactly 2 arguments, got %d", len(args))
 		os.Exit(128)
 	}
 
@@ -115,5 +111,7 @@ func getDeleteOp(args []string) (pfx []byte, key []byte) {
 		os.Exit(128)
 	}
 
-	return pfx, key
+	val = []byte(args[1])
+
+	return pfx, key, val
 }

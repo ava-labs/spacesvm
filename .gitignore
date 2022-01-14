@@ -49,7 +49,7 @@ bin/
 build/
 vendor
 
-.quark-cli-pk
+.spaces-cli-pk
 genesis.json
 *.test
 

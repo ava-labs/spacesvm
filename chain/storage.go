@@ -18,7 +18,7 @@ import (
 	smath "github.com/ethereum/go-ethereum/common/math"
 	log "github.com/inconshreveable/log15"
 
-	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ava-labs/spacesvm/parser"
 )
 
 // TODO: cleanup mapping diagram

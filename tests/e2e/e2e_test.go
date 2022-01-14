@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/parser"
-	"github.com/ava-labs/quarkvm/tests"
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/client"
+	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tests"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
@@ -27,7 +27,7 @@ import (
 
 func TestIntegration(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "quarkvm integration test suites")
+	ginkgo.RunSpecs(t, "spacesvm integration test suites")
 }
 
 var (

@@ -11,8 +11,8 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/mempool"
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/mempool"
 )
 
 // $ go install -v golang.org/x/perf/cmd/benchstat@latest

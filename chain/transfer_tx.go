@@ -6,7 +6,7 @@ package chain
 import (
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ava-labs/spacesvm/parser"
 )
 
 var _ UnsignedTransaction = &SetTx{}

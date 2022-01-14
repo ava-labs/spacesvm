@@ -9,7 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )

@@ -28,15 +28,15 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/parser"
-	"github.com/ava-labs/quarkvm/vm"
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/client"
+	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/vm"
 )
 
 func TestIntegration(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "quarkvm integration test suites")
+	ginkgo.RunSpecs(t, "spacesvm integration test suites")
 }
 
 var (

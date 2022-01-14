@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// Package client implements "quarkvm" client SDK.
+// Package client implements "spacesvm" client SDK.
 package client
 
 import (
@@ -15,12 +15,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/fatih/color"
 
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/parser"
-	"github.com/ava-labs/quarkvm/vm"
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/vm"
 )
 
-// Client defines quarkvm client operations.
+// Client defines spacesvm client operations.
 type Client interface {
 	// Pings the VM.
 	Ping() (bool, error)
@@ -58,7 +58,7 @@ func New(uri string, reqTimeout time.Duration) Client {
 	req := rpc.NewEndpointRequester(
 		uri,
 		vm.PublicEndpoint,
-		"quarkvm",
+		"spacesvm",
 		reqTimeout,
 	)
 	return &client{req: req}

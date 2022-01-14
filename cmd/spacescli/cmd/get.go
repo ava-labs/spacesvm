@@ -10,8 +10,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/quarkvm/client"
-	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ava-labs/spacesvm/client"
+	"github.com/ava-labs/spacesvm/parser"
 )
 
 var (
@@ -53,7 +53,7 @@ in order to maintain the flat key space.
 # then only issue "ClaimTx" for its ownership.
 #
 # "hello.avax" is the prefix (or namespace)
-$ quark-cli claim hello.avax
+$ spaces-cli claim hello.avax
 <<COMMENT
 success
 COMMENT
@@ -64,21 +64,21 @@ COMMENT
 # "hello.avax" is the prefix (or namespace)
 # "foo" is the key
 # "hello world" is the value
-$ quark-cli claim hello.avax/foo1 "hello world 1"
-$ quark-cli claim hello.avax/foo2 "hello world 2"
-$ quark-cli claim hello.avax/foo3 "hello world 3"
+$ spaces-cli claim hello.avax/foo1 "hello world 1"
+$ spaces-cli claim hello.avax/foo2 "hello world 2"
+$ spaces-cli claim hello.avax/foo3 "hello world 3"
 <<COMMENT
 success
 COMMENT
 
 # To read the existing key-value pair.
-$ quark-cli get hello.avax/foo1
+$ spaces-cli get hello.avax/foo1
 <<COMMENT
 "hello.avax/foo1" "hello world 1"
 COMMENT
 
 # To read key-values with the prefix.
-$ quark-cli get hello.avax/foo --with-prefix
+$ spaces-cli get hello.avax/foo --with-prefix
 <<COMMENT
 "hello.avax/foo1" "hello world 1"
 "hello.avax/foo2" "hello world 2"
@@ -86,7 +86,7 @@ $ quark-cli get hello.avax/foo --with-prefix
 COMMENT
 
 # To read key-values with the range end [start,end).
-$ quark-cli get hello.avax/foo1 hello.avax/foo3
+$ spaces-cli get hello.avax/foo1 hello.avax/foo3
 <<COMMENT
 "hello.avax/foo1" "hello world 1"
 "hello.avax/foo2" "hello world 2"

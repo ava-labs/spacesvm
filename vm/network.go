@@ -8,7 +8,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	log "github.com/inconshreveable/log15"
 
-	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/spacesvm/chain"
 )
 
 const (
@@ -98,7 +98,7 @@ func (n *PushNetwork) RegossipTxs() error {
 
 // Handles incoming "AppGossip" messages, parses them to transactions,
 // and submits them to the mempool. The "AppGossip" message is sent by
-// the other VM (quarkvm)  via "common.AppSender" to receive txs and
+// the other VM (spacesvm)  via "common.AppSender" to receive txs and
 // forward them to the other node (validator).
 //
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"

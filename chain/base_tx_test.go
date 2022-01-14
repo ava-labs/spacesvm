@@ -10,7 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ava-labs/spacesvm/parser"
 )
 
 func TestBaseTx(t *testing.T) {

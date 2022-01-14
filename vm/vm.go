@@ -25,13 +25,13 @@ import (
 	"github.com/gorilla/rpc/v2"
 	log "github.com/inconshreveable/log15"
 
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/mempool"
-	"github.com/ava-labs/quarkvm/version"
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/mempool"
+	"github.com/ava-labs/spacesvm/version"
 )
 
 const (
-	Name            = "quarkvm"
+	Name            = "spacesvm"
 	PublicEndpoint  = "/public"
 	PrivateEndpoint = "/private"
 )
@@ -98,7 +98,7 @@ func (vm *VM) Initialize(
 	_ []*common.Fx,
 	appSender common.AppSender,
 ) error {
-	log.Info("initializing quarkvm", "version", version.Version)
+	log.Info("initializing spacesvm", "version", version.Version)
 
 	// Load config
 	vm.config.SetDefaults()
@@ -165,7 +165,7 @@ func (vm *VM) Initialize(
 		}
 
 		vm.preferred, vm.lastAccepted = blkID, blk
-		log.Info("initialized quarkvm from last accepted", "block", blkID)
+		log.Info("initialized spacesvm from last accepted", "block", blkID)
 	} else {
 		genesisBlk, err := chain.ParseStatefulBlock(
 			vm.genesis.StatefulBlock(),
@@ -190,7 +190,7 @@ func (vm *VM) Initialize(
 		}
 		gBlkID := genesisBlk.ID()
 		vm.preferred, vm.lastAccepted = gBlkID, genesisBlk
-		log.Info("initialized quarkvm from genesis", "block", gBlkID)
+		log.Info("initialized spacesvm from genesis", "block", gBlkID)
 	}
 
 	go vm.builder.Build()
