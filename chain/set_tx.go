@@ -5,13 +5,16 @@ package chain
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ethereum/go-ethereum/common"
 )
 
-const IDLen = 32
+const hashLen = 64
 
 var _ UnsignedTransaction = &SetTx{}
 
@@ -57,18 +60,19 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 	if i.Expiry < t.BlockTime {
 		return ErrPrefixExpired
 	}
-	// TODO: hash could contain `/` (just hex encode it)
-	// // If Key is equal to hash length, ensure it is equal to the hash of the
-	// // value
-	// if len(s.Key) == IDLen && len(s.Value) > 0 {
-	// 	id, err := ids.ToID(hashing.ComputeHash256(s.Value))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	if !bytes.Equal(s.Key, id[:]) {
-	// 		return fmt.Errorf("%w: expected %x got %x", ErrInvalidKey, id[:], s.Key)
-	// 	}
-	// }
+	// If Key is equal to hash length, ensure it is equal to the hash of the
+	// value
+	if len(s.Key) == hashLen && len(s.Value) > 0 {
+		// TODO: convert to using keccak256 everywhere
+		b := hashing.ComputeHash256(s.Value)
+		if err != nil {
+			return err
+		}
+		h := common.Bytes2Hex(b)
+		if string(s.Key) != h {
+			return fmt.Errorf("%w: expected %s got %x", ErrInvalidKey, h, s.Key)
+		}
+	}
 	return s.updatePrefix(g, t.Database, t.BlockTime, t.TxID, i)
 }
 
