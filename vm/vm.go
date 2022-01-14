@@ -100,9 +100,6 @@ func (vm *VM) Initialize(
 		if err := ejson.Unmarshal(configBytes, &vm.config); err != nil {
 			return fmt.Errorf("failed to unmarshal config %s: %w", string(configBytes), err)
 		}
-		if len(vm.config.Beneficiary) > 0 {
-			vm.beneficiary = []byte(vm.config.Beneficiary)
-		}
 	}
 
 	vm.ctx = ctx

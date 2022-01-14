@@ -215,6 +215,39 @@ func GetValue(db database.KeyValueReader, space []byte, key []byte) ([]byte, boo
 	return v, true, err
 }
 
+type KeyValue struct {
+	Key   string `serialize:"true" json:"key"`
+	Value []byte `serialize:"true" json:"value"`
+}
+
+func GetAllValues(db database.Database, rspace ids.ShortID) (kvs []*KeyValue, err error) {
+	baseKey := SpaceValueKey(rspace, nil)
+	cursor := db.NewIteratorWithStart(baseKey)
+	kvs = []*KeyValue{}
+	for cursor.Next() {
+		curKey := cursor.Key()
+		if bytes.Compare(baseKey, curKey) < -1 { // startKey < curKey; continue search
+			continue
+		}
+		if !bytes.Contains(curKey, baseKey) { // curKey does not contain base key; end search
+			break
+		}
+
+		// Lookup stored value
+		v, err := getLinkedValue(db, cursor.Value())
+		if err != nil {
+			return nil, err
+		}
+
+		kvs = append(kvs, &KeyValue{
+			// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
+			Key:   string(curKey[2+shortIDLen+1:]),
+			Value: v,
+		})
+	}
+	return kvs, nil
+}
+
 // linkValues extracts all *SetTx.Value in [block] and replaces them with the
 // corresponding txID where they were found. The extracted value is then
 // written to disk.
@@ -499,11 +532,6 @@ func SetTransaction(db database.KeyValueWriter, tx *Transaction) error {
 func HasTransaction(db database.KeyValueReader, txID ids.ID) (bool, error) {
 	k := PrefixTxKey(txID)
 	return db.Has(k)
-}
-
-type KeyValue struct {
-	Key   []byte `serialize:"true" json:"key"`
-	Value []byte `serialize:"true" json:"value"`
 }
 
 func getLinkedValue(db database.KeyValueReader, b []byte) ([]byte, error) {

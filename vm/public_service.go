@@ -17,7 +17,6 @@ import (
 )
 
 var (
-	ErrPoWFailed      = errors.New("PoW failed")
 	ErrInvalidEmptyTx = errors.New("invalid empty transaction")
 )
 
@@ -111,15 +110,6 @@ type ValidBlockIDReply struct {
 	Valid bool `serialize:"true" json:"valid"`
 }
 
-func (svc *PublicService) ValidBlockID(_ *http.Request, args *ValidBlockIDArgs, reply *ValidBlockIDReply) error {
-	valid, err := svc.vm.ValidBlockID(args.BlockID)
-	if err != nil {
-		return err
-	}
-	reply.Valid = valid
-	return nil
-}
-
 type SuggestedFeeArgs struct{}
 
 type SuggestedFeeReply struct {
@@ -142,7 +132,7 @@ func (svc *PublicService) SuggestedFee(
 }
 
 type ClaimedArgs struct {
-	Prefix []byte `serialize:"true" json:"prefix"`
+	Space string `serialize:"true" json:"space"`
 }
 
 type ClaimedReply struct {
@@ -150,8 +140,10 @@ type ClaimedReply struct {
 }
 
 func (svc *PublicService) Claimed(_ *http.Request, args *ClaimedArgs, reply *ClaimedReply) error {
-	// TODO: return estimated cost of how much it would take
-	has, err := chain.HasPrefix(svc.vm.db, args.Prefix)
+	if err := parser.CheckContents(args.Space); err != nil {
+		return err
+	}
+	has, err := chain.HasSpace(svc.vm.db, []byte(args.Space))
 	if err != nil {
 		return err
 	}
@@ -159,61 +151,31 @@ func (svc *PublicService) Claimed(_ *http.Request, args *ClaimedArgs, reply *Cla
 	return nil
 }
 
-type PrefixInfoArgs struct {
-	Prefix []byte `serialize:"true" json:"prefix"`
+type SpaceInfoArgs struct {
+	Space string `serialize:"true" json:"space"`
 }
 
-type PrefixInfoReply struct {
-	Info *chain.PrefixInfo `serialize:"true" json:"info"`
+type SpaceInfoReply struct {
+	Info   *chain.SpaceInfo  `serialize:"true" json:"info"`
+	Values []*chain.KeyValue `serialize:"true" json:"pairs"`
 }
 
-func (svc *PublicService) PrefixInfo(_ *http.Request, args *PrefixInfoArgs, reply *PrefixInfoReply) error {
-	i, _, err := chain.GetPrefixInfo(svc.vm.db, args.Prefix)
+func (svc *PublicService) Info(_ *http.Request, args *SpaceInfoArgs, reply *SpaceInfoReply) error {
+	if err := parser.CheckContents(args.Space); err != nil {
+		return err
+	}
+
+	i, _, err := chain.GetSpaceInfo(svc.vm.db, []byte(args.Space))
+	if err != nil {
+		return err
+	}
+
+	kvs, err := chain.GetAllValues(svc.vm.db, i.RawSpace)
 	if err != nil {
 		return err
 	}
 	reply.Info = i
-	return nil
-}
-
-type RangeArgs struct {
-	// Prefix is the namespace for the "PrefixInfo"
-	// whose owner can write and read value for the
-	// specific key space.
-	// Assume the client pre-processes the inputs so that
-	// all prefix must have the delimiter '/' as suffix.
-	Prefix []byte `serialize:"true" json:"prefix"`
-
-	// Key is parsed from the given input, with its prefix removed.
-	// Optional for claim/lifeline transactions.
-	// Non-empty to claim a key-value pair.
-	Key []byte `serialize:"true" json:"key"`
-
-	// RangeEnd is optional, and only non-empty for range query transactions.
-	RangeEnd []byte `serialize:"true" json:"rangeEnd"`
-
-	// Limit limits the number of key-value pairs in the response.
-	Limit uint32 `serialize:"true" json:"limit"`
-}
-
-type RangeReply struct {
-	KeyValues []chain.KeyValue `serialize:"true" json:"keyValues"`
-}
-
-func (svc *PublicService) Range(_ *http.Request, args *RangeArgs, reply *RangeReply) (err error) {
-	log.Debug("range query", "key", string(args.Key), "rangeEnd", string(args.RangeEnd))
-	opts := make([]chain.OpOption, 0)
-	if len(args.RangeEnd) > 0 {
-		opts = append(opts, chain.WithRangeEnd(args.RangeEnd))
-	}
-	if args.Limit > 0 {
-		opts = append(opts, chain.WithRangeLimit(args.Limit))
-	}
-	kvs, err := chain.Range(svc.vm.db, args.Prefix, args.Key, opts...)
-	if err != nil {
-		return err
-	}
-	reply.KeyValues = kvs
+	reply.Values = kvs
 	return nil
 }
 
@@ -227,22 +189,17 @@ type ResolveReply struct {
 }
 
 func (svc *PublicService) Resolve(_ *http.Request, args *ResolveArgs, reply *ResolveReply) error {
-	pfx, key, _, err := parser.ParsePrefixKey(
-		[]byte(args.Path),
-		parser.WithCheckPrefix(),
-		parser.WithCheckKey(),
-	)
+	space, key, err := parser.ResolvePath(args.Path)
 	if err != nil {
 		return err
 	}
 
-	v, exists, err := chain.GetValue(svc.vm.db, pfx, key)
+	v, exists, err := chain.GetValue(svc.vm.db, []byte(space), []byte(key))
 	reply.Exists = exists
 	reply.Value = v
 	return err
 }
 
-// TODO: IssueTxHR, Balance
 type BalanceArgs struct {
 	Address string `serialize:"true" json:"address"`
 }
@@ -260,3 +217,5 @@ func (svc *PublicService) Balance(_ *http.Request, args *BalanceArgs, reply *Bal
 	reply.Balance = bal
 	return err
 }
+
+// TODO: SuggestFeeHR, IssueTxHR

@@ -6,11 +6,14 @@ package chain
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func TestSpaceValueKey(t *testing.T) {
@@ -156,5 +159,182 @@ func TestSpecificTimeKey(t *testing.T) {
 
 	if _, _, err = extractSpecificTimeKey(k[:10]); !errors.Is(err, ErrInvalidKeyFormat) {
 		t.Fatalf("unexpected error %v, expected %v", err, ErrInvalidKeyFormat)
+	}
+}
+
+func TestGetAllValues(t *testing.T) {
+	t.Parallel()
+
+	priv, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sender := crypto.PubkeyToAddress(priv.PublicKey)
+
+	priv2, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sender2 := crypto.PubkeyToAddress(priv2.PublicKey)
+
+	db := memdb.New()
+	defer db.Close()
+
+	g := DefaultGenesis()
+	tt := []struct {
+		utx       UnsignedTransaction
+		space     string
+		blockTime int64
+		sender    common.Address
+		expected  []*KeyValue
+	}{
+		{ // successful claim
+			utx: &ClaimTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+			},
+			space:     "foo",
+			blockTime: 1,
+			sender:    sender,
+			expected:  []*KeyValue{},
+		},
+		{ // write
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+				Key:   "bar",
+				Value: []byte("value"),
+			},
+			space:     "foo",
+			blockTime: 1,
+			sender:    sender,
+			expected: []*KeyValue{
+				{Key: "bar", Value: []byte("value")},
+			},
+		},
+		{ // successful claim
+			utx: &ClaimTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo2",
+			},
+			space:     "foo2",
+			blockTime: 1,
+			sender:    sender2,
+			expected:  []*KeyValue{},
+		},
+		{ // write
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo2",
+				Key:   "bar",
+				Value: []byte("value2"),
+			},
+			space:     "foo2",
+			blockTime: 1,
+			sender:    sender2,
+			expected: []*KeyValue{
+				{Key: "bar", Value: []byte("value2")},
+			},
+		},
+		{ // write again
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+				Key:   "bar",
+				Value: []byte("value2"),
+			},
+			space:     "foo",
+			blockTime: 1,
+			sender:    sender,
+			expected: []*KeyValue{
+				{Key: "bar", Value: []byte("value2")},
+			},
+		},
+		{ // write new
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+				Key:   "bar2",
+				Value: []byte("value2"),
+			},
+			space:     "foo",
+			blockTime: 1,
+			sender:    sender,
+			expected: []*KeyValue{
+				{Key: "bar", Value: []byte("value2")},
+				{Key: "bar2", Value: []byte("value2")},
+			},
+		},
+		{ // delete
+			utx: &DeleteTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+				Key:   "bar",
+			},
+			space:     "foo",
+			blockTime: 1,
+			sender:    sender,
+			expected: []*KeyValue{
+				{Key: "bar2", Value: []byte("value2")},
+			},
+		},
+	}
+	for i, tv := range tt {
+		if i > 0 {
+			// Expire old prefixes between txs
+			if err := ExpireNext(db, tt[i-1].blockTime, tv.blockTime, true); err != nil {
+				t.Fatalf("#%d: ExpireNext errored %v", i, err)
+			}
+		}
+		// Set linked value (normally done in block processing)
+		id := ids.GenerateTestID()
+		if tp, ok := tv.utx.(*SetTx); ok {
+			if len(tp.Value) > 0 {
+				if err := db.Put(PrefixTxValueKey(id), tp.Value); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		tc := &TransactionContext{
+			Genesis:   g,
+			Database:  db,
+			BlockTime: uint64(tv.blockTime),
+			TxID:      id,
+			Sender:    tv.sender,
+		}
+		if err := tv.utx.Execute(tc); err != nil {
+			t.Fatalf("#%d: tx.Execute err expected nil, got %v", i, err)
+		}
+
+		s, exists, err := GetSpaceInfo(db, []byte(tv.space))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !exists {
+			t.Fatal("foo should exist")
+		}
+
+		kvs, err := GetAllValues(db, s.RawSpace)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if !reflect.DeepEqual(tv.expected, kvs) {
+			t.Fatalf("%d: values not equal expected=%+v observed=%+v", i, tv.expected, kvs)
+		}
 	}
 }
