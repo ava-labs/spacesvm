@@ -4,6 +4,8 @@
 package chain
 
 import (
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ava-labs/spacesvm/parser"
@@ -19,7 +21,7 @@ const (
 type ClaimTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 
-	// Space is the namespace for the "PrefixInfo"
+	// Space is the namespace for the "SpaceInfo"
 	// whose owner can write and read value for the
 	// specific key space.
 	// The space must be ^[a-z0-9]{1,256}$.
@@ -32,7 +34,7 @@ func (c *ClaimTx) Execute(t *TransactionContext) error {
 	}
 
 	// Restrict address prefix to be owned by address
-	if len(c.Space) == hexAddressLen && t.Sender.Hex() == c.Space {
+	if len(c.Space) == hexAddressLen && strings.ToLower(t.Sender.Hex()) == c.Space {
 		return ErrAddressMismatch
 	}
 

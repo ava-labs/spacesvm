@@ -4,12 +4,9 @@
 package chain
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 
-	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -22,7 +19,7 @@ var _ UnsignedTransaction = &SetTx{}
 type SetTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 
-	// Space is the namespace for the "PrefixInfo"
+	// Space is the namespace for the "SpaceInfo"
 	// whose owner can write and read value for the
 	// specific key space.
 	// The space must be ^[a-z0-9]{1,256}$.
@@ -81,41 +78,6 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 		return err
 	}
 	return updateSpace(s.Space, t, timeRemaining, i)
-}
-
-func verifySpace(s string, t *TransactionContext) (*SpaceInfo, error) {
-	i, has, err := GetSpaceInfo(t.Database, []byte(s))
-	if err != nil {
-		return nil, err
-	}
-	// Cannot set key if space doesn't exist
-	if !has {
-		return nil, ErrSpaceMissing
-	}
-	// Space cannot be updated if not owned by modifier
-	if !bytes.Equal(i.Owner[:], t.Sender[:]) {
-		return nil, ErrUnauthorized
-	}
-	// Space cannot be updated if expired
-	//
-	// This should never happen as expired records should be removed before
-	// execution.
-	if i.Expiry < t.BlockTime {
-		return nil, ErrSpaceExpired
-	}
-	return i, nil
-}
-
-func updateSpace(s string, t *TransactionContext, timeRemaining uint64, i *SpaceInfo) error {
-	newTimeRemaining := timeRemaining / i.Units
-	i.LastUpdated = t.BlockTime
-	lastExpiry := i.Expiry
-	i.Expiry = t.BlockTime + newTimeRemaining
-	return PutSpaceInfo(t.Database, []byte(s), i, lastExpiry)
-}
-
-func valueUnits(g *Genesis, b []byte) uint64 {
-	return uint64(len(b))/g.ValueUnitSize + 1
 }
 
 func (s *SetTx) FeeUnits(g *Genesis) uint64 {

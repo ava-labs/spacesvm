@@ -454,6 +454,18 @@ func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastEx
 	return db.Put(k, b)
 }
 
+// MoveSpaceInfo should only be used if the expiry isn't changing and
+// [SpaceInfo] is already in the database.
+func MoveSpaceInfo(db database.KeyValueReaderWriter, space []byte, i *SpaceInfo) error {
+	// [infoPrefix] + [delimiter] + [space]
+	k := SpaceInfoKey(space)
+	b, err := Marshal(i)
+	if err != nil {
+		return err
+	}
+	return db.Put(k, b)
+}
+
 func PutSpaceKey(db database.Database, space []byte, key []byte, value []byte) error {
 	spaceInfo, exists, err := GetSpaceInfo(db, space)
 	if err != nil {
