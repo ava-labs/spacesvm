@@ -22,6 +22,7 @@ func TestBaseTx(t *testing.T) {
 		prefixErr error
 	}{
 		{
+			// TODO: remove prefix correctness checks
 			tx: &BaseTx{Pfx: []byte("foo"), BlkID: ids.GenerateTestID(), Prce: 1},
 		},
 		{

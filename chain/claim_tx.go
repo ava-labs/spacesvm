@@ -15,6 +15,12 @@ var _ UnsignedTransaction = &ClaimTx{}
 
 type ClaimTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
+
+	// Space is the namespace for the "PrefixInfo"
+	// whose owner can write and read value for the
+	// specific key space.
+	// The space must be ^[a-z0-9]{1,256}$.
+	Space string `serialize:"true" json:"space"`
 }
 
 func (c *ClaimTx) Execute(t *TransactionContext) error {

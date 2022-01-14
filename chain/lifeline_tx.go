@@ -14,13 +14,24 @@ var _ UnsignedTransaction = &LifelineTx{}
 type LifelineTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 
+	// Space is the namespace for the "PrefixInfo"
+	// whose owner can write and read value for the
+	// specific key space.
+	// The space must be ^[a-z0-9]{1,256}$.
+	Space string `serialize:"true" json:"space"`
+
 	// Units is the additional work the sender does to extend the life of their
 	// prefix. The added expiry time is a function of:
 	// [Units] * [LifelineInterval].
 	Units uint64 `serialize:"true" json:"units"`
 }
 
-func addLife(_ *Genesis, db database.KeyValueReaderWriter, prefix []byte, reward uint64) error {
+func (l *LifelineTx) Execute(t *TransactionContext) error {
+	if err := parser.CheckContents(l.Space); err != nil {
+		return err
+	}
+
+	g := t.Genesis
 	i, has, err := GetPrefixInfo(db, prefix)
 	if err != nil {
 		return err
@@ -33,14 +44,6 @@ func addLife(_ *Genesis, db database.KeyValueReaderWriter, prefix []byte, reward
 	lastExpiry := i.Expiry
 	i.Expiry += reward / i.Units
 	return PutPrefixInfo(db, prefix, i, lastExpiry)
-}
-
-func (l *LifelineTx) Execute(t *TransactionContext) error {
-	if err := parser.CheckPrefix(l.Prefix()); err != nil {
-		return err
-	}
-
-	g := t.Genesis
 	return addLife(g, t.Database, l.Prefix(), g.LifelineUnitReward*l.Units)
 }
 

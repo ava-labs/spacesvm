@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	MaxIdentifierSize = 256
-	Delimiter         = "/"
+	MaxIdentifierSize      = 256
+	Delimiter              = "/"
+	ByteDelimiter     byte = '/'
 )
 
 var (

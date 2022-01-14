@@ -20,10 +20,9 @@ type TransactionContext struct {
 type UnsignedTransaction interface {
 	Copy() UnsignedTransaction
 
-	BlockID() ids.ID
-	Prefix() []byte
-	Magic() uint64
-	Price() uint64
+	GetBlockID() ids.ID
+	GetMagic() uint64
+	GetPrice() uint64
 
 	SetBlockID(ids.ID)
 	SetMagic(uint64)

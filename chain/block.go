@@ -27,8 +27,6 @@ type StatefulBlock struct {
 	Price  uint64         `serialize:"true" json:"price"`
 	Cost   uint64         `serialize:"true" json:"cost"`
 	Txs    []*Transaction `serialize:"true" json:"txs"`
-
-	Beneficiary []byte `serialize:"true" json:"beneficiary"` // prefix to reward
 }
 
 // Stateless is defined separately from "Block"
@@ -50,12 +48,11 @@ type StatelessBlock struct {
 func NewBlock(vm VM, parent snowman.Block, tmstp int64, beneficiary []byte, context *Context) *StatelessBlock {
 	return &StatelessBlock{
 		StatefulBlock: &StatefulBlock{
-			Tmstmp:      tmstp,
-			Prnt:        parent.ID(),
-			Hght:        parent.Height() + 1,
-			Price:       context.NextPrice,
-			Cost:        context.NextCost,
-			Beneficiary: beneficiary,
+			Tmstmp: tmstp,
+			Prnt:   parent.ID(),
+			Hght:   parent.Height() + 1,
+			Price:  context.NextPrice,
+			Cost:   context.NextCost,
 		},
 		vm: vm,
 		st: choices.Processing,
