@@ -4,7 +4,12 @@
 package chain
 
 import (
+	"fmt"
+
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/units"
+	"github.com/ethereum/go-ethereum/common"
+	log "github.com/inconshreveable/log15"
 )
 
 type Allocation struct {
@@ -96,6 +101,17 @@ func (g *Genesis) StatefulBlock() *StatefulBlock {
 func (g *Genesis) Verify() error {
 	if g.Magic == 0 {
 		return ErrInvalidMagic
+	}
+	return nil
+}
+
+func (g *Genesis) Load(db database.KeyValueWriter) error {
+	for _, alloc := range g.Allocations {
+		paddr := common.HexToAddress(alloc.Address)
+		if err := SetBalance(db, paddr, alloc.Balance); err != nil {
+			return fmt.Errorf("%w: addr=%s, bal=%d", err, alloc.Address, alloc.Balance)
+		}
+		log.Debug("loaded genesis balance", "addr", paddr, "balance", alloc.Balance)
 	}
 	return nil
 }

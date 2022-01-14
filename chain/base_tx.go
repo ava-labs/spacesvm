@@ -5,11 +5,10 @@ package chain
 
 import (
 	"github.com/ava-labs/avalanchego/ids"
-
-	"github.com/ava-labs/quarkvm/parser"
 )
 
 type BaseTx struct {
+	// BlkID is the ID of a block in the [lookbackWindow].
 	BlkID ids.ID `serialize:"true" json:"blockId"`
 
 	// Prefix is the namespace for the "PrefixInfo"
@@ -19,6 +18,7 @@ type BaseTx struct {
 	// Otherwise, the verification will fail.
 
 	// TODO: change to string
+	// TODO: move to each tx
 	Pfx []byte `serialize:"true" json:"prefix"`
 
 	// Magic is a value defined in genesis to protect against replay attacks on
@@ -58,14 +58,14 @@ func (b *BaseTx) SetPrice(price uint64) {
 }
 
 func (b *BaseTx) ExecuteBase(g *Genesis) error {
-	if err := parser.CheckPrefix(b.Pfx); err != nil {
-		return err
-	}
 	if b.BlkID == ids.Empty {
 		return ErrInvalidBlockID
 	}
 	if g.Magic != b.Mgc {
 		return ErrInvalidMagic
+	}
+	if b.Prce < g.MinPrice {
+		return ErrInvalidPrice
 	}
 	return nil
 }

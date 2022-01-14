@@ -5,6 +5,8 @@ package chain
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/ava-labs/quarkvm/parser"
 )
 
 var _ UnsignedTransaction = &SetTx{}
@@ -33,6 +35,9 @@ func (t *TransferTx) Execute(c *TransactionContext) error {
 	}
 	// TODO: move prefix to tx model outside of base
 	if len(t.Prefix()) > 0 {
+		if err := parser.CheckPrefix(t.Prefix()); err != nil {
+			return err
+		}
 		actionable = true
 		p, exists, err := GetPrefixInfo(c.Database, t.Prefix())
 		if err != nil {

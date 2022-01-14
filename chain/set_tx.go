@@ -28,6 +28,10 @@ type SetTx struct {
 }
 
 func (s *SetTx) Execute(t *TransactionContext) error {
+	if err := parser.CheckPrefix(s.Prefix()); err != nil {
+		return err
+	}
+
 	g := t.Genesis
 	// assume prefix is already validated via "BaseTx"
 	if err := parser.CheckKey(s.Key); err != nil {
@@ -53,7 +57,7 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 	if i.Expiry < t.BlockTime {
 		return ErrPrefixExpired
 	}
-	// TODO: hash could contain `/`
+	// TODO: hash could contain `/` (just hex encode it)
 	// // If Key is equal to hash length, ensure it is equal to the hash of the
 	// // value
 	// if len(s.Key) == IDLen && len(s.Value) > 0 {

@@ -3,7 +3,11 @@
 
 package chain
 
-import "github.com/ava-labs/avalanchego/database"
+import (
+	"github.com/ava-labs/avalanchego/database"
+
+	"github.com/ava-labs/quarkvm/parser"
+)
 
 var _ UnsignedTransaction = &LifelineTx{}
 
@@ -32,6 +36,10 @@ func addLife(_ *Genesis, db database.KeyValueReaderWriter, prefix []byte, reward
 }
 
 func (l *LifelineTx) Execute(t *TransactionContext) error {
+	if err := parser.CheckPrefix(l.Prefix()); err != nil {
+		return err
+	}
+
 	g := t.Genesis
 	return addLife(g, t.Database, l.Prefix(), g.LifelineUnitReward*l.Units)
 }

@@ -18,6 +18,10 @@ type ClaimTx struct {
 }
 
 func (c *ClaimTx) Execute(t *TransactionContext) error {
+	if err := parser.CheckPrefix(c.Prefix()); err != nil {
+		return err
+	}
+
 	// Restrict address prefix to be owned by address
 	if len(c.Prefix()) == common.AddressLength && !bytes.Equal(t.Sender[:], c.Prefix()) {
 		return ErrAddressMismatch

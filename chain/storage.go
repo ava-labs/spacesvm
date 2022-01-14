@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -636,16 +637,16 @@ func ModifyBalance(db database.KeyValueReaderWriter, address common.Address, add
 		return 0, err
 	}
 	var (
-		n uint64
-		// ok bool
+		n     uint64
+		xflow bool
 	)
 	if add {
-		n, _ = smath.SafeAdd(b, change)
+		n, xflow = smath.SafeAdd(b, change)
 	} else {
-		n, _ = smath.SafeSub(b, change)
+		n, xflow = smath.SafeSub(b, change)
 	}
-	// if !ok {
-	// 	return 0, fmt.Errorf("%w: bal=%d, addr=%v, add=%t, change=%d, n=%d", ErrInvalidBalance, b, address, add, change, n)
-	// }
+	if xflow {
+		return 0, fmt.Errorf("%w: bal=%d, addr=%v, add=%t, prev=%d, change=%d", ErrInvalidBalance, b, address, add, b, change)
+	}
 	return n, SetBalance(db, address, n)
 }
