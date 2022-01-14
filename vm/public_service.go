@@ -150,6 +150,7 @@ type ClaimedReply struct {
 }
 
 func (svc *PublicService) Claimed(_ *http.Request, args *ClaimedArgs, reply *ClaimedReply) error {
+	// TODO: return estimated cost of how much it would take
 	has, err := chain.HasPrefix(svc.vm.db, args.Prefix)
 	if err != nil {
 		return err

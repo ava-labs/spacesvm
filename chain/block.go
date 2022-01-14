@@ -193,6 +193,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	if surplusFee < requiredSurplus {
 		return nil, nil, fmt.Errorf("%w: required=%d found=%d", ErrInsufficientSurplus, requiredSurplus, surplusFee)
 	}
+	// TODO: send non-surplus fee to a random prefix owner
 	return parent, onAcceptDB, nil
 }
 

@@ -19,6 +19,7 @@ type SetTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 
 	// Key is parsed from the given input, with its prefix removed.
+	// TODO: change to string
 	Key []byte `serialize:"true" json:"key"`
 	// Value is empty if and only if set transaction is issued for the delete.
 	// If non-empty, the transaction writes the key-value pair to the storage.

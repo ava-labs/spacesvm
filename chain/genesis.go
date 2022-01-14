@@ -37,7 +37,8 @@ type Genesis struct {
 	// Reward Params
 	ClaimReward        uint64 `serialize:"true" json:"claimReward"`
 	LifelineUnitReward uint64 `serialize:"true" json:"lifelineUnitReward"`
-	BeneficiaryReward  uint64 `serialize:"true" json:"beneficiaryReward"`
+	// TODO: replace with lottery mining
+	BeneficiaryReward uint64 `serialize:"true" json:"beneficiaryReward"`
 
 	// Fee Mechanism Params
 	LookbackWindow int64  `serialize:"true" json:"lookbackWindow"`
@@ -47,6 +48,7 @@ type Genesis struct {
 	MinBlockCost   uint64 `serialize:"true" json:"minBlockCost"`
 
 	// Allocations
+	// TODO: move to a hash and use external file to avoid 1MB limit
 	Allocations []*Allocation `serialize:"true" json:"allocations"`
 }
 

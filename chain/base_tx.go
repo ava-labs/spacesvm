@@ -17,6 +17,8 @@ type BaseTx struct {
 	// specific key space.
 	// The prefix must not have the delimiter '/' as suffix.
 	// Otherwise, the verification will fail.
+
+	// TODO: change to string
 	Pfx []byte `serialize:"true" json:"prefix"`
 
 	// Magic is a value defined in genesis to protect against replay attacks on
