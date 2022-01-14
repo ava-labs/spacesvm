@@ -4,14 +4,17 @@
 package chain
 
 import (
-	"bytes"
-
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ava-labs/spacesvm/parser"
 )
 
 var _ UnsignedTransaction = &ClaimTx{}
+
+const (
+	// 0x + hex-encoded addr
+	hexAddressLen = 2 + common.AddressLength*2
+)
 
 type ClaimTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
@@ -24,57 +27,57 @@ type ClaimTx struct {
 }
 
 func (c *ClaimTx) Execute(t *TransactionContext) error {
-	if err := parser.CheckPrefix(c.Prefix()); err != nil {
+	if err := parser.CheckContents(c.Space); err != nil {
 		return err
 	}
 
 	// Restrict address prefix to be owned by address
-	if len(c.Prefix()) == common.AddressLength && !bytes.Equal(t.Sender[:], c.Prefix()) {
+	if len(c.Space) == hexAddressLen && t.Sender.Hex() == c.Space {
 		return ErrAddressMismatch
 	}
 
-	// Prefix keys only exist if they are still valid
-	exists, err := HasPrefix(t.Database, c.Prefix())
+	// Space keys only exist if they are still valid
+	exists, err := HasSpace(t.Database, []byte(c.Space))
 	if err != nil {
 		return err
 	}
 	if exists {
-		return ErrPrefixNotExpired
+		return ErrSpaceNotExpired
 	}
 
-	// Anything previously at the prefix was previously removed...
-	newInfo := &PrefixInfo{
+	// Anything previously at the space was previously removed...
+	newInfo := &SpaceInfo{
 		Owner:       t.Sender,
 		Created:     t.BlockTime,
 		LastUpdated: t.BlockTime,
 		Expiry:      t.BlockTime + t.Genesis.ClaimReward,
 		Units:       1,
 	}
-	if err := PutPrefixInfo(t.Database, c.Prefix(), newInfo, 0); err != nil {
+	if err := PutSpaceInfo(t.Database, []byte(c.Space), newInfo, 0); err != nil {
 		return err
 	}
 	return nil
 }
 
-// [prefixUnits] requires the caller to pay more to get prefixes of
+// [spaceUnits] requires the caller to pay more to get spaces of
 // a shorter length because they are more desirable. This creates a "lottery"
 // mechanism where the people that spend the most mining power will win the
-// prefix.
+// space.
 //
-// [prefixUnits] should only be called on a prefix that is valid
-func prefixUnits(g *Genesis, p []byte) uint64 {
-	desirability := uint64(parser.MaxKeySize - len(p))
-	if uint64(len(p)) > g.ClaimTier2Size {
+// [spaceUnits] should only be called on a space that is valid
+func spaceUnits(g *Genesis, s string) uint64 {
+	desirability := uint64(parser.MaxIdentifierSize - len(s))
+	if uint64(len(s)) > g.ClaimTier2Size {
 		return desirability * g.ClaimTier3Multiplier
 	}
-	if uint64(len(p)) > g.ClaimTier1Size {
+	if uint64(len(s)) > g.ClaimTier1Size {
 		return desirability * g.ClaimTier2Multiplier
 	}
 	return desirability * g.ClaimTier1Multiplier
 }
 
 func (c *ClaimTx) FeeUnits(g *Genesis) uint64 {
-	return c.LoadUnits(g) + prefixUnits(g, c.Prefix())
+	return c.LoadUnits(g) + spaceUnits(g, c.Space)
 }
 
 func (c *ClaimTx) LoadUnits(g *Genesis) uint64 {
@@ -84,5 +87,6 @@ func (c *ClaimTx) LoadUnits(g *Genesis) uint64 {
 func (c *ClaimTx) Copy() UnsignedTransaction {
 	return &ClaimTx{
 		BaseTx: c.BaseTx.Copy(),
+		Space:  c.Space,
 	}
 }

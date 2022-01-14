@@ -32,7 +32,7 @@ func (l *LifelineTx) Execute(t *TransactionContext) error {
 	}
 
 	g := t.Genesis
-	i, has, err := GetPrefixInfo(db, prefix)
+	i, has, err := GetSpaceInfo(t.Database, []byte(l.Space))
 	if err != nil {
 		return err
 	}
@@ -42,15 +42,14 @@ func (l *LifelineTx) Execute(t *TransactionContext) error {
 	}
 	// Lifeline spread across all units
 	lastExpiry := i.Expiry
-	i.Expiry += reward / i.Units
-	return PutPrefixInfo(db, prefix, i, lastExpiry)
-	return addLife(g, t.Database, l.Prefix(), g.LifelineUnitReward*l.Units)
+	i.Expiry += g.LifelineUnitReward * l.Units / i.Units
+	return PutSpaceInfo(t.Database, []byte(l.Space), i, lastExpiry)
 }
 
 func (l *LifelineTx) FeeUnits(g *Genesis) uint64 {
 	// FeeUnits are discounted so that, all else equal, it is easier for an owner
 	// to retain their prefix than for another to claim it.
-	discountedPrefixUnits := prefixUnits(g, l.Prefix()) / g.PrefixRenewalDiscount
+	discountedPrefixUnits := prefixUnits(g, l.Space) / g.PrefixRenewalDiscount
 
 	// The more desirable the prefix, the more it costs to maintain it.
 	//
