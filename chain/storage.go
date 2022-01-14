@@ -27,15 +27,15 @@ import (
 //   -> [tx hash]=>nil
 // 0x2/ (tx values)
 //   -> [tx hash]=>value
-// 0x3/ (singleton prefix info)
-//   -> [prefix]:[prefix info/raw prefix]
-// 0x4/ (prefix keys)
-//   -> [raw prefix]
+// 0x3/ (singleton space info)
+//   -> [space]:[space info/raw space]
+// 0x4/ (space keys)
+//   -> [raw space]
 //     -> [key]
-// 0x5/ (prefix expiry queue)
-//   -> [raw prefix]
-// 0x6/ (prefix pruning queue)
-//   -> [raw prefix]
+// 0x5/ (space expiry queue)
+//   -> [raw space]
+// 0x6/ (space pruning queue)
+//   -> [raw space]
 
 const (
 	blockPrefix   = 0x0
@@ -84,36 +84,36 @@ func PrefixTxValueKey(txID ids.ID) (k []byte) {
 	return k
 }
 
-// [infoPrefix] + [delimiter] + [prefix]
+// [infoPrefix] + [delimiter] + [space]
 func SpaceInfoKey(space []byte) (k []byte) {
-	k = make([]byte, 2+len(prefix))
+	k = make([]byte, 2+len(space))
 	k[0] = infoPrefix
 	k[1] = parser.ByteDelimiter
-	copy(k[2:], prefix)
+	copy(k[2:], space)
 	return k
 }
 
 func RawSpace(space []byte, blockTime uint64) (ids.ShortID, error) {
-	prefixLen := len(prefix)
-	r := make([]byte, prefixLen+1+8)
-	copy(r, prefix)
-	r[prefixLen] = parser.ByteDelimiter
-	binary.BigEndian.PutUint64(r[prefixLen+1:], blockTime)
+	spaceLen := len(space)
+	r := make([]byte, spaceLen+1+8)
+	copy(r, space)
+	r[spaceLen] = parser.ByteDelimiter
+	binary.BigEndian.PutUint64(r[spaceLen+1:], blockTime)
 	h := hashing.ComputeHash160(r)
-	rprefix, err := ids.ToShortID(h)
+	rspace, err := ids.ToShortID(h)
 	if err != nil {
 		return ids.ShortID{}, err
 	}
-	return rprefix, nil
+	return rspace, nil
 }
 
-// Assumes [prefix] and [key] do not contain delimiter
-// [keyPrefix] + [delimiter] + [rawPrefix] + [delimiter] + [key]
-func SpaceValueKey(rprefix ids.ShortID, key []byte) (k []byte) {
+// Assumes [space] and [key] do not contain delimiter
+// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
+func SpaceValueKey(rspace ids.ShortID, key []byte) (k []byte) {
 	k = make([]byte, 2+shortIDLen+1+len(key))
 	k[0] = keyPrefix
 	k[1] = parser.ByteDelimiter
-	copy(k[2:], rprefix[:])
+	copy(k[2:], rspace[:])
 	k[2+shortIDLen] = parser.ByteDelimiter
 	copy(k[2+shortIDLen+1:], key)
 	return k
@@ -129,14 +129,14 @@ func RangeTimeKey(p byte, t uint64) (k []byte) {
 	return k
 }
 
-// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
-func PrefixExpiryKey(expiry uint64, rprefix ids.ShortID) (k []byte) {
-	return specificTimeKey(expiryPrefix, expiry, rprefix)
+// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
+func PrefixExpiryKey(expiry uint64, rspace ids.ShortID) (k []byte) {
+	return specificTimeKey(expiryPrefix, expiry, rspace)
 }
 
-// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
-func PrefixPruningKey(expired uint64, rprefix ids.ShortID) (k []byte) {
-	return specificTimeKey(pruningPrefix, expired, rprefix)
+// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
+func PrefixPruningKey(expired uint64, rspace ids.ShortID) (k []byte) {
+	return specificTimeKey(pruningPrefix, expired, rspace)
 }
 
 // [balancePrefix] + [delimiter] + [address]
@@ -150,32 +150,32 @@ func PrefixBalanceKey(address common.Address) (k []byte) {
 
 const specificTimeKeyLen = 2 + 8 + 1 + shortIDLen
 
-// [expiry/pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
-func specificTimeKey(p byte, t uint64, rprefix ids.ShortID) (k []byte) {
+// [expiry/pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
+func specificTimeKey(p byte, t uint64, rspace ids.ShortID) (k []byte) {
 	k = make([]byte, specificTimeKeyLen)
 	k[0] = p
 	k[1] = parser.ByteDelimiter
 	binary.BigEndian.PutUint64(k[2:], t)
 	k[2+8] = parser.ByteDelimiter
-	copy(k[2+8+1:], rprefix[:])
+	copy(k[2+8+1:], rspace[:])
 	return k
 }
 
 var ErrInvalidKeyFormat = errors.New("invalid key format")
 
-// extracts expiry/pruning timstamp and raw prefix
-func extractSpecificTimeKey(k []byte) (timestamp uint64, rprefix ids.ShortID, err error) {
+// extracts expiry/pruning timstamp and raw space
+func extractSpecificTimeKey(k []byte) (timestamp uint64, rspace ids.ShortID, err error) {
 	if len(k) != specificTimeKeyLen {
 		return 0, ids.ShortEmpty, ErrInvalidKeyFormat
 	}
 	timestamp = binary.BigEndian.Uint64(k[2 : 2+8])
-	rprefix, err = ids.ToShortID(k[2+8+1:])
-	return timestamp, rprefix, err
+	rspace, err = ids.ToShortID(k[2+8+1:])
+	return timestamp, rspace, err
 }
 
 func GetSpaceInfo(db database.KeyValueReader, space []byte) (*SpaceInfo, bool, error) {
-	// [infoPrefix] + [delimiter] + [prefix]
-	k := SpaceInfoKey(prefix)
+	// [infoPrefix] + [delimiter] + [space]
+	k := SpaceInfoKey(space)
 	v, err := db.Get(k)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, false, nil
@@ -189,7 +189,7 @@ func GetSpaceInfo(db database.KeyValueReader, space []byte) (*SpaceInfo, bool, e
 }
 
 func GetValue(db database.KeyValueReader, space []byte, key []byte) ([]byte, bool, error) {
-	spaceInfo, exists, err := GetSpaceInfo(db, prefix)
+	spaceInfo, exists, err := GetSpaceInfo(db, space)
 	if err != nil {
 		return nil, false, err
 	}
@@ -197,7 +197,7 @@ func GetValue(db database.KeyValueReader, space []byte, key []byte) ([]byte, boo
 		return nil, false, nil
 	}
 
-	// [keyPrefix] + [delimiter] + [rawPrefix] + [delimiter] + [key]
+	// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
 	k := SpaceValueKey(spaceInfo.RawSpace, key)
 	txID, err := db.Get(k)
 	if errors.Is(err, database.ErrNotFound) {
@@ -322,14 +322,14 @@ func GetBlock(db database.KeyValueReader, bid ids.ID) (*StatefulBlock, error) {
 }
 
 // ExpireNext queries "expiryPrefix" key space to find expiring keys,
-// deletes their spaceInfos, and schedules its key pruning with its raw prefix.
+// deletes their spaceInfos, and schedules its key pruning with its raw space.
 func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrapped bool) (err error) {
 	parent, current := uint64(rparent), uint64(rcurrent)
 	startKey := RangeTimeKey(expiryPrefix, parent)
 	endKey := RangeTimeKey(expiryPrefix, current)
 	cursor := db.NewIteratorWithStart(startKey)
 	for cursor.Next() {
-		// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
+		// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 		curKey := cursor.Key()
 		if bytes.Compare(startKey, curKey) < -1 { // startKey < curKey; continue search
 			continue
@@ -341,10 +341,10 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 			return err
 		}
 
-		// [prefix]
+		// [space]
 		pfx := cursor.Value()
 
-		// [infoPrefix] + [delimiter] + [prefix]
+		// [infoPrefix] + [delimiter] + [space]
 		k := SpaceInfoKey(pfx)
 		if err := db.Delete(k); err != nil {
 			return err
@@ -355,7 +355,7 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 		}
 
 		if bootstrapped {
-			// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
+			// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 			k = PrefixPruningKey(expired, rpfx)
 			if err := db.Put(k, nil); err != nil {
 				return err
@@ -367,7 +367,7 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 				return err
 			}
 		}
-		log.Debug("prefix expired", "prefix", string(pfx))
+		log.Debug("space expired", "space", string(pfx))
 	}
 	return nil
 }
@@ -379,7 +379,7 @@ func PruneNext(db database.Database, limit int) (removals int, err error) {
 	endKey := RangeTimeKey(pruningPrefix, math.MaxInt64)
 	cursor := db.NewIteratorWithStart(startKey)
 	for cursor.Next() && removals < limit {
-		// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
+		// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 		curKey := cursor.Key()
 		if bytes.Compare(startKey, curKey) < -1 { // startKey < curKey; continue search
 			continue
@@ -394,25 +394,25 @@ func PruneNext(db database.Database, limit int) (removals int, err error) {
 		if err := db.Delete(curKey); err != nil {
 			return removals, err
 		}
-		// [keyPrefix] + [delimiter] + [rawPrefix] + [delimiter] + [key]
+		// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
 		if err := database.ClearPrefix(db, db, SpaceValueKey(rpfx, nil)); err != nil {
 			return removals, err
 		}
-		log.Debug("rprefix pruned", "rprefix", rpfx.Hex())
+		log.Debug("rspace pruned", "rspace", rpfx.Hex())
 		removals++
 	}
 	return removals, nil
 }
 
 // DB
-func HasPrefix(db database.KeyValueReader, space []byte) (bool, error) {
-	// [infoPrefix] + [delimiter] + [prefix]
-	k := SpaceInfoKey(prefix)
+func HasSpace(db database.KeyValueReader, space []byte) (bool, error) {
+	// [infoPrefix] + [delimiter] + [space]
+	k := SpaceInfoKey(space)
 	return db.Has(k)
 }
 
 func HasSpaceKey(db database.KeyValueReader, space []byte, key []byte) (bool, error) {
-	spaceInfo, exists, err := GetSpaceInfo(db, prefix)
+	spaceInfo, exists, err := GetSpaceInfo(db, space)
 	if err != nil {
 		return false, err
 	}
@@ -420,27 +420,27 @@ func HasSpaceKey(db database.KeyValueReader, space []byte, key []byte) (bool, er
 		return false, nil
 	}
 
-	// [keyPrefix] + [delimiter] + [rawPrefix] + [delimiter] + [key]
+	// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
 	k := SpaceValueKey(spaceInfo.RawSpace, key)
 	return db.Has(k)
 }
 
 func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastExpiry uint64) error {
 	if i.RawSpace == ids.ShortEmpty {
-		rprefix, err := RawSpace(space, i.Created)
+		rspace, err := RawSpace(space, i.Created)
 		if err != nil {
 			return err
 		}
-		i.RawSpace = rprefix
+		i.RawSpace = rspace
 	}
 	if lastExpiry > 0 {
-		// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
+		// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 		k := PrefixExpiryKey(lastExpiry, i.RawSpace)
 		if err := db.Delete(k); err != nil {
 			return err
 		}
 	}
-	// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawPrefix]
+	// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 	k := PrefixExpiryKey(i.Expiry, i.RawSpace)
 	if err := db.Put(k, space); err != nil {
 		return err
@@ -462,7 +462,7 @@ func PutSpaceKey(db database.Database, space []byte, key []byte, value []byte) e
 	if !exists {
 		return ErrPrefixMissing
 	}
-	// [keyPrefix] + [delimiter] + [rawPrefix] + [delimiter] + [key]
+	// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
 	k := SpaceValueKey(spaceInfo.RawSpace, key)
 	return db.Put(k, value)
 }
