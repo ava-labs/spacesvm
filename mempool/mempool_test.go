@@ -9,8 +9,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/ava-labs/quarkvm/chain"
-	"github.com/ava-labs/quarkvm/mempool"
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/mempool"
 )
 
 func TestMempool(t *testing.T) {

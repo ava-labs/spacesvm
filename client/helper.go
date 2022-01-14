@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 
-	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/spacesvm/chain"
 )
 
 // Signs and issues the transaction.

@@ -7,8 +7,8 @@ package version
 import (
 	"fmt"
 
-	"github.com/ava-labs/quarkvm/version"
-	"github.com/ava-labs/quarkvm/vm"
+	"github.com/ava-labs/spacesvm/version"
+	"github.com/ava-labs/spacesvm/vm"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +16,7 @@ func init() {
 	cobra.EnablePrefixMatching = true
 }
 
-// NewCommand implements "quarkvm version" command.
+// NewCommand implements "spacesvm version" command.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",

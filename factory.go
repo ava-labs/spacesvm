@@ -6,7 +6,7 @@ package vm
 import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/vms"
-	"github.com/ava-labs/quarkvm/vm"
+	"github.com/ava-labs/spacesvm/vm"
 )
 
 var _ vms.Factory = &Factory{}

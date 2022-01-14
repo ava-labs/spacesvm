@@ -1,14 +1,14 @@
 // Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// "quark-cli" implements quarkvm client operation interface.
+// "quark-cli" implements spacesvm client operation interface.
 package main
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/ava-labs/quarkvm/cmd/quarkcli/cmd"
+	"github.com/ava-labs/spacesvm/cmd/quarkcli/cmd"
 )
 
 func main() {

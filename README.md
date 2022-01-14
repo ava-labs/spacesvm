@@ -1,4 +1,4 @@
-# Key-value virtual machine (KVVM)
+# SpacesVM 
 
 Avalanche is a network composed of multiple blockchains. Each blockchain is an instance of a [Virtual Machine (VM)](https://docs.avax.network/learn/platform-overview#virtual-machines), much like an object in an object-oriented language is an instance of a class. That is, the VM defines the behavior of the blockchain.
 
@@ -30,19 +30,19 @@ TODO: Extend on
 
 At its core, the Avalanche protocol still maintains the immutable ordered sequence of states in a fully permissionless settings. And KVVM defines the rules and data structures to store key-value pairs.
 
-## Run `quarkvm` with local network
+## Run `spacesvm` with local network
 
-[`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego) to set up a local networkand creates a `quarkvm` genesis file. To build and run E2E tests, you need to set the variable `E2E` before it: `E2E=true ./scripts/run.sh 1.7.3`
+[`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego) to set up a local networkand creates a `spacesvm` genesis file. To build and run E2E tests, you need to set the variable `E2E` before it: `E2E=true ./scripts/run.sh 1.7.3`
 
 See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made:
 
 ```bash
 # to startup a cluster
-cd ${HOME}/go/src/github.com/ava-labs/quarkvm
+cd ${HOME}/go/src/github.com/ava-labs/spacesvm
 ./scripts/run.sh 1.7.3
 
 # to run full e2e tests and shut down cluster afterwards
-cd ${HOME}/go/src/github.com/ava-labs/quarkvm
+cd ${HOME}/go/src/github.com/ava-labs/spacesvm
 E2E=true ./scripts/run.sh 1.7.3
 ```
 
@@ -66,7 +66,7 @@ curl --location --request POST 'http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7
 --header 'Content-Type: application/json' \
 --data-raw '{
     "jsonrpc": "2.0",
-    "method": "quarkvm.ping",
+    "method": "spacesvm.ping",
     "params":{},
     "id": 1
 }'
@@ -79,7 +79,7 @@ curl --location --request POST 'http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7
 --header 'Content-Type: application/json' \
 --data-raw '{
     "jsonrpc": "2.0",
-    "method": "quarkvm.resolve",
+    "method": "spacesvm.resolve",
     "params":{
       "path": "patrick.avax/twitter"
     },
@@ -195,7 +195,7 @@ curl --location --request POST 'http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7
 --header 'Content-Type: application/json' \
 --data-raw '{
     "jsonrpc": "2.0",
-    "method": "quarkvm.prefixInfo",
+    "method": "spacesvm.prefixInfo",
     "params":{
         "prefix":"cGF0cmljay5hdmF4"
     },
@@ -262,7 +262,7 @@ Here are some example results:
 ```bash
 goos: darwin
 goarch: amd64
-pkg: github.com/ava-labs/quarkvm/pow
+pkg: github.com/ava-labs/spacesvm/pow
 cpu: Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz
 BenchmarkDifficulty1-16       	    1300	    921956 ns/op
 BenchmarkDifficulty10-16      	     100	  11083185 ns/op

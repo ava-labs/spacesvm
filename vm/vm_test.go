@@ -9,7 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/quarkvm/chain"
+	"github.com/ava-labs/spacesvm/chain"
 )
 
 func TestBlockCache(t *testing.T) {

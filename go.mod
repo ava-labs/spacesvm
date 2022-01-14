@@ -1,4 +1,4 @@
-module github.com/ava-labs/quarkvm
+module github.com/ava-labs/spacesvm
 
 go 1.17
 

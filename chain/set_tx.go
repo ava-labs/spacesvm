@@ -10,7 +10,7 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
-	"github.com/ava-labs/quarkvm/parser"
+	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ethereum/go-ethereum/common"
 )
 

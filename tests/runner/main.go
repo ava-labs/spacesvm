@@ -27,7 +27,7 @@ import (
 	avago_constants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
-	"github.com/ava-labs/quarkvm/tests"
+	"github.com/ava-labs/spacesvm/tests"
 	formatter "github.com/onsi/ginkgo/v2/formatter"
 	"github.com/spf13/cobra"
 )
@@ -90,7 +90,7 @@ func main() {
 func runFunc(cmd *cobra.Command, args []string) error {
 	return run(
 		avalancheGoBinPath,
-		"quarkvm",
+		"spacesvm",
 		vmID,
 		vmGenesisPath,
 		outputPath,
