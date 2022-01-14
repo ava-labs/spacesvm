@@ -33,19 +33,25 @@ func TestLifelineTx(t *testing.T) {
 		err       error
 	}{
 		{ // invalid when prefix info is missing
-			utx:       &LifelineTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
+			utx:       &LifelineTx{BaseTx: &BaseTx{}, Space: "foo"},
 			blockTime: 1,
 			sender:    sender,
-			err:       ErrPrefixMissing,
+			err:       ErrSpaceMissing,
 		},
 		{ // successful claim with expiry time "blockTime" + "expiryTime"
-			utx:       &ClaimTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
+			utx:       &ClaimTx{BaseTx: &BaseTx{}, Space: "foo"},
 			blockTime: 1,
 			sender:    sender,
 			err:       nil,
 		},
 		{ // successful lifeline when prefix info is not missing
-			utx:       &LifelineTx{BaseTx: &BaseTx{Pfx: []byte("foo")}},
+			utx:       &LifelineTx{BaseTx: &BaseTx{}, Space: "foo"},
+			blockTime: 1,
+			sender:    sender,
+			err:       nil,
+		},
+		{ // successful lifeline non-zero units
+			utx:       &LifelineTx{BaseTx: &BaseTx{}, Space: "foo", Units: 100},
 			blockTime: 1,
 			sender:    sender,
 			err:       nil,
@@ -62,6 +68,9 @@ func TestLifelineTx(t *testing.T) {
 		err := tv.utx.Execute(tc)
 		if !errors.Is(err, tv.err) {
 			t.Fatalf("#%d: tx.Execute err expected %v, got %v", i, tv.err, err)
+		}
+		if err != nil {
+			continue
 		}
 	}
 }

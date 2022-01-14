@@ -6,16 +6,17 @@ package chain
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	reflect "reflect"
+	"reflect"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
-func TestPrefixValueKey(t *testing.T) {
+func TestSpaceValueKey(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
@@ -30,14 +31,14 @@ func TestPrefixValueKey(t *testing.T) {
 		},
 	}
 	for i, tv := range tt {
-		vv := PrefixValueKey(tv.rpfx, tv.key)
+		vv := SpaceValueKey(tv.rpfx, tv.key)
 		if !bytes.Equal(tv.valueKey, vv) {
 			t.Fatalf("#%d: value expected %q, got %q", i, tv.valueKey, vv)
 		}
 	}
 }
 
-func TestPrefixInfoKey(t *testing.T) {
+func TestSpaceInfoKey(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
@@ -50,7 +51,7 @@ func TestPrefixInfoKey(t *testing.T) {
 		},
 	}
 	for i, tv := range tt {
-		vv := PrefixInfoKey(tv.pfx)
+		vv := SpaceInfoKey(tv.pfx)
 		if !bytes.Equal(tv.infoKey, vv) {
 			t.Fatalf("#%d: value expected %q, got %q", i, tv.infoKey, vv)
 		}
@@ -67,7 +68,7 @@ func TestPrefixTxKey(t *testing.T) {
 	}{
 		{
 			txID:  id,
-			txKey: append([]byte{txPrefix, parser.Delimiter}, id[:]...),
+			txKey: append([]byte{txPrefix, parser.ByteDelimiter}, id[:]...),
 		},
 	}
 	for i, tv := range tt {
@@ -88,7 +89,7 @@ func TestPrefixBlockKey(t *testing.T) {
 	}{
 		{
 			blkID:    id,
-			blockKey: append([]byte{blockPrefix, parser.Delimiter}, id[:]...),
+			blockKey: append([]byte{blockPrefix, parser.ByteDelimiter}, id[:]...),
 		},
 	}
 	for i, tv := range tt {
@@ -99,7 +100,7 @@ func TestPrefixBlockKey(t *testing.T) {
 	}
 }
 
-func TestPutPrefixInfoAndKey(t *testing.T) {
+func TestPutSpaceInfoAndKey(t *testing.T) {
 	t.Parallel()
 
 	db := memdb.New()
@@ -109,176 +110,36 @@ func TestPutPrefixInfoAndKey(t *testing.T) {
 	k, v := []byte("k"), []byte("v")
 
 	// expect failures for non-existing prefixInfo
-	if ok, err := HasPrefix(db, pfx); ok || err != nil {
+	if ok, err := HasSpace(db, pfx); ok || err != nil {
 		t.Fatalf("unexpected ok %v, err %v", ok, err)
 	}
-	if ok, err := HasPrefixKey(db, pfx, k); ok || err != nil {
+	if ok, err := HasSpaceKey(db, pfx, k); ok || err != nil {
 		t.Fatalf("unexpected ok %v, err %v", ok, err)
 	}
-	if err := PutPrefixKey(db, pfx, k, v); !errors.Is(err, ErrPrefixMissing) {
-		t.Fatalf("unexpected error %v, expected %v", err, ErrPrefixMissing)
+	if err := PutSpaceKey(db, pfx, k, v); !errors.Is(err, ErrSpaceMissing) {
+		t.Fatalf("unexpected error %v, expected %v", err, ErrSpaceMissing)
 	}
 
-	if err := PutPrefixInfo(
+	if err := PutSpaceInfo(
 		db,
 		pfx,
-		&PrefixInfo{
-			RawPrefix: ids.ShortID{0x1},
+		&SpaceInfo{
+			RawSpace: ids.ShortID{0x1},
 		},
 		0,
 	); err != nil {
 		t.Fatal(err)
 	}
-	if err := PutPrefixKey(db, pfx, k, v); err != nil {
+	if err := PutSpaceKey(db, pfx, k, v); err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
 
 	// expect success for existing prefixInfo
-	if ok, err := HasPrefix(db, pfx); !ok || err != nil {
+	if ok, err := HasSpace(db, pfx); !ok || err != nil {
 		t.Fatalf("unexpected ok %v, err %v", ok, err)
 	}
-	if ok, err := HasPrefixKey(db, pfx, k); !ok || err != nil {
+	if ok, err := HasSpaceKey(db, pfx, k); !ok || err != nil {
 		t.Fatalf("unexpected ok %v, err %v", ok, err)
-	}
-}
-
-func TestRange(t *testing.T) {
-	t.Parallel()
-
-	db := memdb.New()
-	defer db.Close()
-
-	// Persist PrefixInfo so keys can be stored under rprefix
-	pfx := []byte("foo")
-	if err := PutPrefixInfo(db, pfx, &PrefixInfo{
-		RawPrefix: ids.ShortID{0x1},
-	}, 0); err != nil {
-		t.Fatal(err)
-	}
-
-	for i := 0; i < 5; i++ {
-		id := ids.GenerateTestID()
-		if err := db.Put(PrefixTxValueKey(id), []byte(fmt.Sprintf("bar%05d", i))); err != nil {
-			t.Fatal(err)
-		}
-		if err := PutPrefixKey(
-			db,
-			pfx,
-			[]byte(fmt.Sprintf("hello%05d", i)),
-			id[:],
-		); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	tt := []struct {
-		pfx  []byte
-		key  []byte
-		opts []OpOption
-		kvs  []KeyValue
-	}{
-		{ // prefix exists but the key itself does not exist
-			pfx:  pfx,
-			key:  []byte("9"),
-			opts: nil,
-			kvs:  nil,
-		},
-		{ // single key
-			pfx:  pfx,
-			key:  []byte("hello00000"),
-			opts: nil,
-			kvs: []KeyValue{
-				{Key: []byte("hello00000"), Value: []byte("bar00000")},
-			},
-		},
-		{ // prefix query
-			pfx:  pfx,
-			key:  []byte("hello"),
-			opts: []OpOption{WithPrefix()},
-			kvs: []KeyValue{
-				{Key: []byte("hello00000"), Value: []byte("bar00000")},
-				{Key: []byte("hello00001"), Value: []byte("bar00001")},
-				{Key: []byte("hello00002"), Value: []byte("bar00002")},
-				{Key: []byte("hello00003"), Value: []byte("bar00003")},
-				{Key: []byte("hello00004"), Value: []byte("bar00004")},
-			},
-		},
-		{ // prefix query
-			pfx:  pfx,
-			key:  nil,
-			opts: []OpOption{WithPrefix()},
-			kvs: []KeyValue{
-				{Key: []byte("hello00000"), Value: []byte("bar00000")},
-				{Key: []byte("hello00001"), Value: []byte("bar00001")},
-				{Key: []byte("hello00002"), Value: []byte("bar00002")},
-				{Key: []byte("hello00003"), Value: []byte("bar00003")},
-				{Key: []byte("hello00004"), Value: []byte("bar00004")},
-			},
-		},
-		{ // prefix query
-			pfx:  pfx,
-			key:  []byte("x"),
-			opts: []OpOption{WithPrefix()},
-			kvs:  nil,
-		},
-		{ // range query
-			pfx:  pfx,
-			key:  []byte("hello"),
-			opts: []OpOption{WithRangeEnd([]byte("hello00003"))},
-			kvs: []KeyValue{
-				{Key: []byte("hello00000"), Value: []byte("bar00000")},
-				{Key: []byte("hello00001"), Value: []byte("bar00001")},
-				{Key: []byte("hello00002"), Value: []byte("bar00002")},
-			},
-		},
-		{ // range query
-			pfx:  pfx,
-			key:  []byte("hello00001"),
-			opts: []OpOption{WithRangeEnd([]byte("hello00003"))},
-			kvs: []KeyValue{
-				{Key: []byte("hello00001"), Value: []byte("bar00001")},
-				{Key: []byte("hello00002"), Value: []byte("bar00002")},
-			},
-		},
-		{ // range query
-			pfx:  pfx,
-			key:  []byte("hello00003"),
-			opts: []OpOption{WithRangeEnd([]byte("hello00005"))},
-			kvs: []KeyValue{
-				{Key: []byte("hello00003"), Value: []byte("bar00003")},
-				{Key: []byte("hello00004"), Value: []byte("bar00004")},
-			},
-		},
-		{ // range query with limit
-			pfx:  pfx,
-			key:  []byte("hello00003"),
-			opts: []OpOption{WithRangeEnd([]byte("hello00005")), WithRangeLimit(1)},
-			kvs: []KeyValue{
-				{Key: []byte("hello00003"), Value: []byte("bar00003")},
-			},
-		},
-		{ // prefix query with limit
-			pfx:  pfx,
-			key:  []byte("hello"),
-			opts: []OpOption{WithPrefix(), WithRangeLimit(3)},
-			kvs: []KeyValue{
-				{Key: []byte("hello00000"), Value: []byte("bar00000")},
-				{Key: []byte("hello00001"), Value: []byte("bar00001")},
-				{Key: []byte("hello00002"), Value: []byte("bar00002")},
-			},
-		},
-	}
-	for i, tv := range tt {
-		kvs, err := Range(db, tv.pfx, tv.key, tv.opts...)
-		if err != nil {
-			t.Fatalf("#%d: unexpected error when fetching range %v", i, err)
-		}
-		if len(tv.kvs) == 0 && len(kvs) == 0 {
-			continue
-		}
-		if !reflect.DeepEqual(kvs, tv.kvs) {
-			t.Fatalf("#%d: range response expected %v pair(s), got %v pair(s)", i, tv.kvs, kvs)
-		}
 	}
 }
 
@@ -298,5 +159,182 @@ func TestSpecificTimeKey(t *testing.T) {
 
 	if _, _, err = extractSpecificTimeKey(k[:10]); !errors.Is(err, ErrInvalidKeyFormat) {
 		t.Fatalf("unexpected error %v, expected %v", err, ErrInvalidKeyFormat)
+	}
+}
+
+func TestGetAllValues(t *testing.T) {
+	t.Parallel()
+
+	priv, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sender := crypto.PubkeyToAddress(priv.PublicKey)
+
+	priv2, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sender2 := crypto.PubkeyToAddress(priv2.PublicKey)
+
+	db := memdb.New()
+	defer db.Close()
+
+	g := DefaultGenesis()
+	tt := []struct {
+		utx       UnsignedTransaction
+		space     string
+		blockTime int64
+		sender    common.Address
+		expected  []*KeyValue
+	}{
+		{ // successful claim
+			utx: &ClaimTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+			},
+			space:     "foo",
+			blockTime: 1,
+			sender:    sender,
+			expected:  []*KeyValue{},
+		},
+		{ // write
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+				Key:   "bar",
+				Value: []byte("value"),
+			},
+			space:     "foo",
+			blockTime: 1,
+			sender:    sender,
+			expected: []*KeyValue{
+				{Key: "bar", Value: []byte("value")},
+			},
+		},
+		{ // successful claim
+			utx: &ClaimTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo2",
+			},
+			space:     "foo2",
+			blockTime: 1,
+			sender:    sender2,
+			expected:  []*KeyValue{},
+		},
+		{ // write
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo2",
+				Key:   "bar",
+				Value: []byte("value2"),
+			},
+			space:     "foo2",
+			blockTime: 1,
+			sender:    sender2,
+			expected: []*KeyValue{
+				{Key: "bar", Value: []byte("value2")},
+			},
+		},
+		{ // write again
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+				Key:   "bar",
+				Value: []byte("value2"),
+			},
+			space:     "foo",
+			blockTime: 1,
+			sender:    sender,
+			expected: []*KeyValue{
+				{Key: "bar", Value: []byte("value2")},
+			},
+		},
+		{ // write new
+			utx: &SetTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+				Key:   "bar2",
+				Value: []byte("value2"),
+			},
+			space:     "foo",
+			blockTime: 1,
+			sender:    sender,
+			expected: []*KeyValue{
+				{Key: "bar", Value: []byte("value2")},
+				{Key: "bar2", Value: []byte("value2")},
+			},
+		},
+		{ // delete
+			utx: &DeleteTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+				Key:   "bar",
+			},
+			space:     "foo",
+			blockTime: 1,
+			sender:    sender,
+			expected: []*KeyValue{
+				{Key: "bar2", Value: []byte("value2")},
+			},
+		},
+	}
+	for i, tv := range tt {
+		if i > 0 {
+			// Expire old prefixes between txs
+			if err := ExpireNext(db, tt[i-1].blockTime, tv.blockTime, true); err != nil {
+				t.Fatalf("#%d: ExpireNext errored %v", i, err)
+			}
+		}
+		// Set linked value (normally done in block processing)
+		id := ids.GenerateTestID()
+		if tp, ok := tv.utx.(*SetTx); ok {
+			if len(tp.Value) > 0 {
+				if err := db.Put(PrefixTxValueKey(id), tp.Value); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		tc := &TransactionContext{
+			Genesis:   g,
+			Database:  db,
+			BlockTime: uint64(tv.blockTime),
+			TxID:      id,
+			Sender:    tv.sender,
+		}
+		if err := tv.utx.Execute(tc); err != nil {
+			t.Fatalf("#%d: tx.Execute err expected nil, got %v", i, err)
+		}
+
+		s, exists, err := GetSpaceInfo(db, []byte(tv.space))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !exists {
+			t.Fatal("foo should exist")
+		}
+
+		kvs, err := GetAllValues(db, s.RawSpace)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if !reflect.DeepEqual(tv.expected, kvs) {
+			t.Fatalf("%d: values not equal expected=%+v observed=%+v", i, tv.expected, kvs)
+		}
 	}
 }

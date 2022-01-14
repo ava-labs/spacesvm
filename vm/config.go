@@ -17,9 +17,6 @@ type Config struct {
 	FullPruneInterval time.Duration `serialize:"true" json:"fullPruneInterval"`
 
 	MempoolSize int `serialize:"true" json:"mempoolSize"`
-
-	// Allow users to pass in human-readable prefixes as beneficiaries
-	Beneficiary string `serialize:"true" json:"beneficiary"`
 }
 
 func (c *Config) SetDefaults() {

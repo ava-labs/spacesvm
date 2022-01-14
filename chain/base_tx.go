@@ -9,62 +9,48 @@ import (
 
 type BaseTx struct {
 	// BlkID is the ID of a block in the [lookbackWindow].
-	BlkID ids.ID `serialize:"true" json:"blockId"`
-
-	// Prefix is the namespace for the "PrefixInfo"
-	// whose owner can write and read value for the
-	// specific key space.
-	// The prefix must not have the delimiter '/' as suffix.
-	// Otherwise, the verification will fail.
-
-	// TODO: change to string
-	// TODO: move to each tx
-	Pfx []byte `serialize:"true" json:"prefix"`
+	BlockID ids.ID `serialize:"true" json:"blockId"`
 
 	// Magic is a value defined in genesis to protect against replay attacks on
 	// different VMs.
-	Mgc uint64 `serialize:"true" json:"magic"`
+	Magic uint64 `serialize:"true" json:"magic"`
 
 	// Price is the value per unit to spend on this transaction.
-	Prce uint64 `serialize:"true" json:"fee"`
+	Price uint64 `serialize:"true" json:"price"`
 }
 
-func (b *BaseTx) BlockID() ids.ID {
-	return b.BlkID
+func (b *BaseTx) GetBlockID() ids.ID {
+	return b.BlockID
 }
 
 func (b *BaseTx) SetBlockID(bid ids.ID) {
-	b.BlkID = bid
+	b.BlockID = bid
 }
 
-func (b *BaseTx) Prefix() []byte {
-	return b.Pfx
-}
-
-func (b *BaseTx) Magic() uint64 {
-	return b.Mgc
+func (b *BaseTx) GetMagic() uint64 {
+	return b.Magic
 }
 
 func (b *BaseTx) SetMagic(magic uint64) {
-	b.Mgc = magic
+	b.Magic = magic
 }
 
-func (b *BaseTx) Price() uint64 {
-	return b.Prce
+func (b *BaseTx) GetPrice() uint64 {
+	return b.Price
 }
 
 func (b *BaseTx) SetPrice(price uint64) {
-	b.Prce = price
+	b.Price = price
 }
 
 func (b *BaseTx) ExecuteBase(g *Genesis) error {
-	if b.BlkID == ids.Empty {
+	if b.BlockID == ids.Empty {
 		return ErrInvalidBlockID
 	}
-	if g.Magic != b.Mgc {
+	if b.Magic != g.Magic {
 		return ErrInvalidMagic
 	}
-	if b.Prce < g.MinPrice {
+	if b.Price < g.MinPrice {
 		return ErrInvalidPrice
 	}
 	return nil
@@ -80,13 +66,10 @@ func (b *BaseTx) LoadUnits(g *Genesis) uint64 {
 
 func (b *BaseTx) Copy() *BaseTx {
 	blockID := ids.ID{}
-	copy(blockID[:], b.BlkID[:])
-	prefix := make([]byte, len(b.Pfx))
-	copy(prefix, b.Pfx)
+	copy(blockID[:], b.BlockID[:])
 	return &BaseTx{
-		BlkID: blockID,
-		Pfx:   prefix,
-		Mgc:   b.Mgc,
-		Prce:  b.Prce,
+		BlockID: blockID,
+		Magic:   b.Magic,
+		Price:   b.Price,
 	}
 }

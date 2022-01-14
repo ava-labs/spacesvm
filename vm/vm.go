@@ -8,7 +8,6 @@ import (
 	ejson "encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -31,9 +30,8 @@ import (
 )
 
 const (
-	Name            = "spacesvm"
-	PublicEndpoint  = "/public"
-	PrivateEndpoint = "/private"
+	Name           = "spacesvm"
+	PublicEndpoint = "/public"
 )
 
 var (
@@ -69,11 +67,6 @@ type VM struct {
 	preferred    ids.ID
 	lastAccepted *chain.StatelessBlock
 
-	// beneficiary is the prefix that will receive rewards if the node produces
-	// a block
-	beneficiaryLock sync.RWMutex
-	beneficiary     []byte
-
 	stop chan struct{}
 
 	builderStop chan struct{}
@@ -105,9 +98,6 @@ func (vm *VM) Initialize(
 	if len(configBytes) > 0 {
 		if err := ejson.Unmarshal(configBytes, &vm.config); err != nil {
 			return fmt.Errorf("failed to unmarshal config %s: %w", string(configBytes), err)
-		}
-		if len(vm.config.Beneficiary) > 0 {
-			vm.beneficiary = []byte(vm.config.Beneficiary)
 		}
 	}
 
@@ -257,11 +247,6 @@ func (vm *VM) CreateHandlers() (map[string]*common.HTTPHandler, error) {
 		return nil, err
 	}
 	apis[PublicEndpoint] = public
-	private, err := newHandler(Name, &PrivateService{vm: vm})
-	if err != nil {
-		return nil, err
-	}
-	apis[PrivateEndpoint] = private
 	return apis, nil
 }
 
@@ -372,9 +357,7 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 		return nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", blk)
 	}
 
-	log.Debug("BuildBlock success",
-		"blkID", blk.ID(), "txs", len(sblk.Txs), "beneficiary", string(sblk.Beneficiary),
-	)
+	log.Debug("BuildBlock success", "blkID", blk.ID(), "txs", len(sblk.Txs))
 	return blk, nil
 }
 

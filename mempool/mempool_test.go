@@ -4,7 +4,7 @@
 package mempool_test
 
 import (
-	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -24,9 +24,9 @@ func TestMempool(t *testing.T) {
 		tx := &chain.Transaction{
 			UnsignedTransaction: &chain.SetTx{
 				BaseTx: &chain.BaseTx{
-					Pfx:  bytes.Repeat([]byte{'b'}, i),
-					Prce: uint64(i),
+					Price: uint64(i),
 				},
+				Space: strings.Repeat("a", i),
 			},
 		}
 		sig, err := crypto.Sign(tx.DigestHash(), priv)

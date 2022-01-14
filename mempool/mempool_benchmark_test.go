@@ -73,9 +73,9 @@ func createTestMempool(
 		tx := &chain.Transaction{
 			UnsignedTransaction: &chain.ClaimTx{
 				BaseTx: &chain.BaseTx{
-					Pfx:   pfx,
-					BlkID: blks[i%blksN],
+					BlockID: blks[i%blksN],
 				},
+				Space: string(pfx),
 			},
 		}
 		sig, err := crypto.Sign(tx.DigestHash(), priv)
@@ -97,7 +97,7 @@ func createTestMempool(
 	b.StartTimer()
 	for _, tx := range txs {
 		if added := mp.Add(tx); added && sampleBlkIDs.Len() < sampleBlk {
-			sampleBlkIDs.Add(tx.BlockID())
+			sampleBlkIDs.Add(tx.GetBlockID())
 		}
 	}
 	return mp, sampleBlkIDs

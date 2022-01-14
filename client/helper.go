@@ -57,7 +57,7 @@ func SignIssueTx(
 
 	color.Yellow(
 		"issuing tx %s (fee units=%d, load units=%d, price=%d, blkID=%s)",
-		tx.ID(), tx.FeeUnits(g), tx.LoadUnits(g), tx.Price(), tx.BlockID(),
+		tx.ID(), tx.FeeUnits(g), tx.LoadUnits(g), tx.GetPrice(), tx.GetBlockID(),
 	)
 	txID, err = cli.IssueTx(tx.Bytes())
 	if err != nil {
@@ -77,8 +77,8 @@ func SignIssueTx(
 		}
 	}
 
-	if len(ret.prefixInfo) > 0 {
-		info, err := cli.PrefixInfo(ret.prefixInfo)
+	if len(ret.space) > 0 {
+		info, _, err := cli.Info(ret.space)
 		if err != nil {
 			color.Red("cannot get prefix info %v", err)
 			return ids.Empty, err
@@ -86,7 +86,7 @@ func SignIssueTx(
 		expiry := time.Unix(int64(info.Expiry), 0)
 		color.Blue(
 			"raw prefix %s: units=%d expiry=%v (%v remaining)",
-			info.RawPrefix, info.Units, expiry, time.Until(expiry),
+			info.RawSpace, info.Units, expiry, time.Until(expiry),
 		)
 	}
 

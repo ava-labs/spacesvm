@@ -4,10 +4,10 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
@@ -58,40 +58,34 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	pfx := getClaimOp(args)
+	space := getClaimOp(args)
 	cli := client.New(uri, requestTimeout)
 
 	utx := &chain.ClaimTx{
-		BaseTx: &chain.BaseTx{
-			Pfx: pfx,
-		},
+		BaseTx: &chain.BaseTx{},
+		Space:  space,
 	}
 
-	opts := []client.OpOption{client.WithPollTx(), client.WithPrefixInfo(pfx)}
+	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
 	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, opts...)
 	return err
 }
 
-func getClaimOp(args []string) (pfx []byte) {
+func getClaimOp(args []string) (space string) {
 	if len(args) != 1 {
 		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
 		os.Exit(128)
 	}
 
-	pfx = []byte(args[0])
-	if bytes.HasSuffix(pfx, []byte{'/'}) {
-		pfx = pfx[:len(pfx)-1]
-	}
+	space = args[0]
+	splits := strings.Split(space, "/")
+	space = splits[0]
 
 	// check here first before parsing in case "pfx" is empty
-	if err := parser.CheckPrefix(pfx); err != nil {
+	if err := parser.CheckContents(space); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to verify prefix %v", err)
 		os.Exit(128)
 	}
-	if _, _, _, err := parser.ParsePrefixKey(pfx); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
-		os.Exit(128)
-	}
 
-	return pfx
+	return space
 }

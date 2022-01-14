@@ -26,8 +26,6 @@ type VM interface {
 	State() database.Database
 	Mempool() Mempool
 	GetStatelessBlock(ids.ID) (*StatelessBlock, error)
-	Beneficiary() []byte
-	SetBeneficiary(prefix []byte)
 	ExecutionContext(currentTime int64, parent *StatelessBlock) (*Context, error)
 	Verified(*StatelessBlock)
 	Rejected(*StatelessBlock)

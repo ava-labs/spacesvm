@@ -5,15 +5,12 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/client"
-	"github.com/ava-labs/spacesvm/parser"
 )
 
 var deleteCmd = &cobra.Command{
@@ -79,41 +76,16 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	pfx, key := getDeleteOp(args)
+	space, key := getPathOp(args)
 	cli := client.New(uri, requestTimeout)
 
-	utx := &chain.SetTx{
-		BaseTx: &chain.BaseTx{
-			Pfx: pfx,
-		},
-		Key:   key,
-		Value: nil,
+	utx := &chain.DeleteTx{
+		BaseTx: &chain.BaseTx{},
+		Space:  space,
+		Key:    key,
 	}
 
-	opts := []client.OpOption{client.WithPollTx(), client.WithPrefixInfo(pfx)}
+	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
 	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, opts...)
 	return err
-}
-
-func getDeleteOp(args []string) (pfx []byte, key []byte) {
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
-		os.Exit(128)
-	}
-
-	// [prefix/key] == "foo/bar"
-	pfxKey := args[0]
-
-	var err error
-	pfx, key, _, err = parser.ParsePrefixKey(
-		[]byte(pfxKey),
-		parser.WithCheckPrefix(),
-		parser.WithCheckKey(),
-	)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
-		os.Exit(128)
-	}
-
-	return pfx, key
 }

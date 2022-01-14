@@ -4,9 +4,12 @@
 package chain
 
 import (
-	"bytes"
+	"crypto/ecdsa"
+	"errors"
+	"strings"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -24,9 +27,8 @@ func TestTransaction(t *testing.T) {
 	for i := range []int{0, 1, 2} {
 		tx := &Transaction{
 			UnsignedTransaction: &ClaimTx{
-				BaseTx: &BaseTx{
-					Pfx: bytes.Repeat([]byte{'b'}, i*10),
-				},
+				BaseTx: &BaseTx{},
+				Space:  strings.Repeat("b", i*10),
 			},
 		}
 		dh := tx.DigestHash()
@@ -47,79 +49,87 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
-// func TestTransactionErrInvalidSignature(t *testing.T) {
-// 	t.Parallel()
-//
-// 	g := DefaultGenesis()
-// 	tt := []struct {
-// 		createTx   func() *Transaction
-// 		blockTime  int64
-// 		ctx        *Context
-// 		executeErr error
-// 	}{
-// 		{
-// 			createTx: func() *Transaction {
-// 				return createTestTx(t, ids.ID{0, 1}, false)
-// 			},
-// 			blockTime:  1,
-// 			ctx:        &Context{RecentBlockIDs: ids.Set{{0, 1}: struct{}{}}},
-// 			executeErr: nil,
-// 		},
-// 		{
-// 			createTx: func() *Transaction {
-// 				tx := createTestTx(t, ids.ID{0, 1}, true)
-// 				return tx
-// 			},
-// 			blockTime:  1,
-// 			ctx:        &Context{RecentBlockIDs: ids.Set{{0, 1}: struct{}{}}},
-// 			executeErr: ErrInvalidSignature,
-// 		},
-// 	}
-// 	for i, tv := range tt {
-// 		db := memdb.New()
-// 		tx := tv.createTx()
-// 		v, err := ModifyBalance(db, tx.Sender(), true, 100000)
-// 		if err != nil {
-// 			t.Fatal(err)
-// 		}
-// 		if v != 100000 {
-// 			t.Fatal(ErrInvalidBalance)
-// 		}
-// 		err = tx.Execute(g, memdb.New(), tv.blockTime, tv.ctx)
-// 		if !errors.Is(err, tv.executeErr) {
-// 			t.Fatalf("#%d: unexpected tx.Execute error %v, expected %v", i, err, tv.executeErr)
-// 		}
-// 	}
-// }
-
-func createTestTx(t *testing.T, blockID ids.ID, invalid bool) *Transaction {
-	t.Helper()
+func TestTransactionErrInvalidSignature(t *testing.T) {
+	t.Parallel()
 
 	priv, err := crypto.GenerateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
+	sender := crypto.PubkeyToAddress(priv.PublicKey)
+
+	priv2, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	g := DefaultGenesis()
+	tt := []struct {
+		createTx   func() *Transaction
+		blockTime  int64
+		ctx        *Context
+		executeErr error
+	}{
+		{
+			createTx: func() *Transaction {
+				return createTestTx(t, ids.ID{0, 1}, priv)
+			},
+			blockTime:  1,
+			ctx:        &Context{RecentBlockIDs: ids.Set{{0, 1}: struct{}{}}},
+			executeErr: nil,
+		},
+		{
+			createTx: func() *Transaction {
+				tx := createTestTx(t, ids.ID{0, 1}, priv2)
+				return tx
+			},
+			blockTime:  1,
+			ctx:        &Context{RecentBlockIDs: ids.Set{{0, 1}: struct{}{}}},
+			executeErr: ErrInvalidBalance,
+		},
+	}
+	for i, tv := range tt {
+		db := memdb.New()
+		g.Allocations = []*Allocation{
+			{
+				Address: sender.Hex(),
+				Balance: 10000000,
+			},
+			// sender2 is not given any balance
+		}
+		if err := g.Load(db); err != nil {
+			t.Fatal(err)
+		}
+		tx := tv.createTx()
+		err := tx.Execute(g, db, tv.blockTime, tv.ctx)
+		if !errors.Is(err, tv.executeErr) {
+			t.Fatalf("#%d: unexpected tx.Execute error %v, expected %v", i, err, tv.executeErr)
+		}
+	}
+}
+
+func createTestTx(t *testing.T, blockID ids.ID, priv *ecdsa.PrivateKey) *Transaction {
+	t.Helper()
+
 	tx := &Transaction{
 		UnsignedTransaction: &ClaimTx{
 			BaseTx: &BaseTx{
-				Pfx:   []byte{'a'},
-				BlkID: blockID,
+				BlockID: blockID,
+				Price:   10,
 			},
+			Space: "a",
 		},
 	}
-	if !invalid {
-		dh := tx.DigestHash()
-		if len(tx.DigestHash()) != 32 {
-			t.Fatal("hash insufficient")
-		}
-		tx.Signature, err = crypto.Sign(dh, priv)
-		if err != nil {
-			t.Fatal(err)
-		}
-	} else {
-		tx.Signature = []byte("invalid")
+	dh := tx.DigestHash()
+	if len(tx.DigestHash()) != 32 {
+		t.Fatal("hash insufficient")
 	}
 
+	sig, err := crypto.Sign(dh, priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx.Signature = sig
 	if err := tx.Init(DefaultGenesis()); err != nil {
 		t.Fatal(err)
 	}

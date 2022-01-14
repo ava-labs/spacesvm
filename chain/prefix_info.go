@@ -8,12 +8,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-type PrefixInfo struct {
+type SpaceInfo struct {
 	Owner       common.Address `serialize:"true" json:"owner"`
 	Created     uint64         `serialize:"true" json:"created"`
 	LastUpdated uint64         `serialize:"true" json:"lastUpdated"`
 	Expiry      uint64         `serialize:"true" json:"expiry"`
 	Units       uint64         `serialize:"true" json:"units"` // decays faster the more units you have
 
-	RawPrefix ids.ShortID `serialize:"true" json:"rawPrefix"`
+	RawSpace ids.ShortID `serialize:"true" json:"rawSpace"`
 }

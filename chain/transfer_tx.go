@@ -4,58 +4,41 @@
 package chain
 
 import (
-	"github.com/ethereum/go-ethereum/common"
+	"bytes"
 
-	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ UnsignedTransaction = &SetTx{}
+var _ UnsignedTransaction = &TransferTx{}
 
 type TransferTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
-	To      common.Address `serialize:"true" json:"to"`
-	Value   uint64         `serialize:"true" json:"value"`
+
+	// To is the recipient of the [Value].
+	To common.Address `serialize:"true" json:"to"`
+
+	// Value is the number of units to transfer to [To].
+	Value uint64 `serialize:"true" json:"value"`
 }
 
 func (t *TransferTx) Execute(c *TransactionContext) error {
-	// Note this also prevents someone from transferring a prefix to themselves.
-	if t.To == c.Sender {
+	// Must transfer to someone
+	if bytes.Equal(t.To[:], zeroAddress[:]) {
 		return ErrNonActionable
 	}
 
-	actionable := false
-	if t.Value > 0 {
-		actionable = true
-		if _, err := ModifyBalance(c.Database, c.Sender, false, t.Value); err != nil {
-			return err
-		}
-		if _, err := ModifyBalance(c.Database, t.To, true, t.Value); err != nil {
-			return err
-		}
-	}
-	// TODO: move prefix to tx model outside of base
-	if len(t.Prefix()) > 0 { //nolint:nestif
-		if err := parser.CheckPrefix(t.Prefix()); err != nil {
-			return err
-		}
-		actionable = true
-		p, exists, err := GetPrefixInfo(c.Database, t.Prefix())
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return ErrPrefixMissing
-		}
-		if p.Owner != c.Sender {
-			return ErrUnauthorized
-		}
-		p.Owner = t.To
-		if err := PutPrefixInfo(c.Database, t.Prefix(), p, 0); err != nil { // make optional to update prefix expiry
-			return err
-		}
-	}
-	if !actionable {
+	// This prevents someone from transferring to themselves.
+	if bytes.Equal(t.To[:], c.Sender[:]) {
 		return ErrNonActionable
+	}
+	if t.Value == 0 {
+		return ErrNonActionable
+	}
+	if _, err := ModifyBalance(c.Database, c.Sender, false, t.Value); err != nil {
+		return err
+	}
+	if _, err := ModifyBalance(c.Database, t.To, true, t.Value); err != nil {
+		return err
 	}
 	return nil
 }

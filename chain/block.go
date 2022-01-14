@@ -27,8 +27,6 @@ type StatefulBlock struct {
 	Price  uint64         `serialize:"true" json:"price"`
 	Cost   uint64         `serialize:"true" json:"cost"`
 	Txs    []*Transaction `serialize:"true" json:"txs"`
-
-	Beneficiary []byte `serialize:"true" json:"beneficiary"` // prefix to reward
 }
 
 // Stateless is defined separately from "Block"
@@ -47,15 +45,14 @@ type StatelessBlock struct {
 	onAcceptDB *versiondb.Database
 }
 
-func NewBlock(vm VM, parent snowman.Block, tmstp int64, beneficiary []byte, context *Context) *StatelessBlock {
+func NewBlock(vm VM, parent snowman.Block, tmstp int64, context *Context) *StatelessBlock {
 	return &StatelessBlock{
 		StatefulBlock: &StatefulBlock{
-			Tmstmp:      tmstp,
-			Prnt:        parent.ID(),
-			Hght:        parent.Height() + 1,
-			Price:       context.NextPrice,
-			Cost:        context.NextCost,
-			Beneficiary: beneficiary,
+			Tmstmp: tmstp,
+			Prnt:   parent.ID(),
+			Hght:   parent.Height() + 1,
+			Price:  context.NextPrice,
+			Cost:   context.NextCost,
 		},
 		vm: vm,
 		st: choices.Processing,
@@ -174,10 +171,6 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp, b.vm.IsBootstrapped()); err != nil {
 		return nil, nil, err
 	}
-	// Reward producer (if [b.Beneficiary] is non-nil)
-	if err := Reward(g, onAcceptDB, b.Beneficiary); err != nil {
-		return nil, nil, err
-	}
 
 	// Process new transactions
 	log.Debug("build context", "height", b.Hght, "price", b.Price, "cost", b.Cost)
@@ -186,14 +179,13 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		if err := tx.Execute(g, onAcceptDB, b.Tmstmp, context); err != nil {
 			return nil, nil, err
 		}
-		surplusFee += (tx.Price() - b.Price) * tx.FeeUnits(g)
+		surplusFee += (tx.GetPrice() - b.Price) * tx.FeeUnits(g)
 	}
 	// Ensure enough fee is paid to compensate for block production speed
 	requiredSurplus := b.Price * b.Cost
 	if surplusFee < requiredSurplus {
 		return nil, nil, fmt.Errorf("%w: required=%d found=%d", ErrInsufficientSurplus, requiredSurplus, surplusFee)
 	}
-	// TODO: send non-surplus fee to a random prefix owner
 	return parent, onAcceptDB, nil
 }
 
