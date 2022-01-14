@@ -9,7 +9,10 @@ import (
 	"github.com/ava-labs/spacesvm/parser"
 )
 
-const hashLen = 64
+const (
+	// 0x + hex-encoded hash
+	hashLen = 66
+)
 
 var _ UnsignedTransaction = &SetTx{}
 

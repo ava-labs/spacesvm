@@ -34,7 +34,7 @@ func (c *ClaimTx) Execute(t *TransactionContext) error {
 	}
 
 	// Restrict address prefix to be owned by address
-	if len(c.Space) == hexAddressLen && strings.ToLower(t.Sender.Hex()) == c.Space {
+	if len(c.Space) == hexAddressLen && strings.ToLower(t.Sender.Hex()) != c.Space {
 		return ErrAddressMismatch
 	}
 

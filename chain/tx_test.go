@@ -4,6 +4,7 @@
 package chain
 
 import (
+	"crypto/ecdsa"
 	"errors"
 	"strings"
 	"testing"
@@ -51,6 +52,17 @@ func TestTransaction(t *testing.T) {
 func TestTransactionErrInvalidSignature(t *testing.T) {
 	t.Parallel()
 
+	priv, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sender := crypto.PubkeyToAddress(priv.PublicKey)
+
+	priv2, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	g := DefaultGenesis()
 	tt := []struct {
 		createTx   func() *Transaction
@@ -60,7 +72,7 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 	}{
 		{
 			createTx: func() *Transaction {
-				return createTestTx(t, ids.ID{0, 1}, false)
+				return createTestTx(t, ids.ID{0, 1}, priv)
 			},
 			blockTime:  1,
 			ctx:        &Context{RecentBlockIDs: ids.Set{{0, 1}: struct{}{}}},
@@ -68,46 +80,42 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 		},
 		{
 			createTx: func() *Transaction {
-				tx := createTestTx(t, ids.ID{0, 1}, true)
+				tx := createTestTx(t, ids.ID{0, 1}, priv2)
 				return tx
 			},
 			blockTime:  1,
 			ctx:        &Context{RecentBlockIDs: ids.Set{{0, 1}: struct{}{}}},
-			executeErr: ErrInvalidSignature,
+			executeErr: ErrInvalidBalance,
 		},
 	}
 	for i, tv := range tt {
 		db := memdb.New()
-		tx := tv.createTx()
-		v, err := ModifyBalance(db, tx.Sender(), true, 100000)
-		if err != nil {
+		g.Allocations = []*Allocation{
+			{
+				Address: sender.Hex(),
+				Balance: 10000000,
+			},
+			// sender2 is not given any balance
+		}
+		if err := g.Load(db); err != nil {
 			t.Fatal(err)
 		}
-		if v != 100000 {
-			t.Fatal(ErrInvalidBalance)
-		}
-		err = tx.Execute(g, memdb.New(), tv.blockTime, tv.ctx)
+		tx := tv.createTx()
+		err := tx.Execute(g, db, tv.blockTime, tv.ctx)
 		if !errors.Is(err, tv.executeErr) {
 			t.Fatalf("#%d: unexpected tx.Execute error %v, expected %v", i, err, tv.executeErr)
 		}
 	}
 }
 
-func createTestTx(t *testing.T, blockID ids.ID, invalid bool) *Transaction {
+func createTestTx(t *testing.T, blockID ids.ID, priv *ecdsa.PrivateKey) *Transaction {
 	t.Helper()
 
-	priv, err := crypto.GenerateKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-	priv2, err := crypto.GenerateKey()
-	if err != nil {
-		t.Fatal(err)
-	}
 	tx := &Transaction{
 		UnsignedTransaction: &ClaimTx{
 			BaseTx: &BaseTx{
 				BlockID: blockID,
+				Price:   10,
 			},
 			Space: "a",
 		},
@@ -116,18 +124,12 @@ func createTestTx(t *testing.T, blockID ids.ID, invalid bool) *Transaction {
 	if len(tx.DigestHash()) != 32 {
 		t.Fatal("hash insufficient")
 	}
-	if !invalid {
-		tx.Signature, err = crypto.Sign(dh, priv)
-		if err != nil {
-			t.Fatal(err)
-		}
-	} else {
-		tx.Signature, err = crypto.Sign(dh, priv2)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
 
+	sig, err := crypto.Sign(dh, priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx.Signature = sig
 	if err := tx.Init(DefaultGenesis()); err != nil {
 		t.Fatal(err)
 	}

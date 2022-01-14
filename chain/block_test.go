@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
+	"github.com/ethereum/go-ethereum/crypto"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -187,8 +188,12 @@ func createTestBlk(
 		t.Fatal("unexpected empty ID after init")
 	}
 	blk.StatefulBlock.Txs = make([]*Transaction, txsN)
+	priv, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
 	for i := 0; i < txsN; i++ {
-		blk.StatefulBlock.Txs[i] = createTestTx(t, blk.id, false)
+		blk.StatefulBlock.Txs[i] = createTestTx(t, blk.id, priv)
 	}
 	if execCtx != nil {
 		execCtx.RecentBlockIDs.Add(parentBlk.ID(), blk.id)
