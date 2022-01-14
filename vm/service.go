@@ -16,9 +16,7 @@ import (
 	"github.com/ava-labs/spacesvm/parser"
 )
 
-var (
-	ErrInvalidEmptyTx = errors.New("invalid empty transaction")
-)
+var ErrInvalidEmptyTx = errors.New("invalid empty transaction")
 
 type PublicService struct {
 	vm *VM

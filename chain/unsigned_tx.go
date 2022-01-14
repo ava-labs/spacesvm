@@ -19,15 +19,12 @@ type TransactionContext struct {
 
 type UnsignedTransaction interface {
 	Copy() UnsignedTransaction
-
 	GetBlockID() ids.ID
 	GetMagic() uint64
 	GetPrice() uint64
-
 	SetBlockID(ids.ID)
 	SetMagic(uint64)
 	SetPrice(uint64)
-
 	FeeUnits(*Genesis) uint64  // number of units to mine tx
 	LoadUnits(*Genesis) uint64 // units that should impact fee rate
 
