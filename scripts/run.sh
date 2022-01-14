@@ -56,14 +56,14 @@ elif [[ ${GOOS} == "darwin" ]]; then
 fi
 find /tmp/avalanchego-v${VERSION}
 
-echo "building quarkvm"
+echo "building spacesvm"
 go build \
 -o /tmp/avalanchego-v${VERSION}/plugins/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH \
-./cmd/quarkvm
+./cmd/spacesvm
 find /tmp/avalanchego-v${VERSION}
 
-echo "building quark-cli"
-go build -v -o /tmp/quark-cli ./cmd/quarkcli
+echo "building spaces-cli"
+go build -v -o /tmp/spaces-cli ./cmd/spacescli
 
 echo "creating allocations file"
 cat <<EOF > /tmp/allocations.json
@@ -73,8 +73,8 @@ cat <<EOF > /tmp/allocations.json
 EOF
 
 echo "creating VM genesis file"
-rm -f /tmp/quarkvm.genesis
-/tmp/quark-cli genesis 1 /tmp/allocations.json --genesis-file /tmp/quarkvm.genesis
+rm -f /tmp/spacesvm.genesis
+/tmp/spaces-cli genesis 1 /tmp/allocations.json --genesis-file /tmp/spacesvm.genesis
 
 echo "building runner"
 pushd ./tests/runner
@@ -93,7 +93,7 @@ echo "launch local test cluster in the background"
 /tmp/runner \
 --avalanchego-path=/tmp/avalanchego-v${VERSION}/avalanchego \
 --vm-id=tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH \
---vm-genesis-path=/tmp/quarkvm.genesis \
+--vm-genesis-path=/tmp/spacesvm.genesis \
 --output-path=/tmp/avalanchego-v${VERSION}/output.yaml 2> /dev/null &
 PID=${!}
 
