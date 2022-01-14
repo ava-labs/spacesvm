@@ -42,7 +42,7 @@ func New(g *chain.Genesis, maxSize int) *Mempool {
 
 func (th *Mempool) Add(tx *chain.Transaction) bool {
 	txID := tx.ID()
-	price := tx.Price()
+	price := tx.GetPrice()
 
 	th.mu.Lock()
 	defer th.mu.Unlock()
@@ -136,7 +136,7 @@ func (th *Mempool) Prune(validHashes ids.Set) {
 	th.mu.RLock()
 	toRemove := []ids.ID{}
 	for _, txE := range th.maxHeap.items { // O(N)
-		if !validHashes.Contains(txE.tx.BlockID()) {
+		if !validHashes.Contains(txE.tx.GetBlockID()) {
 			toRemove = append(toRemove, txE.id)
 		}
 	}
