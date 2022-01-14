@@ -163,7 +163,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check prefix to check if ClaimTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking prefix on %q", inst.uri)
-				pf, _, err := inst.cli.SpaceInfo(space)
+				pf, _, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -199,7 +199,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check prefix to check if SetTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking prefix on %q", inst.uri)
-				pf, _, err := inst.cli.SpaceInfo(space)
+				pf, _, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(2)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -209,7 +209,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("send Range to all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking SetTx with Range on %q", inst.uri)
-				_, kvs, err := inst.cli.SpaceInfo(space)
+				_, kvs, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 				gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
@@ -245,7 +245,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check prefix to check if SetTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking prefix on %q", inst.uri)
-				pf, _, err := inst.cli.SpaceInfo(space)
+				pf, _, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(22)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -255,7 +255,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("send Range to all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking SetTx with Range on %q", inst.uri)
-				_, kvs, err := inst.cli.SpaceInfo(space)
+				_, kvs, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 				gomega.Ω(kvs[0].Value).To(gomega.Equal(v2))
@@ -263,7 +263,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		})
 
 		ginkgo.By("mine and issue delete SetTx to a different node (if available)", func() {
-			setTx := &chain.SetTx{
+			setTx := &chain.DeleteTx{
 				BaseTx: &chain.BaseTx{},
 				Space:  space,
 				Key:    k,
@@ -289,7 +289,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check prefix to check if SetTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking prefix on %q", inst.uri)
-				pf, _, err := inst.cli.SpaceInfo(space)
+				pf, _, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -299,7 +299,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("send Range to all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking SetTx with Range on %q", inst.uri)
-				_, kvs, err := inst.cli.SpaceInfo(space)
+				_, kvs, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(len(kvs)).To(gomega.Equal(0))
 			}

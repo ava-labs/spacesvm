@@ -17,14 +17,14 @@ const (
 )
 
 var (
-	ErrInvalidContents = errors.New("spaces and keys must be ^[a-z0-9]{1,256}$")
+	ErrInvalidContents = errors.New("spaces and keys must be ^[a-z0-9.]{1,256}$")
 	ErrInvalidPath     = errors.New("path is not of the form space/key")
 
 	reg *regexp.Regexp
 )
 
 func init() {
-	reg = regexp.MustCompile("^[a-z0-9]{1,256}$")
+	reg = regexp.MustCompile("^[a-z0-9.]{1,256}$")
 }
 
 // CheckContents returns an error if the identifier (space or key) format is invalid.

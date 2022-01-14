@@ -151,16 +151,16 @@ func (svc *PublicService) Claimed(_ *http.Request, args *ClaimedArgs, reply *Cla
 	return nil
 }
 
-type SpaceInfoArgs struct {
+type InfoArgs struct {
 	Space string `serialize:"true" json:"space"`
 }
 
-type SpaceInfoReply struct {
+type InfoReply struct {
 	Info   *chain.SpaceInfo  `serialize:"true" json:"info"`
 	Values []*chain.KeyValue `serialize:"true" json:"pairs"`
 }
 
-func (svc *PublicService) Info(_ *http.Request, args *SpaceInfoArgs, reply *SpaceInfoReply) error {
+func (svc *PublicService) Info(_ *http.Request, args *InfoArgs, reply *InfoReply) error {
 	if err := parser.CheckContents(args.Space); err != nil {
 		return err
 	}

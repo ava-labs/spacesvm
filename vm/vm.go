@@ -31,7 +31,7 @@ import (
 
 const (
 	Name           = "spacesvm"
-	PublicEndpoint = ""
+	PublicEndpoint = "/public"
 )
 
 var (

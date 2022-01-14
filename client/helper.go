@@ -73,7 +73,7 @@ func SignIssueTx(
 	}
 
 	if len(space) > 0 {
-		info, _, err := cli.SpaceInfo(space)
+		info, _, err := cli.Info(space)
 		if err != nil {
 			color.Red("cannot get prefix info %v", err)
 			return ids.Empty, err

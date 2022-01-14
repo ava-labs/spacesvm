@@ -297,7 +297,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		})
 
 		ginkgo.By("check prefix after ClaimTx has been accepted", func() {
-			pf, values, err := instances[0].cli.SpaceInfo(space)
+			pf, values, err := instances[0].cli.Info(space)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(pf).NotTo(gomega.BeNil())
 			gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
@@ -321,7 +321,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		})
 
 		ginkgo.By("read back from VM with range query", func() {
-			_, kvs, err := instances[0].cli.SpaceInfo(space)
+			_, kvs, err := instances[0].cli.Info(space)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 			gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
