@@ -30,9 +30,8 @@ import (
 )
 
 const (
-	Name            = "spacesvm"
-	PublicEndpoint  = "/public"
-	PrivateEndpoint = "/private"
+	Name           = "spacesvm"
+	PublicEndpoint = ""
 )
 
 var (
@@ -248,11 +247,6 @@ func (vm *VM) CreateHandlers() (map[string]*common.HTTPHandler, error) {
 		return nil, err
 	}
 	apis[PublicEndpoint] = public
-	private, err := newHandler(Name, &PrivateService{vm: vm})
-	if err != nil {
-		return nil, err
-	}
-	apis[PrivateEndpoint] = private
 	return apis, nil
 }
 
@@ -363,9 +357,7 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 		return nil, fmt.Errorf("unexpected snowman.Block %T, expected *StatelessBlock", blk)
 	}
 
-	log.Debug("BuildBlock success",
-		"blkID", blk.ID(), "txs", len(sblk.Txs), "beneficiary", string(sblk.Beneficiary),
-	)
+	log.Debug("BuildBlock success", "blkID", blk.ID(), "txs", len(sblk.Txs))
 	return blk, nil
 }
 

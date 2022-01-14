@@ -177,7 +177,7 @@ func createTestBlk(
 	}
 	vm.EXPECT().GetStatelessBlock(parentBlk.ID()).Return(parentBlk, nil)
 
-	blk := NewBlock(vm, parentBlk, blkTmpstp, nil, blkCtx)
+	blk := NewBlock(vm, parentBlk, blkTmpstp, blkCtx)
 	if uint64(blk.StatefulBlock.Tmstmp) != uint64(blkTmpstp) {
 		t.Fatalf("blk.StatefulBlock.Tmstmp expected %d, got %d", blkTmpstp, blk.StatefulBlock.Tmstmp)
 	}

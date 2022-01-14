@@ -45,7 +45,7 @@ type StatelessBlock struct {
 	onAcceptDB *versiondb.Database
 }
 
-func NewBlock(vm VM, parent snowman.Block, tmstp int64, beneficiary []byte, context *Context) *StatelessBlock {
+func NewBlock(vm VM, parent snowman.Block, tmstp int64, context *Context) *StatelessBlock {
 	return &StatelessBlock{
 		StatefulBlock: &StatefulBlock{
 			Tmstmp: tmstp,

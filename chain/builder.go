@@ -27,7 +27,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		log.Debug("block building failed: couldn't get execution context", "err", err)
 		return nil, err
 	}
-	b := NewBlock(vm, parent, nextTime, vm.Beneficiary(), context)
+	b := NewBlock(vm, parent, nextTime, context)
 
 	// Clean out invalid txs
 	mempool := vm.Mempool()
