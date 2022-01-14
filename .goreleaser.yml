@@ -1,8 +1,8 @@
 # ref. https://goreleaser.com/customization/build/
 builds:
-  - id: quark-cli
-    main: ./cmd/quarkcli
-    binary: quark-cli
+  - id: spaces-cli
+    main: ./cmd/spacescli
+    binary: spaces-cli
     flags:
       - -v
     # TODO: remove this once we support 32-bit in avalanchego
@@ -15,9 +15,9 @@ builds:
         goarch: 386
       - goos: freebsd
         goarch: 386
-  - id: quarkvm
-    main: ./cmd/quarkvm
-    binary: quarkvm
+  - id: spacesvm
+    main: ./cmd/spacesvm
+    binary: spacesvm
     flags:
       - -v
     # TODO: remove this once we support 32-bit in avalanchego
@@ -34,4 +34,4 @@ builds:
 release:
   github:
     owner: ava-labs
-    name: quarkvm
+    name: spacesvm

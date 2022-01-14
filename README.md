@@ -96,18 +96,18 @@ kill 12811
 # CLI Usage
 ## Create Genesis
 ```bash
-./build/quark-cli genesis
+./build/spaces-cli genesis
 ```
 
 ## Create Private Key
 ```bash
-./build/quark-cli create
+./build/spaces-cli create
 ```
 
 ## Claim a Prefix
 ```bash
-./build/quark-cli \
---private-key-file .quark-cli-pk \
+./build/spaces-cli \
+--private-key-file .spaces-cli-pk \
 --endpoint http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL  \
 claim patrick.avax
 
@@ -133,8 +133,8 @@ raw prefix M9Jh5DMRXwMwaTHciFLVAMpc9dZKFpuGE: units=1 expiry=2022-02-09 02:17:33
 
 ## Set Key in Prefix
 ```bash
-./build/quark-cli \
---private-key-file .quark-cli-pk \
+./build/spaces-cli \
+--private-key-file .spaces-cli-pk \
 --endpoint http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL  \
 set patrick.avax/twitter @_patrickogrady
 
@@ -148,8 +148,8 @@ raw prefix M9Jh5DMRXwMwaTHciFLVAMpc9dZKFpuGE: units=2 expiry=2022-01-25 02:18:47
 
 ## Get Key in Preifx
 ```bash
-./build/quark-cli \
---private-key-file .quark-cli-pk \
+./build/spaces-cli \
+--private-key-file .spaces-cli-pk \
 --endpoint http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL  \
 get patrick.avax/twitter
 
@@ -159,8 +159,8 @@ key: "twitter", value: "@_patrickogrady"
 
 ## Delete Key in Preifx
 ```bash
-./build/quark-cli \
---private-key-file .quark-cli-pk \
+./build/spaces-cli \
+--private-key-file .spaces-cli-pk \
 --endpoint http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL  \
 delete patrick.avax/twitter
 
@@ -174,8 +174,8 @@ raw prefix M9Jh5DMRXwMwaTHciFLVAMpc9dZKFpuGE: units=1 expiry=2022-02-09 02:20:55
 
 ## Extend Prefix Life
 ```bash
-./build/quark-cli \
---private-key-file .quark-cli-pk \
+./build/spaces-cli \
+--private-key-file .spaces-cli-pk \
 --endpoint http://localhost:61858/ext/bc/BJfusM2TpHCEfmt5i7qeE1MwVCbw5jU1TcZNz8MYUwG1PGYRL  \
 lifeline patrick.avax
 

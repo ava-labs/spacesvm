@@ -28,13 +28,13 @@ with "foo" as prefix and "hello" as key. The prefix/key cannot
 have more than one delimiter (e.g., "foo/hello/world" is invalid)
 in order to maintain the flat key space.
 
-It assumes the prefix is already claimed via "quark-cli claim",
-and the key already exists via "quark-cli set". Otherwise, the
+It assumes the prefix is already claimed via "spaces-cli claim",
+and the key already exists via "spaces-cli set". Otherwise, the
 transaction will fail.
 
 # claims the prefix "hello.avax"
 # "hello.avax" is the prefix (or namespace)
-$ quark-cli claim hello.avax
+$ spaces-cli claim hello.avax
 <<COMMENT
 success
 COMMENT
@@ -44,26 +44,26 @@ COMMENT
 # "hello.avax" is the prefix (or namespace)
 # "foo" is the key
 # "hello world" is the value
-$ quark-cli set hello.avax/foo "hello world"
+$ spaces-cli set hello.avax/foo "hello world"
 <<COMMENT
 success
 COMMENT
 
 # The prefix and key can be deleted by "delete" command.
-$ quark-cli delete hello.avax/foo
+$ spaces-cli delete hello.avax/foo
 <<COMMENT
 success
 COMMENT
 
 # The prefix itself cannot be deleted by "delete" command.
-$ quark-cli delete hello.avax
+$ spaces-cli delete hello.avax
 <<COMMENT
 error
 COMMENT
 
 # The existing key-value cannot be overwritten by a different owner.
 # The prefix must be claimed before it allows key-value writes.
-$ quark-cli set hello.avax/foo "hello world" --private-key-file=.different-key
+$ spaces-cli set hello.avax/foo "hello world" --private-key-file=.different-key
 <<COMMENT
 error
 COMMENT

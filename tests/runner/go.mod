@@ -1,16 +1,16 @@
-module github.com/ava-labs/quarkvm/tests/runner
+module github.com/ava-labs/spacesvm/tests/runner
 
 go 1.17
 
 // require "runner" own go module file to avoid pulling
 // "avalanche-network-runner" dependencies
 
-replace github.com/ava-labs/quarkvm => ../..
+replace github.com/ava-labs/spacesvm => ../..
 
 require (
 	github.com/ava-labs/avalanche-network-runner v0.0.0-20211220205928-4a40af6d2f7e
 	github.com/ava-labs/avalanchego v1.7.2
-	github.com/ava-labs/quarkvm v0.0.0-00010101000000-000000000000
+	github.com/ava-labs/spacesvm v0.0.0-00010101000000-000000000000
 	github.com/onsi/ginkgo/v2 v2.0.0
 	github.com/spf13/cobra v1.2.1
 )

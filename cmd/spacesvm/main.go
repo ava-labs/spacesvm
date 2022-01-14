@@ -21,8 +21,8 @@ func init() {
 
 var rootCmd = &cobra.Command{
 	Use:        "spacesvm",
-	Short:      "QuarkVM agent",
-	SuggestFor: []string{"quarkkvm"},
+	Short:      "SpacesVM agent",
+	SuggestFor: []string{"spacesvm"},
 	RunE:       runFunc,
 }
 
