@@ -135,11 +135,23 @@ func TestSetTx(t *testing.T) {
 					BlockID: ids.GenerateTestID(),
 				},
 				Space: "foo",
-				Key:   valueHash([]byte("not value")),
+				Key:   valueHash([]byte("value")),
 			},
 			blockTime: 1,
 			sender:    sender,
 			err:       nil,
+		},
+		{ // delete incorrect hashed value
+			utx: &DeleteTx{
+				BaseTx: &BaseTx{
+					BlockID: ids.GenerateTestID(),
+				},
+				Space: "foo",
+				Key:   valueHash([]byte("not value")),
+			},
+			blockTime: 1,
+			sender:    sender,
+			err:       ErrKeyMissing,
 		},
 		{
 			utx: &SetTx{
@@ -148,6 +160,7 @@ func TestSetTx(t *testing.T) {
 				},
 				Space: "foo",
 				Key:   "bar",
+				Value: []byte("value"),
 			},
 			blockTime: 1,
 			sender:    sender2,

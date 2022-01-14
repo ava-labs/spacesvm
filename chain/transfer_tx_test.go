@@ -85,6 +85,12 @@ func TestTransferTx(t *testing.T) {
 			sender:    sender,
 			err:       nil,
 		},
+		{ // invalid send to no one
+			utx:       &TransferTx{BaseTx: &BaseTx{}, Value: 10},
+			blockTime: 1,
+			sender:    sender,
+			err:       ErrNonActionable,
+		},
 		{ // valid send to existing account
 			utx:       &TransferTx{BaseTx: &BaseTx{}, To: sender2, Value: 10},
 			blockTime: 1,

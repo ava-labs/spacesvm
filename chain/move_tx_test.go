@@ -62,17 +62,23 @@ func TestMoveTx(t *testing.T) {
 		sender    common.Address
 		err       error
 	}{
-		{ // invalid when no amount is given
-			utx:       &MoveTx{BaseTx: &BaseTx{}},
+		{ // invalid when prefix is not owned
+			utx:       &MoveTx{BaseTx: &BaseTx{}, Space: "foo", To: sender3},
 			blockTime: 1,
 			sender:    sender,
-			err:       ErrNonActionable,
+			err:       ErrSpaceMissing,
 		},
 		{ // successful claim with expiry time "blockTime" + "expiryTime"
 			utx:       &ClaimTx{BaseTx: &BaseTx{}, Space: "foo"},
 			blockTime: 1,
 			sender:    sender,
 			err:       nil,
+		},
+		{ // invalid when no destination
+			utx:       &MoveTx{BaseTx: &BaseTx{}, Space: "foo"},
+			blockTime: 1,
+			sender:    sender,
+			err:       ErrNonActionable,
 		},
 		{ // successful prefix transfer
 			utx:       &MoveTx{BaseTx: &BaseTx{}, Space: "foo", To: sender3},

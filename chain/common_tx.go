@@ -11,6 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+var zeroAddress = (common.Address{})
+
 func (t *TransactionContext) authorized(owner common.Address) bool {
 	return bytes.Equal(owner[:], t.Sender[:])
 }

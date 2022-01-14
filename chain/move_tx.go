@@ -31,6 +31,11 @@ func (m *MoveTx) Execute(c *TransactionContext) error {
 		return err
 	}
 
+	// Must transfer to someone
+	if bytes.Equal(m.To[:], zeroAddress[:]) {
+		return ErrNonActionable
+	}
+
 	// This prevents someone from transferring a space to themselves.
 	if bytes.Equal(m.To[:], c.Sender[:]) {
 		return ErrNonActionable

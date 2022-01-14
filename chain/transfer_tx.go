@@ -22,6 +22,11 @@ type TransferTx struct {
 }
 
 func (t *TransferTx) Execute(c *TransactionContext) error {
+	// Must transfer to someone
+	if bytes.Equal(t.To[:], zeroAddress[:]) {
+		return ErrNonActionable
+	}
+
 	// This prevents someone from transferring to themselves.
 	if bytes.Equal(t.To[:], c.Sender[:]) {
 		return ErrNonActionable

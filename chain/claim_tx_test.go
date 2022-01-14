@@ -51,7 +51,7 @@ func TestClaimTx(t *testing.T) {
 			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: strings.ToLower(sender.Hex())},
 			blockTime: 1,
 			sender:    sender,
-			err:       ErrAddressMismatch,
+			err:       nil,
 		},
 		{ // successful claim with expiry time "blockTime" + "expiryTime"
 			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: "foo"},
@@ -125,8 +125,8 @@ func TestClaimTx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pruned != 3 {
-		t.Fatalf("expected to prune 3 but got %d", pruned)
+	if pruned != 4 {
+		t.Fatalf("expected to prune 4 but got %d", pruned)
 	}
 	_, exists, err := GetSpaceInfo(db, []byte("foo"))
 	if err != nil {
