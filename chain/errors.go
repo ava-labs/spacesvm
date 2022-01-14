@@ -25,6 +25,7 @@ var (
 	ErrInsufficientPrice = errors.New("insufficient price")
 
 	// Execution Correctness
+	ErrValueEmpty      = errors.New("value empty")
 	ErrValueTooBig     = errors.New("value too big")
 	ErrSpaceExpired    = errors.New("space expired")
 	ErrKeyMissing      = errors.New("key missing")

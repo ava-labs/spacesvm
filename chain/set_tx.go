@@ -6,12 +6,13 @@ package chain
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const hashLen = 64
@@ -21,90 +22,96 @@ var _ UnsignedTransaction = &SetTx{}
 type SetTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 
-	// Key is parsed from the given input, with its prefix removed.
-	// TODO: change to string
-	Key []byte `serialize:"true" json:"key"`
-	// Value is empty if and only if set transaction is issued for the delete.
-	// If non-empty, the transaction writes the key-value pair to the storage.
-	// If empty, the transaction deletes the value for the "prefix/key".
+	// Space is the namespace for the "PrefixInfo"
+	// whose owner can write and read value for the
+	// specific key space.
+	// The space must be ^[a-z0-9]{1,256}$.
+	Space string `serialize:"true" json:"space"`
+
+	// Key is parsed from the given input, with its space removed.
+	Key string `serialize:"true" json:"key"`
+
+	// Value is writen as the key-value pair to the storage. If a previous value
+	// exists, it is overwritten.
 	Value []byte `serialize:"true" json:"value"`
 }
 
 func (s *SetTx) Execute(t *TransactionContext) error {
-	if err := parser.CheckPrefix(s.Prefix()); err != nil {
-		return err
-	}
-
 	g := t.Genesis
-	// assume prefix is already validated via "BaseTx"
-	if err := parser.CheckKey(s.Key); err != nil {
+	if err := parser.CheckContents(s.Space); err != nil {
 		return err
 	}
-	if uint64(len(s.Value)) > g.MaxValueSize {
+	if err := parser.CheckContents(s.Key); err != nil {
+		return err
+	}
+	switch {
+	case len(s.Value) == 0:
+		return ErrValueEmpty
+	case uint64(len(s.Value)) > g.MaxValueSize:
 		return ErrValueTooBig
 	}
 
-	i, has, err := GetPrefixInfo(t.Database, s.Prefix())
+	// Verify space is owned by sender
+	i, err := verifySpace(s.Space, t)
 	if err != nil {
 		return err
 	}
-	// Cannot set key if prefix doesn't exist
-	if !has {
-		return ErrPrefixMissing
-	}
-	// Prefix cannot be updated if not owned by modifier
-	if !bytes.Equal(i.Owner[:], t.Sender[:]) {
-		return ErrUnauthorized
-	}
-	// Prefix cannot be updated if expired
-	if i.Expiry < t.BlockTime {
-		return ErrPrefixExpired
-	}
+
 	// If Key is equal to hash length, ensure it is equal to the hash of the
 	// value
-	if len(s.Key) == hashLen && len(s.Value) > 0 {
-		// TODO: convert to using keccak256 everywhere
-		b := hashing.ComputeHash256(s.Value)
-		if err != nil {
-			return err
-		}
-		h := common.Bytes2Hex(b)
-		if string(s.Key) != h {
+	if len(s.Key) == hashLen {
+		h := common.BytesToHash(crypto.Keccak256(s.Value)).Hex()
+		h = strings.ToLower(h)
+		if s.Key != h {
 			return fmt.Errorf("%w: expected %s got %x", ErrInvalidKey, h, s.Key)
 		}
 	}
-	return s.updatePrefix(g, t.Database, t.BlockTime, t.TxID, i)
-}
 
-func (s *SetTx) updatePrefix(g *Genesis, db database.Database, blockTime uint64, txID ids.ID, i *PrefixInfo) error {
-	v, exists, err := GetValue(db, s.Prefix(), s.Key)
+	// Update value
+	v, exists, err := GetValue(t.Database, []byte(s.Space), []byte(s.Key))
 	if err != nil {
 		return err
 	}
-
 	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
-	if len(s.Value) == 0 { //nolint:nestif
-		if !exists {
-			return ErrKeyMissing
-		}
+	if exists {
 		i.Units -= valueUnits(g, v)
-		if err := DeletePrefixKey(db, s.Prefix(), s.Key); err != nil {
-			return err
-		}
-	} else {
-		if exists {
-			i.Units -= valueUnits(g, v)
-		}
-		i.Units += valueUnits(g, s.Value)
-		if err := PutPrefixKey(db, s.Prefix(), s.Key, txID[:]); err != nil {
-			return err
-		}
 	}
+	i.Units += valueUnits(g, s.Value)
+	if err := PutSpaceKey(t.Database, []byte(s.Space), []byte(s.Key), t.TxID[:]); err != nil {
+		return err
+	}
+	return updateSpace(s.Space, t, timeRemaining, i)
+}
+
+func verifySpace(s string, t *TransactionContext) (*SpaceInfo, error) {
+	i, has, err := GetSpaceInfo(t.Database, []byte(s))
+	if err != nil {
+		return nil, err
+	}
+	// Cannot set key if space doesn't exist
+	if !has {
+		return nil, ErrSpaceMissing
+	}
+	// Space cannot be updated if not owned by modifier
+	if !bytes.Equal(i.Owner[:], t.Sender[:]) {
+		return nil, ErrUnauthorized
+	}
+	// Space cannot be updated if expired
+	//
+	// This should never happen as expired records should be removed before
+	// execution.
+	if i.Expiry < t.BlockTime {
+		return nil, ErrSpaceExpired
+	}
+	return i, nil
+}
+
+func updateSpace(s string, t *TransactionContext, timeRemaining uint64, i *SpaceInfo) error {
 	newTimeRemaining := timeRemaining / i.Units
-	i.LastUpdated = blockTime
+	i.LastUpdated = t.BlockTime
 	lastExpiry := i.Expiry
-	i.Expiry = blockTime + newTimeRemaining
-	return PutPrefixInfo(db, s.Prefix(), i, lastExpiry)
+	i.Expiry = t.BlockTime + newTimeRemaining
+	return PutSpaceInfo(t.Database, []byte(s), i, lastExpiry)
 }
 
 func valueUnits(g *Genesis, b []byte) uint64 {
@@ -122,13 +129,12 @@ func (s *SetTx) LoadUnits(g *Genesis) uint64 {
 }
 
 func (s *SetTx) Copy() UnsignedTransaction {
-	key := make([]byte, len(s.Key))
-	copy(key, s.Key)
 	value := make([]byte, len(s.Value))
 	copy(value, s.Value)
 	return &SetTx{
 		BaseTx: s.BaseTx.Copy(),
-		Key:    key,
+		Space:  s.Space,
+		Key:    s.Key,
 		Value:  value,
 	}
 }
