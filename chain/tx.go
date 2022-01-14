@@ -39,7 +39,7 @@ func (t *Transaction) Copy() *Transaction {
 }
 
 func DigestHash(utx UnsignedTransaction) []byte {
-	// TODO: convert utx to HR bytes
+	// TODO: convert utx to SignedTypeData bytes
 	b, err := Marshal(utx)
 	if err != nil {
 		panic(err)
@@ -89,7 +89,7 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blockTime int64,
 	if err := t.UnsignedTransaction.ExecuteBase(g); err != nil {
 		return err
 	}
-	if !context.RecentBlockIDs.Contains(t.BlockID()) {
+	if !context.RecentBlockIDs.Contains(t.GetBlockID()) {
 		// Hash must be recent to be any good
 		// Should not happen beause of mempool cleanup
 		return ErrInvalidBlockID
@@ -102,11 +102,11 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blockTime int64,
 		return ErrDuplicateTx
 	}
 
-	// Modify sender has balance
-	if _, err := ModifyBalance(db, t.sender, false, t.FeeUnits(g)*t.Price()); err != nil {
+	// Ensure sender has balance
+	if _, err := ModifyBalance(db, t.sender, false, t.FeeUnits(g)*t.GetPrice()); err != nil {
 		return err
 	}
-	if t.Price() < context.NextPrice {
+	if t.GetPrice() < context.NextPrice {
 		return ErrInsufficientPrice
 	}
 	if err := t.UnsignedTransaction.Execute(&TransactionContext{
@@ -118,5 +118,6 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blockTime int64,
 	}); err != nil {
 		return err
 	}
+	// TODO: add lottery reward
 	return SetTransaction(db, t)
 }

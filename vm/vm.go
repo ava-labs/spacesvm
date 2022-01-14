@@ -8,7 +8,6 @@ import (
 	ejson "encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -68,11 +67,6 @@ type VM struct {
 
 	preferred    ids.ID
 	lastAccepted *chain.StatelessBlock
-
-	// beneficiary is the prefix that will receive rewards if the node produces
-	// a block
-	beneficiaryLock sync.RWMutex
-	beneficiary     []byte
 
 	stop chan struct{}
 

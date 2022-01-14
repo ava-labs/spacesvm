@@ -472,7 +472,7 @@ func PutSpaceKey(db database.Database, space []byte, key []byte, value []byte) e
 		return err
 	}
 	if !exists {
-		return ErrPrefixMissing
+		return ErrSpaceMissing
 	}
 	// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
 	k := SpaceValueKey(spaceInfo.RawSpace, key)
@@ -485,7 +485,7 @@ func DeleteSpaceKey(db database.Database, space []byte, key []byte) error {
 		return err
 	}
 	if !exists {
-		return ErrPrefixMissing
+		return ErrSpaceMissing
 	}
 	k := SpaceValueKey(spaceInfo.RawSpace, key)
 	return db.Delete(k)

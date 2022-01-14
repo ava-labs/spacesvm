@@ -171,10 +171,6 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp, b.vm.IsBootstrapped()); err != nil {
 		return nil, nil, err
 	}
-	// Reward producer (if [b.Beneficiary] is non-nil)
-	if err := Reward(g, onAcceptDB, b.Beneficiary); err != nil {
-		return nil, nil, err
-	}
 
 	// Process new transactions
 	log.Debug("build context", "height", b.Hght, "price", b.Price, "cost", b.Cost)
@@ -183,14 +179,13 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 		if err := tx.Execute(g, onAcceptDB, b.Tmstmp, context); err != nil {
 			return nil, nil, err
 		}
-		surplusFee += (tx.Price() - b.Price) * tx.FeeUnits(g)
+		surplusFee += (tx.GetPrice() - b.Price) * tx.FeeUnits(g)
 	}
 	// Ensure enough fee is paid to compensate for block production speed
 	requiredSurplus := b.Price * b.Cost
 	if surplusFee < requiredSurplus {
 		return nil, nil, fmt.Errorf("%w: required=%d found=%d", ErrInsufficientSurplus, requiredSurplus, surplusFee)
 	}
-	// TODO: send non-surplus fee to a random prefix owner
 	return parent, onAcceptDB, nil
 }
 

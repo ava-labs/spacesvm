@@ -44,20 +44,6 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	if err := ExpireNext(vdb, parent.Tmstmp, b.Tmstmp, true); err != nil {
 		return nil, err
 	}
-	// Reset block beneficiary if it does not exist yet
-	if len(b.Beneficiary) > 0 {
-		has, err := HasPrefix(vdb, b.Beneficiary)
-		if err != nil {
-			return nil, err
-		}
-		if !has {
-			b.Beneficiary = nil
-		}
-	}
-	// Reward producer (if [b.Beneficiary] is non-nil)
-	if err := Reward(g, vdb, b.Beneficiary); err != nil {
-		return nil, err
-	}
 
 	b.Txs = []*Transaction{}
 	units := uint64(0)
@@ -65,7 +51,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		next, price := mempool.PopMax()
 		if price < b.Price {
 			mempool.Add(next)
-			log.Debug("skipping tx: too low price", "block price", b.Price, "tx price", next.Price())
+			log.Debug("skipping tx: too low price", "block price", b.Price, "tx price", next.GetPrice())
 			break
 		}
 		// Verify that changes pass
