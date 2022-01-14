@@ -7,6 +7,8 @@ package integration_test
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"math/rand"
 	"net/http/httptest"
@@ -23,6 +25,7 @@ import (
 	ecommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
+	log "github.com/inconshreveable/log15"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
@@ -99,6 +102,8 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Ω(err).Should(gomega.BeNil())
 	sender = crypto.PubkeyToAddress(priv.PublicKey)
 
+	log.Debug("generated key", "addr", sender, "priv", hex.EncodeToString(crypto.FromECDSA(priv)))
+
 	// create embedded VMs
 	instances = make([]instance, vms)
 
@@ -116,7 +121,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			Balance: 10000000,
 		},
 	}
-	genesisBytes, err = chain.Marshal(genesis)
+	genesisBytes, err = json.Marshal(genesis)
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	networkID := uint32(1)

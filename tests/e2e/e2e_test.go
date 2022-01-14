@@ -74,7 +74,7 @@ type instance struct {
 
 var _ = ginkgo.BeforeSuite(func() {
 	var err error
-	priv, err = crypto.GenerateKey()
+	priv, err = crypto.HexToECDSA("a1c0bd71ff64aebd666b04db0531d61479c2c031e4de38410de0609cbd6e66f0")
 	gomega.Ω(err).Should(gomega.BeNil())
 	sender = crypto.PubkeyToAddress(priv.PublicKey)
 

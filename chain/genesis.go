@@ -87,7 +87,7 @@ func DefaultGenesis() *Genesis {
 		BlockTarget:    1,             // 1 Block per Second
 		TargetUnits:    10 * 512 * 60, // 5012 Units Per Block (~1.2MB of SetTx)
 		MinPrice:       1,             // (50 for easiest claim)
-		MinBlockCost:   1,             // Minimum Unit Overhead
+		MinBlockCost:   0,             // Minimum Unit Overhead
 	}
 }
 

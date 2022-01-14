@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -23,6 +24,8 @@ var (
 	claimReward        int64
 	lifelineUnitReward int64
 	beneficiaryReward  int64
+
+	magic uint64
 )
 
 func init() {
@@ -65,12 +68,22 @@ func init() {
 }
 
 var genesisCmd = &cobra.Command{
-	Use:   "genesis [options]",
+	Use:   "genesis [magic] [allocations file] [options]",
 	Short: "Creates a new genesis in the default location",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return errors.New("missing allocations file")
+		if len(args) != 2 {
+			return errors.New("invalid args")
 		}
+
+		m, err := strconv.ParseUint(args[0], 10, 64)
+		if err != nil {
+			return err
+		}
+		magic = m
+		if magic == 0 {
+			return chain.ErrInvalidMagic
+		}
+
 		return nil
 	},
 	RunE: genesisFunc,
@@ -78,6 +91,7 @@ var genesisCmd = &cobra.Command{
 
 func genesisFunc(cmd *cobra.Command, args []string) error {
 	genesis := chain.DefaultGenesis()
+	genesis.Magic = magic
 	if minPrice >= 0 {
 		genesis.MinPrice = uint64(minPrice)
 	}
@@ -94,7 +108,7 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 		genesis.BeneficiaryReward = uint64(beneficiaryReward)
 	}
 
-	a, err := os.ReadFile(args[0])
+	a, err := os.ReadFile(args[1])
 	if err != nil {
 		return err
 	}
@@ -105,7 +119,7 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	// Store hash instead
 	genesis.Allocations = allocs
 
-	b, err := chain.Marshal(genesis)
+	b, err := json.Marshal(genesis)
 	if err != nil {
 		return err
 	}

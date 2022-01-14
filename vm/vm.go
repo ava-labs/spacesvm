@@ -139,7 +139,7 @@ func (vm *VM) Initialize(
 
 	// Parse genesis data
 	vm.genesis = new(chain.Genesis)
-	if _, err := chain.Unmarshal(genesisBytes, vm.genesis); err != nil {
+	if err := ejson.Unmarshal(genesisBytes, vm.genesis); err != nil {
 		log.Error("could not unmarshal genesis bytes")
 		return err
 	}
@@ -147,6 +147,8 @@ func (vm *VM) Initialize(
 		log.Error("genesis is invalid")
 		return err
 	}
+	log.Debug("loaded genesis", "genesis", string(genesisBytes))
+
 	vm.mempool = mempool.New(vm.genesis, vm.config.MempoolSize)
 
 	if has { //nolint:nestif
