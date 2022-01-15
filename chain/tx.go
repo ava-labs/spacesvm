@@ -6,7 +6,6 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/spacesvm/tdata"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -50,9 +49,7 @@ func (t *Transaction) Init(g *Genesis) error {
 	}
 	t.bytes = stx
 
-	// TODO: change to keccak
-	h := hashing.ComputeHash256(t.bytes)
-	id, err := ids.ToID(h)
+	id, err := ids.ToID(crypto.Keccak256(t.bytes))
 	if err != nil {
 		return err
 	}
