@@ -5,10 +5,10 @@ package chain
 
 import (
 	"bytes"
+	"strconv"
 
 	"github.com/ava-labs/spacesvm/tdata"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 var _ UnsignedTransaction = &TransferTx{}
@@ -66,9 +66,9 @@ func (t *TransferTx) TypedData() *tdata.TypedData {
 		},
 		tdata.TypedDataMessage{
 			"blockID": t.BlockID.String(),
-			"price":   hexutil.EncodeUint64(t.Price),
+			"price":   strconv.FormatUint(t.Price, 10),
 			"to":      t.To,
-			"units":   hexutil.EncodeUint64(t.Units),
+			"units":   strconv.FormatUint(t.Units, 10),
 		},
 	)
 }

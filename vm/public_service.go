@@ -77,9 +77,9 @@ func (svc *PublicService) IssueRawTx(_ *http.Request, args *IssueRawTxArgs, repl
 }
 
 type IssueTxArgs struct {
-	TypedData tdata.TypedData           `serialize:"true" json:"typedData"`
-	Utx       chain.UnsignedTransaction `serialize:"true" json:"unsignedTx"`
-	Signature hexutil.Bytes             `serialize:"true" json:"signature"`
+	TypedData *tdata.TypedData `serialize:"true" json:"typedData"`
+	Tx        []byte           `serialize:"true" json:"transaction"`
+	Signature hexutil.Bytes    `serialize:"true" json:"signature"`
 }
 
 type IssueTxReply struct {
@@ -88,8 +88,11 @@ type IssueTxReply struct {
 }
 
 func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
-	// TODO: ensure both are valid
-	tx := chain.NewTx(args.Utx, args.Signature[:])
+	var tx chain.Transaction
+	if _, err := chain.Unmarshal(args.Tx, &tx); err != nil {
+		return err
+	}
+	tx.Signature = args.Signature[:]
 
 	// otherwise, unexported tx.id field is empty
 	if err := tx.Init(svc.vm.genesis); err != nil {
@@ -98,7 +101,7 @@ func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *Iss
 	}
 	reply.TxID = tx.ID()
 
-	errs := svc.vm.Submit(tx)
+	errs := svc.vm.Submit(&tx)
 	reply.Success = len(errs) == 0
 	if reply.Success {
 		return nil
@@ -148,9 +151,9 @@ type SuggestedFeeArgs struct {
 }
 
 type SuggestedFeeReply struct {
-	TypedData *tdata.TypedData          `serialize:"true" json:"typedData"`
-	Utx       chain.UnsignedTransaction `serialize:"true" json:"unsignedTx"`
-	TotalCost uint64                    `serialize:"true" json:"totalCost"`
+	TypedData *tdata.TypedData `serialize:"true" json:"typedData"`
+	Tx        []byte           `serialize:"true" json:"transaction"`
+	TotalCost uint64           `serialize:"true" json:"totalCost"`
 }
 
 func (svc *PublicService) SuggestedFee(
@@ -179,7 +182,12 @@ func (svc *PublicService) SuggestedFee(
 
 	reply.TypedData = utx.TypedData()
 	reply.TotalCost = fu * price
-	reply.Utx = utx
+	tx := chain.NewTx(utx, nil) // need to use a non-interface
+	b, err := chain.Marshal(tx)
+	if err != nil {
+		return err
+	}
+	reply.Tx = b
 	return nil
 }
 

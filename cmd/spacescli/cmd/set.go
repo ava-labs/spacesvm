@@ -86,7 +86,7 @@ func setFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
-	_, err = client.SignIssueTx(context.Background(), cli, utx, priv, opts...)
+	_, err = client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
 	return err
 }
 

@@ -5,6 +5,7 @@ package chain
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
@@ -114,7 +115,7 @@ func (s *SetTx) TypedData() *tdata.TypedData {
 		},
 		tdata.TypedDataMessage{
 			"blockID": s.BlockID.String(),
-			"price":   hexutil.EncodeUint64(s.Price),
+			"price":   strconv.FormatUint(s.Price, 10),
 			"space":   s.Space,
 			"key":     s.Key,
 			"value":   hexutil.Encode(s.Value),

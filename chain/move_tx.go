@@ -5,9 +5,9 @@ package chain
 
 import (
 	"bytes"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
@@ -78,7 +78,7 @@ func (m *MoveTx) TypedData() *tdata.TypedData {
 		},
 		tdata.TypedDataMessage{
 			"blockID": m.BlockID.String(),
-			"price":   hexutil.EncodeUint64(m.Price),
+			"price":   strconv.FormatUint(m.Price, 64),
 			"space":   m.Space,
 			"to":      m.To,
 		},
