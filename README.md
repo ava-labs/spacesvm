@@ -215,6 +215,30 @@ Transfer {type,to,units}
 >>> {"balance":<uint64>}
 ```
 
+## spacesvm.recentActivity
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.recentActivity",
+  "params":{},
+  "id": 1
+}
+>>> {"activity":[<chain.Activity>,...]}
+```
+
+### chain.Activity
+```
+{
+  "timestamp":<unix>,
+  "type":<string>,
+  "space":<string>,
+  "key":<string>,
+  "to":<hex encoded>,
+  "units":<uint64>
+}
+```
+
 # Advanced Public Endpoints (`/public`)
 
 ## spacesvm.suggestedRawFee

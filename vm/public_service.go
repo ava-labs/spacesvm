@@ -283,16 +283,12 @@ func (svc *PublicService) Balance(_ *http.Request, args *BalanceArgs, reply *Bal
 	return err
 }
 
-type RecentActivityArgs struct {
-	Start int64 `serialize:"true" json:"start"`
-}
-
 type RecentActivityReply struct {
 	Activity []*chain.Activity `serialize:"true" json:"activity"`
 }
 
-func (svc *PublicService) RecentActivity(_ *http.Request, args *RecentActivityArgs, reply *RecentActivityReply) error {
-	cs := uint64(vm.config.ActivityCacheSize)
+func (svc *PublicService) RecentActivity(_ *http.Request, _ *struct{}, reply *RecentActivityReply) error {
+	cs := uint64(svc.vm.config.ActivityCacheSize)
 	if cs == 0 {
 		return nil
 	}
@@ -305,9 +301,6 @@ func (svc *PublicService) RecentActivity(_ *http.Request, args *RecentActivityAr
 		i--
 		item := svc.vm.activityCache[i%cs]
 		if item == nil {
-			break
-		}
-		if item.Tmstmp < args.Start {
 			break
 		}
 		activity = append(activity, item)
