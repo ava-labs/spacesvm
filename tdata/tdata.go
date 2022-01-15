@@ -1,3 +1,26 @@
+// (c) 2019-2022, Ava Labs, Inc.
+//
+// This file is a derived work, based on the go-ethereum library whose original
+// notices appear below.
+//
+// Much love to the original authors for their work.
+// **********
+// Copyright 2018 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package tdata
 
 import (
@@ -50,7 +73,6 @@ type Types map[string][]Type
 type TypedDataMessage = map[string]interface{}
 
 // TypedDataDomain represents the domain part of an EIP-712 message.
-// https://github.com/ethereum/go-ethereum/blob/619a3e70858e60240ce1df75bdf65ba748387e57/signer/core/apitypes/types.go#L246
 type TypedDataDomain struct {
 	Name  string `json:"name"`
 	Magic string `json:"magic"`
