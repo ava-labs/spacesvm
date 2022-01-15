@@ -228,9 +228,12 @@ func (svc *PublicService) Info(_ *http.Request, args *InfoArgs, reply *InfoReply
 		return err
 	}
 
-	i, _, err := chain.GetSpaceInfo(svc.vm.db, []byte(args.Space))
+	i, exists, err := chain.GetSpaceInfo(svc.vm.db, []byte(args.Space))
 	if err != nil {
 		return err
+	}
+	if !exists {
+		return chain.ErrSpaceMissing
 	}
 
 	kvs, err := chain.GetAllValues(svc.vm.db, i.RawSpace)
