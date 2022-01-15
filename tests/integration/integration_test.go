@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"flag"
+	"math/rand"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -77,6 +78,9 @@ var (
 	priv   *ecdsa.PrivateKey
 	sender ecommon.Address
 
+	priv2   *ecdsa.PrivateKey
+	sender2 ecommon.Address
+
 	// when used with embedded VMs
 	genesisBytes []byte
 	instances    []instance
@@ -103,6 +107,12 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	log.Debug("generated key", "addr", sender, "priv", hex.EncodeToString(crypto.FromECDSA(priv)))
 
+	priv2, err = crypto.GenerateKey()
+	gomega.Ω(err).Should(gomega.BeNil())
+	sender2 = crypto.PubkeyToAddress(priv2.PublicKey)
+
+	log.Debug("generated key", "addr", sender2, "priv", hex.EncodeToString(crypto.FromECDSA(priv2)))
+
 	// create embedded VMs
 	instances = make([]instance, vms)
 
@@ -114,9 +124,14 @@ var _ = ginkgo.BeforeSuite(func() {
 		genesis.MinBlockCost = uint64(minBlockCost)
 	}
 	genesis.Magic = 5
+	genesis.BlockTarget = 0 // disable block throttling
 	genesis.Allocations = []*chain.Allocation{
 		{
 			Address: sender,
+			Balance: 10000000,
+		},
+		{
+			Address: sender2,
 			Balance: 10000000,
 		},
 	}
@@ -211,6 +226,16 @@ var _ = ginkgo.Describe("[Ping]", func() {
 	})
 })
 
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")
+
+func RandStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
+
 var _ = ginkgo.Describe("[ClaimTx]", func() {
 	ginkgo.It("get currently accepted block ID", func() {
 		for _, inst := range instances {
@@ -293,7 +318,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		}
 
 		ginkgo.By("mine and accept block with the first ClaimTx", func() {
-			expectBlkAccept(instances[0], claimTx)
+			expectBlkAccept(instances[0], claimTx, priv)
 		})
 
 		ginkgo.By("check prefix after ClaimTx has been accepted", func() {
@@ -313,11 +338,8 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			Value:  v,
 		}
 
-		// to work around "ErrInsufficientSurplus" for mining too fast
-		time.Sleep(5 * time.Second)
-
-		ginkgo.By("mine and accept block with a new SetTx", func() {
-			expectBlkAccept(instances[0], setTx)
+		ginkgo.By("accept block with a new SetTx", func() {
+			expectBlkAccept(instances[0], setTx, priv)
 		})
 
 		ginkgo.By("read back from VM with range query", func() {
@@ -332,6 +354,33 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(exists).To(gomega.BeTrue())
 			gomega.Ω(value).To(gomega.Equal(v))
+		})
+	})
+
+	ginkgo.It("Distribute Lottery Reward", func() {
+		ginkgo.By("ensure that sender is rewarded at least once", func() {
+			bal, err := instances[0].cli.Balance(sender)
+			gomega.Ω(err).To(gomega.BeNil())
+
+			found := false
+			for i := 0; i < 100; i++ {
+				claimTx := &chain.ClaimTx{
+					BaseTx: &chain.BaseTx{},
+					Space:  RandStringRunes(64),
+				}
+
+				// Use a different sender so that sender is rewarded
+				expectBlkAccept(instances[0], claimTx, priv2)
+
+				bal2, err := instances[0].cli.Balance(sender)
+				gomega.Ω(err).To(gomega.BeNil())
+
+				if bal2 > bal {
+					found = true
+					break
+				}
+			}
+			gomega.Ω(found).To(gomega.BeTrue())
 		})
 	})
 
@@ -368,6 +417,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 func expectBlkAccept(
 	i instance,
 	utx chain.UnsignedTransaction,
+	signer *ecdsa.PrivateKey,
 ) {
 	g, err := i.cli.Genesis()
 	gomega.Ω(err).Should(gomega.BeNil())
@@ -383,7 +433,7 @@ func expectBlkAccept(
 
 	dh, err := chain.DigestHash(utx)
 	gomega.Ω(err).Should(gomega.BeNil())
-	sig, err := crypto.Sign(dh, priv)
+	sig, err := crypto.Sign(dh, signer)
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	tx := chain.NewTx(utx, sig)

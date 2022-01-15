@@ -69,6 +69,7 @@ echo "creating allocations file"
 cat <<EOF > /tmp/allocations.json
 [
   {"address":"0xF9370fa73846393798C2d23aa2a4aBA7489d9810", "balance":10000000},
+  {"address":"0x8Db3219F3f59b504BCF132EfB4B87Bf08c771d83", "balance":10000000},
   {"address":"0x162a5fadfdd769f9a665701348FbeEd12A4FFce7", "balance":10000000},
   {"address":"0x69fd199Aca8250d520F825d22F4ad9db4A58E9D9", "balance":10000000},
   {"address":"0x454474642C32b19E370d9A55c20431d85833cDD6", "balance":10000000},

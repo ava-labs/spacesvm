@@ -91,6 +91,7 @@ func ParseStatefulBlock(
 		st:            status,
 		vm:            vm,
 	}
+	// TODO: Change to keccak
 	id, err := ids.ToID(hashing.ComputeHash256(b.bytes))
 	if err != nil {
 		return nil, err

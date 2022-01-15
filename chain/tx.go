@@ -50,6 +50,7 @@ func (t *Transaction) Init(g *Genesis) error {
 	}
 	t.bytes = stx
 
+	// TODO: change to keccak
 	h := hashing.ComputeHash256(t.bytes)
 	id, err := ids.ToID(h)
 	if err != nil {
