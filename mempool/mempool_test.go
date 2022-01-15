@@ -29,7 +29,11 @@ func TestMempool(t *testing.T) {
 				Space: strings.Repeat("a", i),
 			},
 		}
-		sig, err := crypto.Sign(tx.DigestHash(), priv)
+		dh, err := chain.DigestHash(tx.UnsignedTransaction)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sig, err := crypto.Sign(dh, priv)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -42,10 +46,10 @@ func TestMempool(t *testing.T) {
 		}
 	}
 	if _, diff := txm.PeekMax(); diff != 250 {
-		t.Fatalf("difficulty expected 250, got %d", diff)
+		t.Fatalf("price expected 250, got %d", diff)
 	}
 	if _, diff := txm.PeekMin(); diff != 200 {
-		t.Fatalf("difficulty expected 200, got %d", diff)
+		t.Fatalf("price expected 200, got %d", diff)
 	}
 	if length := txm.Len(); length != 3 {
 		t.Fatalf("length expected 3, got %d", length)

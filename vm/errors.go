@@ -7,4 +7,9 @@ import (
 	"errors"
 )
 
-var ErrNoPendingTx = errors.New("no pending tx")
+var (
+	ErrNoPendingTx    = errors.New("no pending tx")
+	ErrTypedDataIsNil = errors.New("typed data is nil")
+	ErrInputIsNil     = errors.New("input is nil")
+	ErrInvalidEmptyTx = errors.New("invalid empty transaction")
+)

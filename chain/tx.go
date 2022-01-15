@@ -7,7 +7,7 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
-	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ava-labs/spacesvm/tdata"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -16,10 +16,11 @@ type Transaction struct {
 	UnsignedTransaction `serialize:"true" json:"unsignedTransaction"`
 	Signature           []byte `serialize:"true" json:"signature"`
 
-	bytes  []byte
-	id     ids.ID
-	size   uint64
-	sender common.Address
+	digestHash []byte
+	bytes      []byte
+	id         ids.ID
+	size       uint64
+	sender     common.Address
 }
 
 func NewTx(utx UnsignedTransaction, sig []byte) *Transaction {
@@ -38,13 +39,8 @@ func (t *Transaction) Copy() *Transaction {
 	}
 }
 
-func DigestHash(utx UnsignedTransaction) []byte {
-	// TODO: convert utx to SignedTypeData bytes
-	b, err := Marshal(utx)
-	if err != nil {
-		panic(err)
-	}
-	return accounts.TextHash(hashing.ComputeHash256(b))
+func DigestHash(utx UnsignedTransaction) ([]byte, error) {
+	return tdata.DigestHash(utx.TypedData())
 }
 
 func (t *Transaction) Init(g *Genesis) error {
@@ -65,7 +61,16 @@ func (t *Transaction) Init(g *Genesis) error {
 	if len(t.Signature) != crypto.SignatureLength {
 		return ErrInvalidSignature
 	}
-	pk, err := crypto.SigToPub(t.DigestHash(), t.Signature)
+
+	// Compute digest hash
+	dh, err := DigestHash(t.UnsignedTransaction)
+	if err != nil {
+		return err
+	}
+	t.digestHash = dh
+
+	// Derive sender
+	pk, err := crypto.SigToPub(t.digestHash, t.Signature)
 	if err != nil {
 		return err
 	}
@@ -77,11 +82,11 @@ func (t *Transaction) Init(g *Genesis) error {
 
 func (t *Transaction) Bytes() []byte { return t.bytes }
 
-func (t *Transaction) DigestHash() []byte { return DigestHash(t.UnsignedTransaction) }
-
 func (t *Transaction) Size() uint64 { return t.size }
 
 func (t *Transaction) ID() ids.ID { return t.id }
+
+func (t *Transaction) DigestHash() []byte { return t.digestHash }
 
 func (t *Transaction) Sender() common.Address { return t.sender }
 

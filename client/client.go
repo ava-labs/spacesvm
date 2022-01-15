@@ -7,7 +7,6 @@ package client
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -16,6 +15,7 @@ import (
 	"github.com/fatih/color"
 
 	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/tdata"
 	"github.com/ava-labs/spacesvm/vm"
 )
 
@@ -38,14 +38,19 @@ type Client interface {
 	// Resolve returns the value associated with a path
 	Resolve(path string) (exists bool, value []byte, err error)
 
-	// Requests for the estimated difficulty from VM.
-	SuggestedFee() (uint64, uint64, error)
+	// Requests the suggested price and cost from VM.
+	SuggestedRawFee() (uint64, uint64, error)
 	// Issues the transaction and returns the transaction ID.
-	IssueTx(d []byte) (ids.ID, error)
+	IssueRawTx(d []byte) (ids.ID, error)
+
+	// Requests the suggested price and cost from VM, returns the input as
+	// TypedData.
+	SuggestedFee(i *chain.Input) (*tdata.TypedData, uint64, error)
 	// Issues a human-readable transaction and returns the transaction ID.
-	IssueTxHR(d []byte, sig []byte) (ids.ID, error)
+	IssueTx(td *tdata.TypedData, sig []byte) (ids.ID, error)
+
 	// Checks the status of the transaction, and returns "true" if confirmed.
-	CheckTx(id ids.ID) (bool, error)
+	HasTx(id ids.ID) (bool, error)
 	// Polls the transactions until its status is confirmed.
 	PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error)
 }
@@ -125,11 +130,11 @@ func (cli *client) Accepted() (ids.ID, error) {
 	return resp.BlockID, nil
 }
 
-func (cli *client) SuggestedFee() (uint64, uint64, error) {
-	resp := new(vm.SuggestedFeeReply)
+func (cli *client) SuggestedRawFee() (uint64, uint64, error) {
+	resp := new(vm.SuggestedRawFeeReply)
 	if err := cli.req.SendRequest(
-		"suggestedFee",
-		&vm.SuggestedFeeArgs{},
+		"suggestedRawFee",
+		nil,
 		resp,
 	); err != nil {
 		return 0, 0, err
@@ -137,33 +142,53 @@ func (cli *client) SuggestedFee() (uint64, uint64, error) {
 	return resp.Price, resp.Cost, nil
 }
 
-func (cli *client) IssueTx(d []byte) (ids.ID, error) {
+func (cli *client) IssueRawTx(d []byte) (ids.ID, error) {
+	resp := new(vm.IssueRawTxReply)
+	if err := cli.req.SendRequest(
+		"issueRawTx",
+		&vm.IssueRawTxArgs{Tx: d},
+		resp,
+	); err != nil {
+		return ids.Empty, err
+	}
+	return resp.TxID, nil
+}
+
+func (cli *client) HasTx(txID ids.ID) (bool, error) {
+	resp := new(vm.HasTxReply)
+	if err := cli.req.SendRequest(
+		"hasTx",
+		&vm.HasTxArgs{TxID: txID},
+		resp,
+	); err != nil {
+		return false, err
+	}
+	return resp.Accepted, nil
+}
+
+func (cli *client) SuggestedFee(i *chain.Input) (*tdata.TypedData, uint64, error) {
+	resp := new(vm.SuggestedFeeReply)
+	if err := cli.req.SendRequest(
+		"suggestedFee",
+		&vm.SuggestedFeeArgs{Input: i},
+		resp,
+	); err != nil {
+		return nil, 0, err
+	}
+	return resp.TypedData, resp.TotalCost, nil
+}
+
+func (cli *client) IssueTx(td *tdata.TypedData, sig []byte) (ids.ID, error) {
 	resp := new(vm.IssueTxReply)
 	if err := cli.req.SendRequest(
 		"issueTx",
-		&vm.IssueTxArgs{Tx: d},
+		&vm.IssueTxArgs{TypedData: td, Signature: sig},
 		resp,
 	); err != nil {
 		return ids.Empty, err
 	}
 
-	txID := resp.TxID
-	if !resp.Success {
-		return ids.Empty, fmt.Errorf("issue tx %s failed", txID)
-	}
-	return txID, nil
-}
-
-func (cli *client) CheckTx(txID ids.ID) (bool, error) {
-	resp := new(vm.CheckTxReply)
-	if err := cli.req.SendRequest(
-		"checkTx",
-		&vm.CheckTxArgs{TxID: txID},
-		resp,
-	); err != nil {
-		return false, err
-	}
-	return resp.Confirmed, nil
+	return resp.TxID, nil
 }
 
 func (cli *client) PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error) {
@@ -175,7 +200,7 @@ done:
 			break done
 		}
 
-		confirmed, err := cli.CheckTx(txID)
+		confirmed, err := cli.HasTx(txID)
 		if err != nil {
 			color.Red("polling transaction failed %v", err)
 			continue
@@ -210,7 +235,7 @@ func (cli *client) Balance(addr common.Address) (bal uint64, err error) {
 	if err = cli.req.SendRequest(
 		"balance",
 		&vm.BalanceArgs{
-			Address: addr.Hex(),
+			Address: addr,
 		},
 		resp,
 	); err != nil {

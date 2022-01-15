@@ -132,8 +132,8 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		}
 	})
 
-	space := strings.Repeat("a", parser.MaxIdentifierSize)
-	ginkgo.It("Claim/SetTx with valid PoW in a single node", func() {
+	ginkgo.It("Claim/SetTx in a single node (raw)", func() {
+		space := strings.Repeat("a", parser.MaxIdentifierSize)
 		ginkgo.By("mine and issue ClaimTx to the first node", func() {
 			claimTx := &chain.ClaimTx{
 				BaseTx: &chain.BaseTx{},
@@ -145,7 +145,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			gomega.Ω(claimed).Should(gomega.BeFalse())
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err = client.SignIssueTx(
+			_, err = client.SignIssueRawTx(
 				ctx,
 				instances[0].cli,
 				claimTx,
@@ -186,7 +186,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(
+			_, err := client.SignIssueRawTx(
 				ctx,
 				cli,
 				setTx,
@@ -233,7 +233,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(
+			_, err := client.SignIssueRawTx(
 				ctx,
 				cli,
 				setTx,
@@ -266,7 +266,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		})
 
 		ginkgo.By("mine and issue delete SetTx to a different node (if available)", func() {
-			setTx := &chain.DeleteTx{
+			deleteTx := &chain.DeleteTx{
 				BaseTx: &chain.BaseTx{},
 				Space:  space,
 				Key:    k,
@@ -278,10 +278,181 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.SignIssueRawTx(
+				ctx,
+				cli,
+				deleteTx,
+				priv,
+				client.WithPollTx(),
+				client.WithInfo(space),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.BeNil())
+		})
+
+		ginkgo.By("check prefix to check if SetTx has been accepted from all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking prefix on %q", inst.uri)
+				pf, _, err := inst.cli.Info(space)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
+				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
+			}
+		})
+
+		ginkgo.By("send Range to all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking SetTx with Range on %q", inst.uri)
+				_, kvs, err := inst.cli.Info(space)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(len(kvs)).To(gomega.Equal(0))
+			}
+		})
+	})
+
+	ginkgo.It("Claim/SetTx in a single node", func() {
+		// TODO: repeat above without copying all code
+		space := strings.Repeat("b", parser.MaxIdentifierSize)
+		ginkgo.By("mine and issue ClaimTx to the first node", func() {
+			claimed, err := instances[0].cli.Claimed(space)
+			gomega.Ω(err).Should(gomega.BeNil())
+			gomega.Ω(claimed).Should(gomega.BeFalse())
+
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err = client.SignIssueTx(
+				ctx,
+				instances[0].cli,
+				&chain.Input{
+					Typ:   chain.Claim,
+					Space: space,
+				},
+				priv,
+				client.WithPollTx(),
+				client.WithInfo(space),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.BeNil())
+
+			claimed, err = instances[0].cli.Claimed(space)
+			gomega.Ω(err).Should(gomega.BeNil())
+			gomega.Ω(claimed).Should(gomega.BeTrue())
+		})
+
+		ginkgo.By("check prefix to check if ClaimTx has been accepted from all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking prefix on %q", inst.uri)
+				pf, _, err := inst.cli.Info(space)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
+				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
+			}
+		})
+
+		k, v := "avax.kvm", []byte("hello")
+		ginkgo.By("mine and issue SetTx to a different node (if available)", func() {
+			cli := instances[0].cli
+			if len(instances) > 1 {
+				cli = instances[1].cli
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 			_, err := client.SignIssueTx(
 				ctx,
 				cli,
-				setTx,
+				&chain.Input{
+					Typ:   chain.Set,
+					Space: space,
+					Key:   k,
+					Value: v,
+				},
+				priv,
+				client.WithPollTx(),
+				client.WithInfo(space),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.BeNil())
+		})
+
+		ginkgo.By("check prefix to check if SetTx has been accepted from all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking prefix on %q", inst.uri)
+				pf, _, err := inst.cli.Info(space)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(2)))
+				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
+			}
+		})
+
+		ginkgo.By("send Range to all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking SetTx with Range on %q", inst.uri)
+				_, kvs, err := inst.cli.Info(space)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
+				gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
+			}
+		})
+
+		v2 := bytes.Repeat([]byte("a"), int(genesis.ValueUnitSize)*20+1)
+		ginkgo.By("mine and issue large SetTx overwrite to a different node (if available)", func() {
+			cli := instances[0].cli
+			if len(instances) > 1 {
+				cli = instances[1].cli
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.SignIssueTx(
+				ctx,
+				cli,
+				&chain.Input{
+					Typ:   chain.Set,
+					Space: space,
+					Key:   k,
+					Value: v2,
+				},
+				priv,
+				client.WithPollTx(),
+				client.WithInfo(space),
+			)
+			cancel()
+			gomega.Ω(err).Should(gomega.BeNil())
+		})
+
+		ginkgo.By("check prefix to check if SetTx has been accepted from all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking prefix on %q", inst.uri)
+				pf, _, err := inst.cli.Info(space)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(22)))
+				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
+			}
+		})
+
+		ginkgo.By("send Range to all nodes", func() {
+			for _, inst := range instances {
+				color.Blue("checking SetTx with Range on %q", inst.uri)
+				_, kvs, err := inst.cli.Info(space)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
+				gomega.Ω(kvs[0].Value).To(gomega.Equal(v2))
+			}
+		})
+
+		ginkgo.By("mine and issue delete SetTx to a different node (if available)", func() {
+			cli := instances[0].cli
+			if len(instances) > 1 {
+				cli = instances[1].cli
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+			_, err := client.SignIssueTx(
+				ctx,
+				cli,
+				&chain.Input{
+					Typ:   chain.Delete,
+					Space: space,
+					Key:   k,
+				},
 				priv,
 				client.WithPollTx(),
 				client.WithInfo(space),

@@ -5,10 +5,12 @@ package chain
 
 import (
 	"bytes"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tdata"
 )
 
 var _ UnsignedTransaction = &MoveTx{}
@@ -63,4 +65,22 @@ func (m *MoveTx) Copy() UnsignedTransaction {
 		Space:  m.Space,
 		To:     common.BytesToAddress(to),
 	}
+}
+
+func (m *MoveTx) TypedData() *tdata.TypedData {
+	return tdata.CreateTypedData(
+		m.Magic, Move,
+		[]tdata.Type{
+			{Name: tdSpace, Type: tdString},
+			{Name: tdTo, Type: tdAddress},
+			{Name: tdPrice, Type: tdUint64},
+			{Name: tdBlockID, Type: tdString},
+		},
+		tdata.TypedDataMessage{
+			tdSpace:   m.Space,
+			tdTo:      m.To,
+			tdPrice:   strconv.FormatUint(m.Price, 10),
+			tdBlockID: m.BlockID.String(),
+		},
+	)
 }

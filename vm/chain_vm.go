@@ -78,7 +78,6 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		nextCost += uint64(g.BlockTarget - secondsSinceLast)
 	} else {
 		possibleDiff := uint64(secondsSinceLast - g.BlockTarget)
-		// TODO: clean this up
 		if nextCost >= g.MinBlockCost && possibleDiff < nextCost-g.MinBlockCost {
 			nextCost -= possibleDiff
 		} else {

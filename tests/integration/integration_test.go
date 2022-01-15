@@ -230,7 +230,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 		ginkgo.By("mine and issue ClaimTx", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv)
+			_, err := client.SignIssueRawTx(ctx, instances[0].cli, claimTx, priv)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
@@ -273,7 +273,8 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			Space:  "foo",
 		}
 
-		dh := chain.DigestHash(utx)
+		dh, err := chain.DigestHash(utx)
+		gomega.Ω(err).Should(gomega.BeNil())
 		sig, err := crypto.Sign(dh, priv)
 		gomega.Ω(err).Should(gomega.BeNil())
 
@@ -281,7 +282,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		err = tx.Init(genesis)
 		gomega.Ω(err).Should(gomega.BeNil())
 
-		_, err = instances[0].cli.IssueTx(tx.Bytes())
+		_, err = instances[0].cli.IssueRawTx(tx.Bytes())
 		gomega.Ω(err.Error()).Should(gomega.Equal(chain.ErrInvalidBlockID.Error()))
 	})
 
@@ -344,7 +345,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 		ginkgo.By("mine and issue ClaimTx", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(ctx, instances[0].cli, claimTx, priv)
+			_, err := client.SignIssueRawTx(ctx, instances[0].cli, claimTx, priv)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
@@ -377,11 +378,13 @@ func expectBlkAccept(
 	gomega.Ω(err).Should(gomega.BeNil())
 	utx.SetBlockID(la)
 
-	price, blockCost, err := i.cli.SuggestedFee()
+	price, blockCost, err := i.cli.SuggestedRawFee()
 	gomega.Ω(err).Should(gomega.BeNil())
 	utx.SetPrice(price + blockCost/utx.FeeUnits(g))
 
-	sig, err := crypto.Sign(chain.DigestHash(utx), priv)
+	dh, err := chain.DigestHash(utx)
+	gomega.Ω(err).Should(gomega.BeNil())
+	sig, err := crypto.Sign(dh, priv)
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	tx := chain.NewTx(utx, sig)
@@ -390,7 +393,7 @@ func expectBlkAccept(
 
 	// or to use VM directly
 	// err = vm.Submit(tx)
-	_, err = i.cli.IssueTx(tx.Bytes())
+	_, err = i.cli.IssueRawTx(tx.Bytes())
 	gomega.Ω(err).To(gomega.BeNil())
 
 	// manually signal ready

@@ -4,7 +4,10 @@
 package chain
 
 import (
+	"strconv"
+
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tdata"
 )
 
 var _ UnsignedTransaction = &LifelineTx{}
@@ -62,4 +65,22 @@ func (l *LifelineTx) Copy() UnsignedTransaction {
 		Space:  l.Space,
 		Units:  l.Units,
 	}
+}
+
+func (l *LifelineTx) TypedData() *tdata.TypedData {
+	return tdata.CreateTypedData(
+		l.Magic, Lifeline,
+		[]tdata.Type{
+			{Name: tdSpace, Type: tdString},
+			{Name: tdUnits, Type: tdUint64},
+			{Name: tdPrice, Type: tdUint64},
+			{Name: tdBlockID, Type: tdString},
+		},
+		tdata.TypedDataMessage{
+			tdSpace:   l.Space,
+			tdUnits:   strconv.FormatUint(l.Units, 10),
+			tdPrice:   strconv.FormatUint(l.Price, 10),
+			tdBlockID: l.BlockID.String(),
+		},
+	)
 }

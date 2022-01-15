@@ -18,11 +18,13 @@ var (
 	ErrParentBlockNotVerified = errors.New("parent block not verified or accepted")
 
 	// Tx Correctness
-	ErrInvalidMagic      = errors.New("invalid magic")
-	ErrInvalidBlockID    = errors.New("invalid blockID")
-	ErrInvalidSignature  = errors.New("invalid signature")
-	ErrDuplicateTx       = errors.New("duplicate transaction")
-	ErrInsufficientPrice = errors.New("insufficient price")
+	ErrInvalidMagic        = errors.New("invalid magic")
+	ErrInvalidBlockID      = errors.New("invalid blockID")
+	ErrInvalidSignature    = errors.New("invalid signature")
+	ErrDuplicateTx         = errors.New("duplicate transaction")
+	ErrInsufficientPrice   = errors.New("insufficient price")
+	ErrInvalidType         = errors.New("invalid tx type")
+	ErrTypedDataKeyMissing = errors.New("typed data key missing")
 
 	// Execution Correctness
 	ErrValueEmpty      = errors.New("value empty")

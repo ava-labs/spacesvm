@@ -5,8 +5,11 @@ package chain
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tdata"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 const (
@@ -98,4 +101,24 @@ func (s *SetTx) Copy() UnsignedTransaction {
 		Key:    s.Key,
 		Value:  value,
 	}
+}
+
+func (s *SetTx) TypedData() *tdata.TypedData {
+	return tdata.CreateTypedData(
+		s.Magic, Set,
+		[]tdata.Type{
+			{Name: tdSpace, Type: tdString},
+			{Name: tdKey, Type: tdString},
+			{Name: tdValue, Type: tdBytes},
+			{Name: tdPrice, Type: tdUint64},
+			{Name: tdBlockID, Type: tdString},
+		},
+		tdata.TypedDataMessage{
+			tdSpace:   s.Space,
+			tdKey:     s.Key,
+			tdValue:   hexutil.Encode(s.Value),
+			tdPrice:   strconv.FormatUint(s.Price, 10),
+			tdBlockID: s.BlockID.String(),
+		},
+	)
 }

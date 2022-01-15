@@ -4,7 +4,10 @@
 package chain
 
 import (
+	"strconv"
+
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tdata"
 )
 
 var _ UnsignedTransaction = &DeleteTx{}
@@ -59,4 +62,22 @@ func (d *DeleteTx) Copy() UnsignedTransaction {
 		Space:  d.Space,
 		Key:    d.Key,
 	}
+}
+
+func (d *DeleteTx) TypedData() *tdata.TypedData {
+	return tdata.CreateTypedData(
+		d.Magic, Delete,
+		[]tdata.Type{
+			{Name: tdSpace, Type: tdString},
+			{Name: tdKey, Type: tdString},
+			{Name: tdPrice, Type: tdUint64},
+			{Name: tdBlockID, Type: tdString},
+		},
+		tdata.TypedDataMessage{
+			tdSpace:   d.Space,
+			tdKey:     d.Key,
+			tdPrice:   strconv.FormatUint(d.Price, 10),
+			tdBlockID: d.BlockID.String(),
+		},
+	)
 }

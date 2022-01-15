@@ -6,6 +6,7 @@ package client
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/json"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -13,10 +14,77 @@ import (
 	"github.com/fatih/color"
 
 	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/tdata"
 )
 
-// Signs and issues the transaction.
+// Signs and issues the transaction (node construction).
 func SignIssueTx(
+	ctx context.Context,
+	cli Client,
+	input *chain.Input,
+	priv *ecdsa.PrivateKey,
+	opts ...OpOption,
+) (txID ids.ID, err error) {
+	ret := &Op{}
+	ret.applyOpts(opts)
+
+	td, cost, err := cli.SuggestedFee(input)
+	if err != nil {
+		return ids.Empty, err
+	}
+	// Log typed data
+	b, err := json.Marshal(td)
+	if err != nil {
+		return ids.Empty, err
+	}
+	color.Cyan("typed data (cost=%d): %v", cost, string(b))
+
+	dh, err := tdata.DigestHash(td)
+	if err != nil {
+		return ids.Empty, err
+	}
+
+	sig, err := crypto.Sign(dh, priv)
+	if err != nil {
+		return ids.Empty, err
+	}
+
+	txID, err = cli.IssueTx(td, sig)
+	if err != nil {
+		return ids.Empty, err
+	}
+
+	if ret.pollTx {
+		color.Green("issued transaction %s (now polling)", txID)
+		confirmed, err := cli.PollTx(ctx, txID)
+		if err != nil {
+			return ids.Empty, err
+		}
+		if !confirmed {
+			color.Yellow("transaction %s not confirmed", txID)
+		} else {
+			color.Green("transaction %s confirmed", txID)
+		}
+	}
+
+	if len(ret.space) > 0 {
+		info, _, err := cli.Info(ret.space)
+		if err != nil {
+			color.Red("cannot get prefix info %v", err)
+			return ids.Empty, err
+		}
+		expiry := time.Unix(int64(info.Expiry), 0)
+		color.Blue(
+			"raw prefix %s: units=%d expiry=%v (%v remaining)",
+			info.RawSpace, info.Units, expiry, time.Until(expiry),
+		)
+	}
+
+	return txID, nil
+}
+
+// Signs and issues the transaction (local construction).
+func SignIssueRawTx(
 	ctx context.Context,
 	cli Client,
 	utx chain.UnsignedTransaction,
@@ -36,7 +104,7 @@ func SignIssueTx(
 		return ids.Empty, err
 	}
 
-	price, blockCost, err := cli.SuggestedFee()
+	price, blockCost, err := cli.SuggestedRawFee()
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -45,7 +113,19 @@ func SignIssueTx(
 	utx.SetMagic(g.Magic)
 	utx.SetPrice(price + blockCost/utx.FeeUnits(g))
 
-	sig, err := crypto.Sign(chain.DigestHash(utx), priv)
+	// Log typed data
+	b, err := json.Marshal(utx.TypedData())
+	if err != nil {
+		return ids.Empty, err
+	}
+	color.Cyan("typed data: %v", string(b))
+
+	dh, err := chain.DigestHash(utx)
+	if err != nil {
+		return ids.Empty, err
+	}
+
+	sig, err := crypto.Sign(dh, priv)
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -59,7 +139,7 @@ func SignIssueTx(
 		"issuing tx %s (fee units=%d, load units=%d, price=%d, blkID=%s)",
 		tx.ID(), tx.FeeUnits(g), tx.LoadUnits(g), tx.GetPrice(), tx.GetBlockID(),
 	)
-	txID, err = cli.IssueTx(tx.Bytes())
+	txID, err = cli.IssueRawTx(tx.Bytes())
 	if err != nil {
 		return ids.Empty, err
 	}

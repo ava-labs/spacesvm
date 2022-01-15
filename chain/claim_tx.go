@@ -4,11 +4,13 @@
 package chain
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tdata"
 )
 
 var _ UnsignedTransaction = &ClaimTx{}
@@ -91,4 +93,20 @@ func (c *ClaimTx) Copy() UnsignedTransaction {
 		BaseTx: c.BaseTx.Copy(),
 		Space:  c.Space,
 	}
+}
+
+func (c *ClaimTx) TypedData() *tdata.TypedData {
+	return tdata.CreateTypedData(
+		c.Magic, Claim,
+		[]tdata.Type{
+			{Name: tdSpace, Type: tdString},
+			{Name: tdPrice, Type: tdUint64},
+			{Name: tdBlockID, Type: tdString},
+		},
+		tdata.TypedDataMessage{
+			tdSpace:   c.Space,
+			tdPrice:   strconv.FormatUint(c.Price, 10),
+			tdBlockID: c.BlockID.String(),
+		},
+	)
 }
