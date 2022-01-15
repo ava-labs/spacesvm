@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tdata"
 )
 
 const (
@@ -98,4 +99,24 @@ func (s *SetTx) Copy() UnsignedTransaction {
 		Key:    s.Key,
 		Value:  value,
 	}
+}
+
+func (s *SetTx) TypedData() tdata.TypedData {
+	return tdata.CreateTypedData(
+		s.Magic, Set,
+		[]tdata.Type{
+			{Name: "blockID", Type: "string"},
+			{Name: "price", Type: "uint64"},
+			{Name: "space", Type: "string"},
+			{Name: "key", Type: "string"},
+			{Name: "value", Type: "bytes"},
+		},
+		tdata.TypedDataMessage{
+			"blockID": s.BlockID.String(),
+			"price":   s.Price,
+			"space":   s.Space,
+			"key":     s.Key,
+			"value":   s.Value,
+		},
+	)
 }

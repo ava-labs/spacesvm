@@ -5,6 +5,7 @@ package chain
 
 import (
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tdata"
 )
 
 var _ UnsignedTransaction = &DeleteTx{}
@@ -59,4 +60,22 @@ func (d *DeleteTx) Copy() UnsignedTransaction {
 		Space:  d.Space,
 		Key:    d.Key,
 	}
+}
+
+func (d *DeleteTx) TypedData() tdata.TypedData {
+	return tdata.CreateTypedData(
+		d.Magic, Delete,
+		[]tdata.Type{
+			{Name: "blockID", Type: "string"},
+			{Name: "price", Type: "uint64"},
+			{Name: "space", Type: "string"},
+			{Name: "key", Type: "string"},
+		},
+		tdata.TypedDataMessage{
+			"blockID": d.BlockID.String(),
+			"price":   d.Price,
+			"space":   d.Space,
+			"key":     d.Key,
+		},
+	)
 }

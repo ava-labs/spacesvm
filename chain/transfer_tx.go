@@ -6,6 +6,7 @@ package chain
 import (
 	"bytes"
 
+	"github.com/ava-labs/spacesvm/tdata"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -14,11 +15,11 @@ var _ UnsignedTransaction = &TransferTx{}
 type TransferTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 
-	// To is the recipient of the [Value].
+	// To is the recipient of the [Units].
 	To common.Address `serialize:"true" json:"to"`
 
-	// Value is the number of units to transfer to [To].
-	Value uint64 `serialize:"true" json:"value"`
+	// Units are transferred to [To].
+	Units uint64 `serialize:"true" json:"units"`
 }
 
 func (t *TransferTx) Execute(c *TransactionContext) error {
@@ -31,13 +32,13 @@ func (t *TransferTx) Execute(c *TransactionContext) error {
 	if bytes.Equal(t.To[:], c.Sender[:]) {
 		return ErrNonActionable
 	}
-	if t.Value == 0 {
+	if t.Units == 0 {
 		return ErrNonActionable
 	}
-	if _, err := ModifyBalance(c.Database, c.Sender, false, t.Value); err != nil {
+	if _, err := ModifyBalance(c.Database, c.Sender, false, t.Units); err != nil {
 		return err
 	}
-	if _, err := ModifyBalance(c.Database, t.To, true, t.Value); err != nil {
+	if _, err := ModifyBalance(c.Database, t.To, true, t.Units); err != nil {
 		return err
 	}
 	return nil
@@ -49,6 +50,24 @@ func (t *TransferTx) Copy() UnsignedTransaction {
 	return &TransferTx{
 		BaseTx: t.BaseTx.Copy(),
 		To:     common.BytesToAddress(to),
-		Value:  t.Value,
+		Units:  t.Units,
 	}
+}
+
+func (t *TransferTx) TypedData() tdata.TypedData {
+	return tdata.CreateTypedData(
+		t.Magic, Transfer,
+		[]tdata.Type{
+			{Name: "blockID", Type: "string"},
+			{Name: "price", Type: "uint64"},
+			{Name: "to", Type: "address"},
+			{Name: "units", Type: "uint64"},
+		},
+		tdata.TypedDataMessage{
+			"blockID": t.BlockID.String(),
+			"price":   t.Price,
+			"to":      t.To,
+			"units":   t.Units,
+		},
+	)
 }

@@ -96,7 +96,7 @@ func (c *ClaimTx) Copy() UnsignedTransaction {
 
 func (c *ClaimTx) TypedData() tdata.TypedData {
 	return tdata.CreateTypedData(
-		c.Magic, "ClaimTx",
+		c.Magic, Claim,
 		[]tdata.Type{
 			{Name: "blockID", Type: "string"},
 			{Name: "price", Type: "uint64"},
