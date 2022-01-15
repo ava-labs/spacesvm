@@ -81,3 +81,11 @@ func (d *DeleteTx) TypedData() *tdata.TypedData {
 		},
 	)
 }
+
+func (d *DeleteTx) Activity() *Activity {
+	return &Activity{
+		Typ:   Delete,
+		Space: d.Space,
+		Key:   d.Key,
+	}
+}

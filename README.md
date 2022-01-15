@@ -22,6 +22,7 @@ Usage:
   spaces-cli [command]
 
 Available Commands:
+  activity    View recent activity on the network
   claim       Claims the given prefix
   completion  generate the autocompletion script for the specified shell
   create      Creates a new key in the default location
@@ -30,11 +31,13 @@ Available Commands:
   help        Help about any command
   info        Reads space info and all values at space
   lifeline    Extends the life of a given prefix
+  move        Transfers a space to another address
   resolve     Reads a value at space/key
   set         Writes a key-value pair for the given prefix
+  transfer    Transfers units to another address
 
 Flags:
-      --endpoint string           RPC Endpoint for VM (default "http://127.0.0.1:9650")
+      --endpoint string           RPC Endpoint for VM (default "https://memeshowdown.com")
   -h, --help                      help for spaces-cli
       --private-key-file string   private key file path (default ".spaces-cli-pk")
 
@@ -97,12 +100,12 @@ _Provide your intent and get back a transaction to sign._
 
 #### Transaction Types
 ```
-Claim    {type,space}
-Lifeline {type,space,units}
-Set      {type,space,key,value}
-Delete   {type,space,key}
-Move     {type,space,to}
-Transfer {type,to,units}
+claim    {type,space}
+lifeline {type,space,units}
+set      {type,space,key,value}
+delete   {type,space,key}
+move     {type,space,to}
+transfer {type,to,units}
 
 ```
 
@@ -215,6 +218,32 @@ Transfer {type,to,units}
 >>> {"balance":<uint64>}
 ```
 
+## spacesvm.recentActivity
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.recentActivity",
+  "params":{},
+  "id": 1
+}
+>>> {"activity":[<chain.Activity>,...]}
+```
+
+### chain.Activity
+```
+{
+  "timestamp":<unix>,
+  "sender":<address>,
+  "txId":<ID>,
+  "type":<string>,
+  "space":<string>,
+  "key":<string>,
+  "to":<hex encoded>,
+  "units":<uint64>
+}
+```
+
 # Advanced Public Endpoints (`/public`)
 
 ## spacesvm.suggestedRawFee
@@ -247,7 +276,7 @@ _Can use this to get the current fee rate._
 # Creating Transactions
 ```
 1) spacesvm.claimed {"space":"patrick"} => Yes/No
-2) spacesvm.suggestedFee {"input":{"type":"Claim", "space":"patrick"}} => {"typedData":<EIP-712 Typed Data>, "cost":<total fee>}
+2) spacesvm.suggestedFee {"input":{"type":"claim", "space":"patrick"}} => {"typedData":<EIP-712 Typed Data>, "cost":<total fee>}
 3) sign EIP-712 Typed Data
 4) spacesvm.issueTx {"typedData":<from spacesvm.suggestedFee>, "signature":<sig from step 3>} => {"txId":<ID>}
 5) [loop] spacesvm.hasTx {"txId":<ID>} => {"accepted":true"}

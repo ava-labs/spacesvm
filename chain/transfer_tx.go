@@ -65,10 +65,18 @@ func (t *TransferTx) TypedData() *tdata.TypedData {
 			{Name: tdBlockID, Type: tdString},
 		},
 		tdata.TypedDataMessage{
-			tdTo:      t.To,
+			tdTo:      t.To.Hex(),
 			tdUnits:   strconv.FormatUint(t.Units, 10),
 			tdPrice:   strconv.FormatUint(t.Price, 10),
 			tdBlockID: t.BlockID.String(),
 		},
 	)
+}
+
+func (t *TransferTx) Activity() *Activity {
+	return &Activity{
+		Typ:   Transfer,
+		To:    t.To.Hex(),
+		Units: t.Units,
+	}
 }

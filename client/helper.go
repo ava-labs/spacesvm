@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -23,6 +24,20 @@ func PPInfo(info *chain.SpaceInfo) {
 		"raw prefix %s: units=%d expiry=%v (%v remaining)",
 		info.RawSpace, info.Units, expiry, time.Until(expiry),
 	)
+}
+
+func PPActivity(a []*chain.Activity) error {
+	if len(a) == 0 {
+		color.Blue("no recent activity")
+	}
+	for _, item := range a {
+		b, err := json.Marshal(item)
+		if err != nil {
+			return err
+		}
+		color.Blue(string(b))
+	}
+	return nil
 }
 
 // Signs and issues the transaction (node construction).
@@ -49,7 +64,7 @@ func SignIssueTx(
 
 	dh, err := tdata.DigestHash(td)
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, fmt.Errorf("%w: failed to compute digest hash", err)
 	}
 
 	sig, err := crypto.Sign(dh, priv)
@@ -171,4 +186,27 @@ func SignIssueRawTx(
 	}
 
 	return txID, nil
+}
+
+type Op struct {
+	pollTx bool
+	space  string
+}
+
+type OpOption func(*Op)
+
+func (op *Op) applyOpts(opts []OpOption) {
+	for _, opt := range opts {
+		opt(op)
+	}
+}
+
+// "true" to poll transaction for its confirmation.
+func WithPollTx() OpOption {
+	return func(op *Op) { op.pollTx = true }
+}
+
+// Non-empty to print out space information.
+func WithInfo(space string) OpOption {
+	return func(op *Op) { op.space = space }
 }

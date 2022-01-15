@@ -67,13 +67,16 @@ type VM struct {
 	preferred    ids.ID
 	lastAccepted *chain.StatelessBlock
 
+	// Recent activity
+	activityCacheCursor uint64
+	activityCache       []*chain.Activity
+
 	stop chan struct{}
 
 	builderStop chan struct{}
 	doneBuild   chan struct{}
 	doneGossip  chan struct{}
-
-	donePrune chan struct{}
+	donePrune   chan struct{}
 }
 
 const (
@@ -103,6 +106,7 @@ func (vm *VM) Initialize(
 
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
+	vm.activityCache = make([]*chain.Activity, vm.config.ActivityCacheSize)
 
 	// Init channels before initializing other structs
 	vm.stop = make(chan struct{})

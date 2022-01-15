@@ -78,9 +78,17 @@ func (m *MoveTx) TypedData() *tdata.TypedData {
 		},
 		tdata.TypedDataMessage{
 			tdSpace:   m.Space,
-			tdTo:      m.To,
+			tdTo:      m.To.Hex(),
 			tdPrice:   strconv.FormatUint(m.Price, 10),
 			tdBlockID: m.BlockID.String(),
 		},
 	)
+}
+
+func (m *MoveTx) Activity() *Activity {
+	return &Activity{
+		Typ:   Move,
+		Space: m.Space,
+		To:    m.To.Hex(),
+	}
 }

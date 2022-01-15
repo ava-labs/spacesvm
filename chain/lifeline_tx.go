@@ -84,3 +84,11 @@ func (l *LifelineTx) TypedData() *tdata.TypedData {
 		},
 	)
 }
+
+func (l *LifelineTx) Activity() *Activity {
+	return &Activity{
+		Typ:   Lifeline,
+		Space: l.Space,
+		Units: l.Units,
+	}
+}

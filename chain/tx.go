@@ -136,3 +136,10 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blk *StatelessBl
 	rewardAmount := t.FeeUnits(g) * blk.Price * g.LotteryRewardMultipler / g.LotteryRewardDivisor
 	return ApplyReward(db, blk.ID(), t.ID(), t.sender, rewardAmount)
 }
+
+func (t *Transaction) Activity() *Activity {
+	activity := t.UnsignedTransaction.Activity()
+	activity.Sender = t.sender.Hex()
+	activity.TxID = t.id
+	return activity
+}

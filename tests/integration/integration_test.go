@@ -237,6 +237,13 @@ func RandStringRunes(n int) string {
 }
 
 var _ = ginkgo.Describe("[ClaimTx]", func() {
+	ginkgo.It("ensure activity yet", func() {
+		activity, err := instances[0].cli.RecentActivity()
+		gomega.Ω(err).To(gomega.BeNil())
+
+		gomega.Ω(len(activity)).To(gomega.Equal(0))
+	})
+
 	ginkgo.It("get currently accepted block ID", func() {
 		for _, inst := range instances {
 			cli := inst.cli
@@ -288,6 +295,31 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			lastAccepted, err := instances[1].vm.LastAccepted()
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
+		})
+
+		ginkgo.By("extend time with lifeline", func() {
+			lifelineTx := &chain.LifelineTx{
+				BaseTx: &chain.BaseTx{},
+				Space:  space,
+				Units:  1,
+			}
+			expectBlkAccept(instances[1], lifelineTx, priv)
+		})
+
+		ginkgo.By("ensure all activity accounted for", func() {
+			activity, err := instances[1].cli.RecentActivity()
+			gomega.Ω(err).To(gomega.BeNil())
+
+			gomega.Ω(len(activity)).To(gomega.Equal(2))
+			a0 := activity[0]
+			gomega.Ω(a0.Typ).To(gomega.Equal("lifeline"))
+			gomega.Ω(a0.Space).To(gomega.Equal(space))
+			gomega.Ω(a0.Units).To(gomega.Equal(uint64(1)))
+			gomega.Ω(a0.Sender).To(gomega.Equal(sender.Hex()))
+			a1 := activity[1]
+			gomega.Ω(a1.Typ).To(gomega.Equal("claim"))
+			gomega.Ω(a1.Space).To(gomega.Equal(space))
+			gomega.Ω(a1.Sender).To(gomega.Equal(sender.Hex()))
 		})
 	})
 
@@ -354,6 +386,50 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(exists).To(gomega.BeTrue())
 			gomega.Ω(value).To(gomega.Equal(v))
+		})
+
+		ginkgo.By("transfer funds to other sender", func() {
+			transferTx := &chain.TransferTx{
+				BaseTx: &chain.BaseTx{},
+				To:     sender2,
+				Units:  100,
+			}
+			expectBlkAccept(instances[0], transferTx, priv)
+		})
+
+		ginkgo.By("move space to other sender", func() {
+			moveTx := &chain.MoveTx{
+				BaseTx: &chain.BaseTx{},
+				To:     sender2,
+				Space:  space,
+			}
+			expectBlkAccept(instances[0], moveTx, priv)
+		})
+
+		ginkgo.By("ensure all activity accounted for", func() {
+			activity, err := instances[0].cli.RecentActivity()
+			gomega.Ω(err).To(gomega.BeNil())
+
+			gomega.Ω(len(activity)).To(gomega.Equal(5))
+			a0 := activity[0]
+			gomega.Ω(a0.Typ).To(gomega.Equal("move"))
+			gomega.Ω(a0.Space).To(gomega.Equal(space))
+			gomega.Ω(a0.To).To(gomega.Equal(sender2.Hex()))
+			gomega.Ω(a0.Sender).To(gomega.Equal(sender.Hex()))
+			a1 := activity[1]
+			gomega.Ω(a1.Typ).To(gomega.Equal("transfer"))
+			gomega.Ω(a1.To).To(gomega.Equal(sender2.Hex()))
+			gomega.Ω(a1.Units).To(gomega.Equal(uint64(100)))
+			gomega.Ω(a1.Sender).To(gomega.Equal(sender.Hex()))
+			a2 := activity[2]
+			gomega.Ω(a2.Typ).To(gomega.Equal("set"))
+			gomega.Ω(a2.Space).To(gomega.Equal(space))
+			gomega.Ω(a2.Key).To(gomega.Equal(k))
+			gomega.Ω(a2.Sender).To(gomega.Equal(sender.Hex()))
+			a3 := activity[3]
+			gomega.Ω(a3.Typ).To(gomega.Equal("claim"))
+			gomega.Ω(a3.Space).To(gomega.Equal(space))
+			gomega.Ω(a3.Sender).To(gomega.Equal(sender.Hex()))
 		})
 	})
 
