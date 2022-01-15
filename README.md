@@ -8,6 +8,33 @@ KVVM defines a blockchain that is a key-value storage server. Each block in the 
 
 KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin).
 
+# spaces-cli
+```
+SpacesVM client CLI
+
+Usage:
+  spaces-cli [command]
+
+Available Commands:
+  claim       Claims the given prefix
+  completion  generate the autocompletion script for the specified shell
+  create      Creates a new key in the default location
+  delete      Deletes a key-value pair for the given prefix
+  genesis     Creates a new genesis in the default location
+  help        Help about any command
+  info        Reads space info and all values at space
+  lifeline    Extends the life of a given prefix
+  resolve     Reads a value at space/key
+  set         Writes a key-value pair for the given prefix
+
+Flags:
+      --endpoint string           RPC Endpoint for VM (default "http://127.0.0.1:9650")
+  -h, --help                      help for spaces-cli
+      --private-key-file string   private key file path (default ".spaces-cli-pk")
+
+Use "spaces-cli [command] --help" for more information about a command.
+```
+
 # Public Endpoints (`/public`)
 
 ## spacesvm.ping
@@ -214,9 +241,9 @@ _Can use this to get the current fee rate._
 # Creating Transactions
 ```
 1) spacesvm.claimed {"space":"patrick"} => Yes/No
-2) spacesvm.suggestedFee {"input":{"type":"Claim", "space":"patrick"}} => Tx Data to Sign
+2) spacesvm.suggestedFee {"input":{"type":"Claim", "space":"patrick"}} => {"typedData":<EIP-712 Typed Data>, "cost":<total fee>}
 3) sign EIP-712 Typed Data
-4) spacesvm.issueTx {"typedData":<from spacesvm.suggestedFee>, "cost":<total fee>} => {"txId":<ID>}
+4) spacesvm.issueTx {"typedData":<from spacesvm.suggestedFee>, "signature":<sig from step 3>} => {"txId":<ID>}
 5) [loop] spacesvm.hasTx {"txId":<ID>} => {"accepted":true"}
 ```
 

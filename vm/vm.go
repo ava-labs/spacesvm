@@ -399,7 +399,8 @@ func (vm *VM) submit(tx *chain.Transaction, db database.Database, blkTime int64,
 	if err := tx.ExecuteBase(vm.genesis); err != nil {
 		return err
 	}
-	if err := tx.Execute(vm.genesis, db, blkTime, ctx); err != nil {
+	dummy := chain.DummyBlock(blkTime, tx)
+	if err := tx.Execute(vm.genesis, db, dummy, ctx); err != nil {
 		return err
 	}
 	vm.mempool.Add(tx)

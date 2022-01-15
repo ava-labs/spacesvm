@@ -106,7 +106,8 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 			t.Fatal(err)
 		}
 		tx := tv.createTx()
-		err := tx.Execute(g, db, tv.blockTime, tv.ctx)
+		dummy := DummyBlock(tv.blockTime, tx)
+		err := tx.Execute(g, db, dummy, tv.ctx)
 		if !errors.Is(err, tv.executeErr) {
 			t.Fatalf("#%d: unexpected tx.Execute error %v, expected %v", i, err, tv.executeErr)
 		}

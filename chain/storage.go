@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ethereum/go-ethereum/common"
 	smath "github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/spacesvm/parser"
@@ -589,4 +590,48 @@ func ModifyBalance(db database.KeyValueReaderWriter, address common.Address, add
 		return 0, fmt.Errorf("%w: bal=%d, addr=%v, add=%t, prev=%d, change=%d", ErrInvalidBalance, b, address, add, b, change)
 	}
 	return n, SetBalance(db, address, n)
+}
+
+func ApplyReward(db database.Database, blkID ids.ID, txID ids.ID, sender common.Address, reward uint64) error {
+	seed := [64]byte{}
+	copy(seed[:], blkID[:])
+	copy(seed[32:], txID[:])
+	iterator := crypto.Keccak256(seed[:])
+
+	startKey := SpaceInfoKey(iterator)
+	baseKey := SpaceInfoKey(nil)
+	cursor := db.NewIteratorWithStart(startKey)
+	for cursor.Next() {
+		curKey := cursor.Key()
+		if bytes.Compare(baseKey, curKey) < -1 { // startKey < curKey; continue search
+			continue
+		}
+		if !bytes.Contains(curKey, baseKey) { // curKey does not contain base key; end search
+			break
+		}
+
+		var i SpaceInfo
+		if _, err := Unmarshal(cursor.Value(), &i); err != nil {
+			return err
+		}
+		space := string(curKey[2:])
+
+		// Do not give sender their funds back
+		if bytes.Equal(i.Owner[:], sender[:]) {
+			log.Debug("skipping reward: same owner", "space", space, "owner", i.Owner)
+			return nil
+		}
+
+		// Distribute reward
+		if _, err := ModifyBalance(db, i.Owner, true, reward); err != nil {
+			return err
+		}
+
+		log.Debug("rewarded space owner", "space", space, "owner", i.Owner, "amount", reward)
+		return nil
+	}
+
+	// No reward applied
+	log.Debug("skipping reward: no valid space")
+	return nil
 }

@@ -23,7 +23,6 @@ var (
 	minBlockCost       int64
 	claimReward        int64
 	lifelineUnitReward int64
-	beneficiaryReward  int64
 
 	magic uint64
 )
@@ -58,12 +57,6 @@ func init() {
 		"lifeline-unit-reward",
 		-1,
 		"seconds per unit of fee that will be rewarded in a lifeline transaction",
-	)
-	genesisCmd.PersistentFlags().Int64Var(
-		&beneficiaryReward,
-		"beneficiary-reward",
-		-1,
-		"seconds added to the lifetime of a beneficiary prefix when a block is produced",
 	)
 }
 
@@ -103,9 +96,6 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	}
 	if lifelineUnitReward >= 0 {
 		genesis.LifelineUnitReward = uint64(lifelineUnitReward)
-	}
-	if beneficiaryReward >= 0 {
-		genesis.BeneficiaryReward = uint64(beneficiaryReward)
 	}
 
 	a, err := os.ReadFile(args[1])

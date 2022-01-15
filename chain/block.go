@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
-	"github.com/ava-labs/avalanchego/utils/hashing"
+	"github.com/ethereum/go-ethereum/crypto"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -91,7 +91,7 @@ func ParseStatefulBlock(
 		st:            status,
 		vm:            vm,
 	}
-	id, err := ids.ToID(hashing.ComputeHash256(b.bytes))
+	id, err := ids.ToID(crypto.Keccak256(b.bytes))
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (b *StatelessBlock) init() error {
 	}
 	b.bytes = bytes
 
-	id, err := ids.ToID(hashing.ComputeHash256(b.bytes))
+	id, err := ids.ToID(crypto.Keccak256(b.bytes))
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	log.Debug("build context", "height", b.Hght, "price", b.Price, "cost", b.Cost)
 	surplusFee := uint64(0)
 	for _, tx := range b.Txs {
-		if err := tx.Execute(g, onAcceptDB, b.Tmstmp, context); err != nil {
+		if err := tx.Execute(g, onAcceptDB, b, context); err != nil {
 			return nil, nil, err
 		}
 		surplusFee += (tx.GetPrice() - b.Price) * tx.FeeUnits(g)
@@ -267,3 +267,14 @@ func (b *StatelessBlock) onAccept() (database.Database, error) {
 func (b *StatelessBlock) addChild(c *StatelessBlock) {
 	b.children = append(b.children, c)
 }
+
+// DummyBlock is used for validating new txs and some tests
+func DummyBlock(tmstp int64, tx *Transaction) *StatelessBlock {
+	return &StatelessBlock{
+		StatefulBlock: &StatefulBlock{
+			Tmstmp: tmstp, Txs: []*Transaction{tx},
+		},
+	}
+}
+
+func (b *StatefulBlock) Dummy() bool { return b.Prnt == ids.Empty }
