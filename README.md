@@ -8,6 +8,33 @@ KVVM defines a blockchain that is a key-value storage server. Each block in the 
 
 KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin).
 
+# spaces-cli
+```
+SpacesVM client CLI
+
+Usage:
+  spaces-cli [command]
+
+Available Commands:
+  claim       Claims the given prefix
+  completion  generate the autocompletion script for the specified shell
+  create      Creates a new key in the default location
+  delete      Deletes a key-value pair for the given prefix
+  genesis     Creates a new genesis in the default location
+  help        Help about any command
+  info        Reads space info and all values at space
+  lifeline    Extends the life of a given prefix
+  resolve     Reads a value at space/key
+  set         Writes a key-value pair for the given prefix
+
+Flags:
+      --endpoint string           RPC Endpoint for VM (default "http://127.0.0.1:9650")
+  -h, --help                      help for spaces-cli
+      --private-key-file string   private key file path (default ".spaces-cli-pk")
+
+Use "spaces-cli [command] --help" for more information about a command.
+```
+
 # Public Endpoints (`/public`)
 
 ## spacesvm.ping
