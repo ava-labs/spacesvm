@@ -52,8 +52,8 @@ type TypedDataMessage = map[string]interface{}
 // TypedDataDomain represents the domain part of an EIP-712 message.
 // https://github.com/ethereum/go-ethereum/blob/619a3e70858e60240ce1df75bdf65ba748387e57/signer/core/apitypes/types.go#L246
 type TypedDataDomain struct {
-	Name  string `json:"name"`
-	Magic string `json:"magic"`
+	Name  string         `json:"name"`
+	Magic hexutil.Uint64 `json:"magic"`
 }
 
 type TypedData struct {
@@ -73,7 +73,7 @@ var (
 func spacesDomain(m uint64) TypedDataDomain {
 	return TypedDataDomain{
 		Name:  "Spaces",
-		Magic: hexutil.EncodeUint64(m),
+		Magic: hexutil.Uint64(m),
 	}
 }
 

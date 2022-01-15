@@ -10,10 +10,12 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tdata"
 )
 
 var ErrInvalidEmptyTx = errors.New("invalid empty transaction")
@@ -41,8 +43,43 @@ func (svc *PublicService) Genesis(_ *http.Request, _ *struct{}, reply *GenesisRe
 	return nil
 }
 
-type IssueTxArgs struct {
+type IssueRawTxArgs struct {
 	Tx []byte `serialize:"true" json:"tx"`
+}
+
+type IssueRawTxReply struct {
+	TxID    ids.ID `serialize:"true" json:"txId"`
+	Success bool   `serialize:"true" json:"success"`
+}
+
+func (svc *PublicService) IssueRawTx(_ *http.Request, args *IssueRawTxArgs, reply *IssueRawTxReply) error {
+	tx := new(chain.Transaction)
+	if _, err := chain.Unmarshal(args.Tx, tx); err != nil {
+		return err
+	}
+
+	// otherwise, unexported tx.id field is empty
+	if err := tx.Init(svc.vm.genesis); err != nil {
+		reply.Success = false
+		return err
+	}
+	reply.TxID = tx.ID()
+
+	errs := svc.vm.Submit(tx)
+	reply.Success = len(errs) == 0
+	if reply.Success {
+		return nil
+	}
+	if len(errs) == 1 {
+		return errs[0]
+	}
+	return fmt.Errorf("%v", errs)
+}
+
+type IssueTxArgs struct {
+	TypedData tdata.TypedData           `serialize:"true" json:"typedData"`
+	Utx       chain.UnsignedTransaction `serialize:"true" json:"unsignedTx"`
+	Signature hexutil.Bytes             `serialize:"true" json:"signature"`
 }
 
 type IssueTxReply struct {
@@ -51,10 +88,8 @@ type IssueTxReply struct {
 }
 
 func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
-	tx := new(chain.Transaction)
-	if _, err := chain.Unmarshal(args.Tx, tx); err != nil {
-		return err
-	}
+	// TODO: ensure both are valid
+	tx := chain.NewTx(args.Utx, args.Signature[:])
 
 	// otherwise, unexported tx.id field is empty
 	if err := tx.Init(svc.vm.genesis); err != nil {
@@ -108,17 +143,55 @@ type ValidBlockIDReply struct {
 	Valid bool `serialize:"true" json:"valid"`
 }
 
-type SuggestedFeeArgs struct{}
+type SuggestedFeeArgs struct {
+	Input *chain.Input `serialize:"true" json:"input"`
+}
 
 type SuggestedFeeReply struct {
-	Price uint64 `serialize:"true" json:"price"`
-	Cost  uint64 `serialize:"true" json:"cost"`
+	TypedData tdata.TypedData           `serialize:"true" json:"typedData"`
+	Utx       chain.UnsignedTransaction `serialize:"true" json:"unsignedTx"`
+	TotalCost uint64                    `serialize:"true" json:"totalCost"`
 }
 
 func (svc *PublicService) SuggestedFee(
 	_ *http.Request,
-	_ *SuggestedFeeArgs,
+	args *SuggestedFeeArgs,
 	reply *SuggestedFeeReply,
+) error {
+	if args.Input == nil {
+		return errors.New("input is empty")
+	}
+	utx, err := args.Input.Decode()
+	if err != nil {
+		return err
+	}
+
+	g := svc.vm.genesis
+	price, cost, err := svc.vm.SuggestedFee()
+	if err != nil {
+		return err
+	}
+	fu := utx.FeeUnits(g)
+	price += cost / fu
+	utx.SetBlockID(svc.vm.lastAccepted.ID())
+	utx.SetMagic(g.Magic)
+	utx.SetPrice(price)
+
+	reply.TypedData = utx.TypedData()
+	reply.TotalCost = fu * price
+	reply.Utx = utx
+	return nil
+}
+
+type SuggestedRawFeeReply struct {
+	Price uint64 `serialize:"true" json:"price"`
+	Cost  uint64 `serialize:"true" json:"cost"`
+}
+
+func (svc *PublicService) SuggestedRawFee(
+	_ *http.Request,
+	_ *struct{},
+	reply *SuggestedRawFeeReply,
 ) error {
 	price, cost, err := svc.vm.SuggestedFee()
 	if err != nil {
@@ -215,5 +288,3 @@ func (svc *PublicService) Balance(_ *http.Request, args *BalanceArgs, reply *Bal
 	reply.Balance = bal
 	return err
 }
-
-// TODO: SuggestFeeHR, IssueTxHR

@@ -16,6 +16,7 @@ import (
 	"github.com/fatih/color"
 
 	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/tdata"
 	"github.com/ava-labs/spacesvm/vm"
 )
 
@@ -38,12 +39,17 @@ type Client interface {
 	// Resolve returns the value associated with a path
 	Resolve(path string) (exists bool, value []byte, err error)
 
-	// Requests for the estimated difficulty from VM.
-	SuggestedFee() (uint64, uint64, error)
+	// Requests the suggested price and cost from VM.
+	SuggestedRawFee() (uint64, uint64, error)
 	// Issues the transaction and returns the transaction ID.
-	IssueTx(d []byte) (ids.ID, error)
+	IssueRawTx(d []byte) (ids.ID, error)
+
+	// Requests the suggested price and cost from VM, returns the input as
+	// TypedData.
+	SuggestedFee(i *chain.Input) (tdata.TypedData, error)
 	// Issues a human-readable transaction and returns the transaction ID.
-	IssueTxHR(d []byte, sig []byte) (ids.ID, error)
+	IssueTx(d tdata.TypedData, sig []byte) (ids.ID, error)
+
 	// Checks the status of the transaction, and returns "true" if confirmed.
 	CheckTx(id ids.ID) (bool, error)
 	// Polls the transactions until its status is confirmed.
@@ -125,11 +131,11 @@ func (cli *client) Accepted() (ids.ID, error) {
 	return resp.BlockID, nil
 }
 
-func (cli *client) SuggestedFee() (uint64, uint64, error) {
-	resp := new(vm.SuggestedFeeReply)
+func (cli *client) SuggestedRawFee() (uint64, uint64, error) {
+	resp := new(vm.SuggestedRawFeeReply)
 	if err := cli.req.SendRequest(
-		"suggestedFee",
-		&vm.SuggestedFeeArgs{},
+		"suggestedRawFee",
+		nil,
 		resp,
 	); err != nil {
 		return 0, 0, err
@@ -137,7 +143,7 @@ func (cli *client) SuggestedFee() (uint64, uint64, error) {
 	return resp.Price, resp.Cost, nil
 }
 
-func (cli *client) IssueTx(d []byte) (ids.ID, error) {
+func (cli *client) IssueRawTx(d []byte) (ids.ID, error) {
 	resp := new(vm.IssueTxReply)
 	if err := cli.req.SendRequest(
 		"issueTx",
