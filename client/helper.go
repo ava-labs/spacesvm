@@ -17,6 +17,14 @@ import (
 	"github.com/ava-labs/spacesvm/tdata"
 )
 
+func PPInfo(info *chain.SpaceInfo) {
+	expiry := time.Unix(int64(info.Expiry), 0)
+	color.Blue(
+		"raw prefix %s: units=%d expiry=%v (%v remaining)",
+		info.RawSpace, info.Units, expiry, time.Until(expiry),
+	)
+}
+
 // Signs and issues the transaction (node construction).
 func SignIssueTx(
 	ctx context.Context,
@@ -73,11 +81,7 @@ func SignIssueTx(
 			color.Red("cannot get prefix info %v", err)
 			return ids.Empty, err
 		}
-		expiry := time.Unix(int64(info.Expiry), 0)
-		color.Blue(
-			"raw prefix %s: units=%d expiry=%v (%v remaining)",
-			info.RawSpace, info.Units, expiry, time.Until(expiry),
-		)
+		PPInfo(info)
 	}
 
 	return txID, nil
@@ -163,11 +167,7 @@ func SignIssueRawTx(
 			color.Red("cannot get prefix info %v", err)
 			return ids.Empty, err
 		}
-		expiry := time.Unix(int64(info.Expiry), 0)
-		color.Blue(
-			"raw prefix %s: units=%d expiry=%v (%v remaining)",
-			info.RawSpace, info.Units, expiry, time.Until(expiry),
-		)
+		PPInfo(info)
 	}
 
 	return txID, nil

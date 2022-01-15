@@ -56,7 +56,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(
 		&uri,
 		"endpoint",
-		"http://127.0.0.1:9650",
+		"https://memeshowdown.com", // TODO: add real API
 		"RPC Endpoint for VM",
 	)
 }

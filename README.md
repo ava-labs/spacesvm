@@ -8,7 +8,13 @@ KVVM defines a blockchain that is a key-value storage server. Each block in the 
 
 KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin).
 
+# spacesvm
+To build the VM, run `VM=true ./scripts/build.sh`.
+
 # spaces-cli
+_To build the CLI, run `./scripts/build.sh`. It will be placed in `./build/spaces-cli` and
+`$GOBIN/spaces-cli`._
+
 ```
 SpacesVM CLI
 
