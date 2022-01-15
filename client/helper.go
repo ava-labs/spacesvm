@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -63,7 +64,7 @@ func SignIssueTx(
 
 	dh, err := tdata.DigestHash(td)
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, fmt.Errorf("%w: failed to compute digest hash", err)
 	}
 
 	sig, err := crypto.Sign(dh, priv)
