@@ -14,8 +14,8 @@ import (
 
 type Allocation struct {
 	// Address strings are hex-formatted common.Address
-	Address string `serialize:"true" json:"address"`
-	Balance uint64 `serialize:"true" json:"balance"`
+	Address common.Address `serialize:"true" json:"address"`
+	Balance uint64         `serialize:"true" json:"balance"`
 }
 
 type Genesis struct {
@@ -107,11 +107,10 @@ func (g *Genesis) Verify() error {
 
 func (g *Genesis) Load(db database.KeyValueWriter) error {
 	for _, alloc := range g.Allocations {
-		paddr := common.HexToAddress(alloc.Address)
-		if err := SetBalance(db, paddr, alloc.Balance); err != nil {
+		if err := SetBalance(db, alloc.Address, alloc.Balance); err != nil {
 			return fmt.Errorf("%w: addr=%s, bal=%d", err, alloc.Address, alloc.Balance)
 		}
-		log.Debug("loaded genesis balance", "addr", paddr, "balance", alloc.Balance)
+		log.Debug("loaded genesis balance", "addr", alloc.Address, "balance", alloc.Balance)
 	}
 	return nil
 }

@@ -40,11 +40,11 @@ func TestTransferTx(t *testing.T) {
 	g := DefaultGenesis()
 	g.Allocations = []*Allocation{
 		{
-			Address: sender.Hex(),
+			Address: sender,
 			Balance: 10000000,
 		},
 		{
-			Address: sender2.Hex(),
+			Address: sender2,
 			Balance: 1,
 		},
 		// sender3 is not given any balance

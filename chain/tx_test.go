@@ -97,7 +97,7 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 		db := memdb.New()
 		g.Allocations = []*Allocation{
 			{
-				Address: sender.Hex(),
+				Address: sender,
 				Balance: 10000000,
 			},
 			// sender2 is not given any balance
