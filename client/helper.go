@@ -45,7 +45,12 @@ func SignIssueTx(
 	utx.SetMagic(g.Magic)
 	utx.SetPrice(price + blockCost/utx.FeeUnits(g))
 
-	sig, err := crypto.Sign(chain.DigestHash(utx), priv)
+	dh, err := chain.DigestHash(utx)
+	if err != nil {
+		return ids.Empty, err
+	}
+
+	sig, err := crypto.Sign(dh, priv)
 	if err != nil {
 		return ids.Empty, err
 	}

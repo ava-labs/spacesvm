@@ -273,7 +273,8 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			Space:  "foo",
 		}
 
-		dh := chain.DigestHash(utx)
+		dh, err := chain.DigestHash(utx)
+		gomega.Ω(err).Should(gomega.BeNil())
 		sig, err := crypto.Sign(dh, priv)
 		gomega.Ω(err).Should(gomega.BeNil())
 
@@ -381,7 +382,9 @@ func expectBlkAccept(
 	gomega.Ω(err).Should(gomega.BeNil())
 	utx.SetPrice(price + blockCost/utx.FeeUnits(g))
 
-	sig, err := crypto.Sign(chain.DigestHash(utx), priv)
+	dh, err := chain.DigestHash(utx)
+	gomega.Ω(err).Should(gomega.BeNil())
+	sig, err := crypto.Sign(dh, priv)
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	tx := chain.NewTx(utx, sig)
