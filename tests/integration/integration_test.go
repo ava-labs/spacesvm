@@ -297,15 +297,29 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
 		})
 
+		ginkgo.By("extend time with lifeline", func() {
+			lifelineTx := &chain.LifelineTx{
+				BaseTx: &chain.BaseTx{},
+				Space:  space,
+				Units:  1,
+			}
+			expectBlkAccept(instances[1], lifelineTx, priv)
+		})
+
 		ginkgo.By("ensure all activity accounted for", func() {
 			activity, err := instances[1].cli.RecentActivity()
 			gomega.Ω(err).To(gomega.BeNil())
 
-			gomega.Ω(len(activity)).To(gomega.Equal(1))
+			gomega.Ω(len(activity)).To(gomega.Equal(2))
 			a0 := activity[0]
-			gomega.Ω(a0.Typ).To(gomega.Equal("claim"))
+			gomega.Ω(a0.Typ).To(gomega.Equal("lifeline"))
 			gomega.Ω(a0.Space).To(gomega.Equal(space))
+			gomega.Ω(a0.Units).To(gomega.Equal(uint64(1)))
 			gomega.Ω(a0.Sender).To(gomega.Equal(sender.Hex()))
+			a1 := activity[1]
+			gomega.Ω(a1.Typ).To(gomega.Equal("claim"))
+			gomega.Ω(a1.Space).To(gomega.Equal(space))
+			gomega.Ω(a1.Sender).To(gomega.Equal(sender.Hex()))
 		})
 	})
 
