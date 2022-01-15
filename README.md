@@ -85,7 +85,7 @@ Transfer {type,to,units}
   },
   "id": 1
 }
->>> {"txID":<ID>}
+>>> {"txId":<ID>}
 ```
 
 ## spacesvm.hasTx
@@ -95,7 +95,7 @@ Transfer {type,to,units}
   "jsonrpc": "2.0",
   "method": "spacesvm.hasTx",
   "params":{
-    "txID":<transaction ID>
+    "txId":<transaction ID>
   },
   "id": 1
 }
@@ -111,7 +111,7 @@ Transfer {type,to,units}
   "params":{},
   "id": 1
 }
->>> {"height":<uint64>, "blockID":<ID>}
+>>> {"height":<uint64>, "blockId":<ID>}
 ```
 
 ## spacesvm.claimed
@@ -208,15 +208,23 @@ _Can use this to get the current fee rate._
   },
   "id": 1
 }
->>> {"txID":<ID>}
+>>> {"txId":<ID>}
 ```
 
+# Creating Transactions
+```
+1) spacesvm.claimed {"space":"patrick"} => Yes/No
+2) spacesvm.suggestedFee {"input":{"type":"Claim", "space":"patrick"}} => Tx Data to Sign
+3) sign EIP-712 Typed Data
+4) spacesvm.issueTx {"typedData":<from spacesvm.suggestedFee>, "cost":<total fee>} => {"txId":<ID>}
+5) [loop] spacesvm.hasTx {"txId":<ID>} => {"accepted":true"}
+```
 
 ////// REWRITE ///////////////
 # Features
 TODO: Extend on
 * PoW Transactions (no tokens)
-* No Nonces (replay protection from blockID + txID)
+* No Nonces (replay protection from blockId + txId)
 * Prefixes (address prefixes reserved)
 * Hashed Value Keys
 * Prefix Expiry (based on weight of all key-values)

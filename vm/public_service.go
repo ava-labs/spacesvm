@@ -45,7 +45,7 @@ type IssueRawTxArgs struct {
 }
 
 type IssueRawTxReply struct {
-	TxID ids.ID `serialize:"true" json:"txID"`
+	TxID ids.ID `serialize:"true" json:"txId"`
 }
 
 func (svc *PublicService) IssueRawTx(_ *http.Request, args *IssueRawTxArgs, reply *IssueRawTxReply) error {
@@ -76,7 +76,7 @@ type IssueTxArgs struct {
 }
 
 type IssueTxReply struct {
-	TxID ids.ID `serialize:"true" json:"txID"`
+	TxID ids.ID `serialize:"true" json:"txId"`
 }
 
 func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
@@ -106,7 +106,7 @@ func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *Iss
 }
 
 type HasTxArgs struct {
-	TxID ids.ID `serialize:"true" json:"txID"`
+	TxID ids.ID `serialize:"true" json:"txId"`
 }
 
 type HasTxReply struct {
@@ -124,7 +124,7 @@ func (svc *PublicService) HasTx(_ *http.Request, args *HasTxArgs, reply *HasTxRe
 
 type LastAcceptedReply struct {
 	Height  uint64 `serialize:"true" json:"height"`
-	BlockID ids.ID `serialize:"true" json:"blockID"`
+	BlockID ids.ID `serialize:"true" json:"blockId"`
 }
 
 func (svc *PublicService) LastAccepted(_ *http.Request, _ *struct{}, reply *LastAcceptedReply) error {
