@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/spacesvm/chain"
@@ -87,5 +88,15 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 
 	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
 	_, err = client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
-	return err
+	if err != nil {
+		return err
+	}
+
+	addr := crypto.PubkeyToAddress(priv.PublicKey)
+	b, err := cli.Balance(addr)
+	if err != nil {
+		return err
+	}
+	color.Cyan("Address=%s Balance=%d", addr, b)
+	return nil
 }
