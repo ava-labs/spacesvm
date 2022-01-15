@@ -116,7 +116,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	genesis.Magic = 5
 	genesis.Allocations = []*chain.Allocation{
 		{
-			Address: sender.Hex(),
+			Address: sender,
 			Balance: 10000000,
 		},
 	}
@@ -182,8 +182,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		for _, alloc := range g.Allocations {
-			paddr := ecommon.HexToAddress(alloc.Address)
-			bal, err := cli.Balance(paddr)
+			bal, err := cli.Balance(alloc.Address)
 			gomega.Ω(err).Should(gomega.BeNil())
 			gomega.Ω(bal).Should(gomega.Equal(alloc.Balance))
 		}
