@@ -67,9 +67,14 @@ go build -v -o /tmp/spaces-cli ./cmd/spacescli
 
 echo "creating allocations file"
 cat <<EOF > /tmp/allocations.json
-[{
-  "address":"0xF9370fa73846393798C2d23aa2a4aBA7489d9810", "balance":100000
-}]
+[
+  {"address":"0xF9370fa73846393798C2d23aa2a4aBA7489d9810", "balance":10000000},
+  {"address":"0x162a5fadfdd769f9a665701348FbeEd12A4FFce7", "balance":10000000},
+  {"address":"0x69fd199Aca8250d520F825d22F4ad9db4A58E9D9", "balance":10000000},
+  {"address":"0x454474642C32b19E370d9A55c20431d85833cDD6", "balance":10000000},
+  {"address":"0xeB4Fc761FAb7501abe8cD04b2d831a45E8913DdF", "balance":10000000},
+  {"address":"0xD23cbfA7eA985213aD81223309f588A7E66A246A", "balance":10000000}
+]
 EOF
 
 echo "creating VM genesis file"
