@@ -11,16 +11,6 @@ import (
 	"github.com/ava-labs/spacesvm/tdata"
 )
 
-// TransactionTypes
-const (
-	Claim    = "Claim"
-	Lifeline = "Lifeline"
-	Set      = "Set"
-	Delete   = "Delete"
-	Move     = "Move"
-	Transfer = "Transfer"
-)
-
 type TransactionContext struct {
 	Genesis   *Genesis
 	Database  database.Database
