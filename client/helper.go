@@ -25,6 +25,21 @@ func PPInfo(info *chain.SpaceInfo) {
 	)
 }
 
+func PPActivity(a []*chain.Activity) error {
+	for _, item := range a {
+		t := time.Unix(int64(item.Tmstmp), 0)
+		b, err := json.Marshal(a)
+		if err != nil {
+			return err
+		}
+		color.Blue(
+			"[%v] %s",
+			t, string(b),
+		)
+	}
+	return nil
+}
+
 // Signs and issues the transaction (node construction).
 func SignIssueTx(
 	ctx context.Context,
@@ -171,4 +186,27 @@ func SignIssueRawTx(
 	}
 
 	return txID, nil
+}
+
+type Op struct {
+	pollTx bool
+	space  string
+}
+
+type OpOption func(*Op)
+
+func (op *Op) applyOpts(opts []OpOption) {
+	for _, opt := range opts {
+		opt(op)
+	}
+}
+
+// "true" to poll transaction for its confirmation.
+func WithPollTx() OpOption {
+	return func(op *Op) { op.pollTx = true }
+}
+
+// Non-empty to print out space information.
+func WithInfo(space string) OpOption {
+	return func(op *Op) { op.space = space }
 }

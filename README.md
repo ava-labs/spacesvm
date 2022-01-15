@@ -22,6 +22,7 @@ Usage:
   spaces-cli [command]
 
 Available Commands:
+  activity    View recent activity on the network
   claim       Claims the given prefix
   completion  generate the autocompletion script for the specified shell
   create      Creates a new key in the default location
@@ -34,7 +35,7 @@ Available Commands:
   set         Writes a key-value pair for the given prefix
 
 Flags:
-      --endpoint string           RPC Endpoint for VM (default "http://127.0.0.1:9650")
+      --endpoint string           RPC Endpoint for VM (default "https://memeshowdown.com")
   -h, --help                      help for spaces-cli
       --private-key-file string   private key file path (default ".spaces-cli-pk")
 

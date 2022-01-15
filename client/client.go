@@ -53,6 +53,9 @@ type Client interface {
 	HasTx(id ids.ID) (bool, error)
 	// Polls the transactions until its status is confirmed.
 	PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error)
+
+	// Recent actions on the network (sorted from recent to oldest)
+	RecentActivity() ([]*chain.Activity, error)
 }
 
 // New creates a new client object.
@@ -244,25 +247,14 @@ func (cli *client) Balance(addr common.Address) (bal uint64, err error) {
 	return resp.Balance, nil
 }
 
-type Op struct {
-	pollTx bool
-	space  string
-}
-
-type OpOption func(*Op)
-
-func (op *Op) applyOpts(opts []OpOption) {
-	for _, opt := range opts {
-		opt(op)
+func (cli *client) RecentActivity() (activity []*chain.Activity, err error) {
+	resp := new(vm.RecentActivityReply)
+	if err = cli.req.SendRequest(
+		"recentActivity",
+		nil,
+		resp,
+	); err != nil {
+		return nil, err
 	}
-}
-
-// "true" to poll transaction for its confirmation.
-func WithPollTx() OpOption {
-	return func(op *Op) { op.pollTx = true }
-}
-
-// Non-empty to print out space information.
-func WithInfo(space string) OpOption {
-	return func(op *Op) { op.space = space }
+	return resp.Activity, nil
 }
