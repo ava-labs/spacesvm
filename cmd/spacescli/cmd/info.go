@@ -31,7 +31,7 @@ func infoFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	color.Cyan("info %v", info)
+	client.PPInfo(info)
 	for _, kv := range values {
 		color.Yellow("%s=>%q", kv.Key, kv.Value)
 	}
