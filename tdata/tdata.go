@@ -21,6 +21,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
+//nolint
 package tdata
 
 import (
@@ -31,8 +32,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -44,28 +43,6 @@ import (
 type Type struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
-}
-
-func (t *Type) isArray() bool {
-	return strings.HasSuffix(t.Type, "[]")
-}
-
-// typeName returns the canonical name of the type. If the type is 'Person[]', then
-// this method returns 'Person'
-func (t *Type) typeName() string {
-	if strings.HasSuffix(t.Type, "[]") {
-		return strings.TrimSuffix(t.Type, "[]")
-	}
-	return t.Type
-}
-
-func (t *Type) isReferenceType() bool {
-	if len(t.Type) == 0 {
-		return false
-	}
-	// Reference types must have a leading uppercase character
-	r, _ := utf8.DecodeRuneInString(t.Type)
-	return unicode.IsUpper(r)
 }
 
 type Types map[string][]Type
@@ -85,12 +62,10 @@ type TypedData struct {
 	Message     TypedDataMessage `json:"message"`
 }
 
-var (
-	EIP712Domain = []Type{
-		{Name: "name", Type: "string"},
-		{Name: "magic", Type: "uint64"},
-	}
-)
+var EIP712Domain = []Type{
+	{Name: "name", Type: "string"},
+	{Name: "magic", Type: "uint64"},
+}
 
 func spacesDomain(m uint64) TypedDataDomain {
 	return TypedDataDomain{
@@ -294,7 +269,7 @@ func parseInteger(encType string, encValue interface{}) (*big.Int, error) {
 	if encType == "int" || encType == "uint" {
 		length = 256
 	} else {
-		lengthStr := ""
+		var lengthStr string
 		if strings.HasPrefix(encType, "uint") {
 			lengthStr = strings.TrimPrefix(encType, "uint")
 		} else {
@@ -396,7 +371,6 @@ func (typedData *TypedData) EncodePrimitiveValue(encType string, encValue interf
 		return math.U256Bytes(b), nil
 	}
 	return nil, fmt.Errorf("unrecognized type '%s'", encType)
-
 }
 
 // dataMismatchError generates an error for a mismatch between
@@ -417,118 +391,6 @@ func (typedData *TypedData) Map() map[string]interface{} {
 }
 
 // Checks if the primitive value is valid
-func isPrimitiveTypeValid(primitiveType string) bool {
-	if primitiveType == "address" ||
-		primitiveType == "address[]" ||
-		primitiveType == "bool" ||
-		primitiveType == "bool[]" ||
-		primitiveType == "string" ||
-		primitiveType == "string[]" {
-		return true
-	}
-	if primitiveType == "bytes" ||
-		primitiveType == "bytes[]" ||
-		primitiveType == "bytes1" ||
-		primitiveType == "bytes1[]" ||
-		primitiveType == "bytes2" ||
-		primitiveType == "bytes2[]" ||
-		primitiveType == "bytes3" ||
-		primitiveType == "bytes3[]" ||
-		primitiveType == "bytes4" ||
-		primitiveType == "bytes4[]" ||
-		primitiveType == "bytes5" ||
-		primitiveType == "bytes5[]" ||
-		primitiveType == "bytes6" ||
-		primitiveType == "bytes6[]" ||
-		primitiveType == "bytes7" ||
-		primitiveType == "bytes7[]" ||
-		primitiveType == "bytes8" ||
-		primitiveType == "bytes8[]" ||
-		primitiveType == "bytes9" ||
-		primitiveType == "bytes9[]" ||
-		primitiveType == "bytes10" ||
-		primitiveType == "bytes10[]" ||
-		primitiveType == "bytes11" ||
-		primitiveType == "bytes11[]" ||
-		primitiveType == "bytes12" ||
-		primitiveType == "bytes12[]" ||
-		primitiveType == "bytes13" ||
-		primitiveType == "bytes13[]" ||
-		primitiveType == "bytes14" ||
-		primitiveType == "bytes14[]" ||
-		primitiveType == "bytes15" ||
-		primitiveType == "bytes15[]" ||
-		primitiveType == "bytes16" ||
-		primitiveType == "bytes16[]" ||
-		primitiveType == "bytes17" ||
-		primitiveType == "bytes17[]" ||
-		primitiveType == "bytes18" ||
-		primitiveType == "bytes18[]" ||
-		primitiveType == "bytes19" ||
-		primitiveType == "bytes19[]" ||
-		primitiveType == "bytes20" ||
-		primitiveType == "bytes20[]" ||
-		primitiveType == "bytes21" ||
-		primitiveType == "bytes21[]" ||
-		primitiveType == "bytes22" ||
-		primitiveType == "bytes22[]" ||
-		primitiveType == "bytes23" ||
-		primitiveType == "bytes23[]" ||
-		primitiveType == "bytes24" ||
-		primitiveType == "bytes24[]" ||
-		primitiveType == "bytes25" ||
-		primitiveType == "bytes25[]" ||
-		primitiveType == "bytes26" ||
-		primitiveType == "bytes26[]" ||
-		primitiveType == "bytes27" ||
-		primitiveType == "bytes27[]" ||
-		primitiveType == "bytes28" ||
-		primitiveType == "bytes28[]" ||
-		primitiveType == "bytes29" ||
-		primitiveType == "bytes29[]" ||
-		primitiveType == "bytes30" ||
-		primitiveType == "bytes30[]" ||
-		primitiveType == "bytes31" ||
-		primitiveType == "bytes31[]" ||
-		primitiveType == "bytes32" ||
-		primitiveType == "bytes32[]" {
-		return true
-	}
-	if primitiveType == "int" ||
-		primitiveType == "int[]" ||
-		primitiveType == "int8" ||
-		primitiveType == "int8[]" ||
-		primitiveType == "int16" ||
-		primitiveType == "int16[]" ||
-		primitiveType == "int32" ||
-		primitiveType == "int32[]" ||
-		primitiveType == "int64" ||
-		primitiveType == "int64[]" ||
-		primitiveType == "int128" ||
-		primitiveType == "int128[]" ||
-		primitiveType == "int256" ||
-		primitiveType == "int256[]" {
-		return true
-	}
-	if primitiveType == "uint" ||
-		primitiveType == "uint[]" ||
-		primitiveType == "uint8" ||
-		primitiveType == "uint8[]" ||
-		primitiveType == "uint16" ||
-		primitiveType == "uint16[]" ||
-		primitiveType == "uint32" ||
-		primitiveType == "uint32[]" ||
-		primitiveType == "uint64" ||
-		primitiveType == "uint64[]" ||
-		primitiveType == "uint128" ||
-		primitiveType == "uint128[]" ||
-		primitiveType == "uint256" ||
-		primitiveType == "uint256[]" {
-		return true
-	}
-	return false
-}
-
 // Map is a helper function to generate a map version of the domain
 func (domain *TypedDataDomain) Map() map[string]interface{} {
 	return map[string]interface{}{

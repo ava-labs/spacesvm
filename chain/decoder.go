@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2021, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package chain
 
 import (
@@ -79,7 +82,6 @@ const (
 	tdAddress = "address"
 
 	tdBlockID = "blockID"
-	tdMagic   = "magic"
 	tdPrice   = "price"
 
 	tdSpace = "space"
