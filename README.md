@@ -214,9 +214,9 @@ _Can use this to get the current fee rate._
 # Creating Transactions
 ```
 1) spacesvm.claimed {"space":"patrick"} => Yes/No
-2) spacesvm.suggestedFee {"input":{"type":"Claim", "space":"patrick"}} => Tx Data to Sign
+2) spacesvm.suggestedFee {"input":{"type":"Claim", "space":"patrick"}} => {"typedData":<EIP-712 Typed Data>, "cost":<total fee>}
 3) sign EIP-712 Typed Data
-4) spacesvm.issueTx {"typedData":<from spacesvm.suggestedFee>, "cost":<total fee>} => {"txId":<ID>}
+4) spacesvm.issueTx {"typedData":<from spacesvm.suggestedFee>, "signature":<sig from step 3>} => {"txId":<ID>}
 5) [loop] spacesvm.hasTx {"txId":<ID>} => {"accepted":true"}
 ```
 
