@@ -46,12 +46,12 @@ type Client interface {
 
 	// Requests the suggested price and cost from VM, returns the input as
 	// TypedData.
-	SuggestedFee(i *chain.Input) (tdata.TypedData, error)
+	SuggestedFee(i *chain.Input) (*tdata.TypedData, chain.UnsignedTransaction, uint64, error)
 	// Issues a human-readable transaction and returns the transaction ID.
-	IssueTx(d tdata.TypedData, sig []byte) (ids.ID, error)
+	IssueTx(utx chain.UnsignedTransaction, sig []byte) (ids.ID, error)
 
 	// Checks the status of the transaction, and returns "true" if confirmed.
-	CheckTx(id ids.ID) (bool, error)
+	HasTx(id ids.ID) (bool, error)
 	// Polls the transactions until its status is confirmed.
 	PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error)
 }
@@ -144,10 +144,10 @@ func (cli *client) SuggestedRawFee() (uint64, uint64, error) {
 }
 
 func (cli *client) IssueRawTx(d []byte) (ids.ID, error) {
-	resp := new(vm.IssueTxReply)
+	resp := new(vm.IssueRawTxReply)
 	if err := cli.req.SendRequest(
-		"issueTx",
-		&vm.IssueTxArgs{Tx: d},
+		"issueRawTx",
+		&vm.IssueRawTxArgs{Tx: d},
 		resp,
 	); err != nil {
 		return ids.Empty, err
@@ -160,16 +160,45 @@ func (cli *client) IssueRawTx(d []byte) (ids.ID, error) {
 	return txID, nil
 }
 
-func (cli *client) CheckTx(txID ids.ID) (bool, error) {
-	resp := new(vm.CheckTxReply)
+func (cli *client) HasTx(txID ids.ID) (bool, error) {
+	resp := new(vm.HasTxReply)
 	if err := cli.req.SendRequest(
-		"checkTx",
-		&vm.CheckTxArgs{TxID: txID},
+		"hasTx",
+		&vm.HasTxArgs{TxID: txID},
 		resp,
 	); err != nil {
 		return false, err
 	}
 	return resp.Confirmed, nil
+}
+
+func (cli *client) SuggestedFee(i *chain.Input) (*tdata.TypedData, chain.UnsignedTransaction, uint64, error) {
+	resp := new(vm.SuggestedFeeReply)
+	if err := cli.req.SendRequest(
+		"suggestedFee",
+		&vm.SuggestedFeeArgs{Input: i},
+		resp,
+	); err != nil {
+		return nil, nil, 0, err
+	}
+	return resp.TypedData, resp.Utx, resp.TotalCost, nil
+}
+
+func (cli *client) IssueTx(utx chain.UnsignedTransaction, sig []byte) (ids.ID, error) {
+	resp := new(vm.IssueTxReply)
+	if err := cli.req.SendRequest(
+		"issueTx",
+		&vm.IssueTxArgs{Utx: utx, Signature: sig},
+		resp,
+	); err != nil {
+		return ids.Empty, err
+	}
+
+	txID := resp.TxID
+	if !resp.Success {
+		return ids.Empty, fmt.Errorf("issue tx %s failed", txID)
+	}
+	return txID, nil
 }
 
 func (cli *client) PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error) {
@@ -181,7 +210,7 @@ done:
 			break done
 		}
 
-		confirmed, err := cli.CheckTx(txID)
+		confirmed, err := cli.HasTx(txID)
 		if err != nil {
 			color.Red("polling transaction failed %v", err)
 			continue

@@ -102,7 +102,7 @@ func (s *SetTx) Copy() UnsignedTransaction {
 	}
 }
 
-func (s *SetTx) TypedData() tdata.TypedData {
+func (s *SetTx) TypedData() *tdata.TypedData {
 	return tdata.CreateTypedData(
 		s.Magic, Set,
 		[]tdata.Type{

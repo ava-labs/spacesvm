@@ -63,7 +63,7 @@ func (d *DeleteTx) Copy() UnsignedTransaction {
 	}
 }
 
-func (d *DeleteTx) TypedData() tdata.TypedData {
+func (d *DeleteTx) TypedData() *tdata.TypedData {
 	return tdata.CreateTypedData(
 		d.Magic, Delete,
 		[]tdata.Type{

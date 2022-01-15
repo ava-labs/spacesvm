@@ -52,8 +52,8 @@ type TypedDataMessage = map[string]interface{}
 // TypedDataDomain represents the domain part of an EIP-712 message.
 // https://github.com/ethereum/go-ethereum/blob/619a3e70858e60240ce1df75bdf65ba748387e57/signer/core/apitypes/types.go#L246
 type TypedDataDomain struct {
-	Name  string         `json:"name"`
-	Magic hexutil.Uint64 `json:"magic"`
+	Name  string `json:"name"`
+	Magic uint64 `json:"magic"`
 }
 
 type TypedData struct {
@@ -73,12 +73,12 @@ var (
 func spacesDomain(m uint64) TypedDataDomain {
 	return TypedDataDomain{
 		Name:  "Spaces",
-		Magic: hexutil.Uint64(m),
+		Magic: m,
 	}
 }
 
-func CreateTypedData(magic uint64, txType string, txFields []Type, msg TypedDataMessage) TypedData {
-	return TypedData{
+func CreateTypedData(magic uint64, txType string, txFields []Type, msg TypedDataMessage) *TypedData {
+	return &TypedData{
 		Types: Types{
 			txType:         txFields,
 			"EIP712Domain": EIP712Domain,
@@ -89,7 +89,7 @@ func CreateTypedData(magic uint64, txType string, txFields []Type, msg TypedData
 	}
 }
 
-func DigestHash(td TypedData) ([]byte, error) {
+func DigestHash(td *TypedData) ([]byte, error) {
 	typedDataHash, err := td.HashStruct(td.PrimaryType, td.Message)
 	if err != nil {
 		return nil, err
@@ -514,5 +514,3 @@ func (domain *TypedDataDomain) Map() map[string]interface{} {
 		"magic": domain.Magic,
 	}
 }
-
-// https://medium.com/alpineintel/issuing-and-verifying-eip-712-challenges-with-go-32635ca78aaf

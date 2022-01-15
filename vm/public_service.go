@@ -109,15 +109,15 @@ func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *Iss
 	return fmt.Errorf("%v", errs)
 }
 
-type CheckTxArgs struct {
+type HasTxArgs struct {
 	TxID ids.ID `serialize:"true" json:"txId"`
 }
 
-type CheckTxReply struct {
+type HasTxReply struct {
 	Confirmed bool `serialize:"true" json:"confirmed"`
 }
 
-func (svc *PublicService) CheckTx(_ *http.Request, args *CheckTxArgs, reply *CheckTxReply) error {
+func (svc *PublicService) HasTx(_ *http.Request, args *HasTxArgs, reply *HasTxReply) error {
 	has, err := chain.HasTransaction(svc.vm.db, args.TxID)
 	if err != nil {
 		return err
@@ -148,7 +148,7 @@ type SuggestedFeeArgs struct {
 }
 
 type SuggestedFeeReply struct {
-	TypedData tdata.TypedData           `serialize:"true" json:"typedData"`
+	TypedData *tdata.TypedData          `serialize:"true" json:"typedData"`
 	Utx       chain.UnsignedTransaction `serialize:"true" json:"unsignedTx"`
 	TotalCost uint64                    `serialize:"true" json:"totalCost"`
 }

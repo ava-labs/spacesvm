@@ -55,7 +55,7 @@ func (t *TransferTx) Copy() UnsignedTransaction {
 	}
 }
 
-func (t *TransferTx) TypedData() tdata.TypedData {
+func (t *TransferTx) TypedData() *tdata.TypedData {
 	return tdata.CreateTypedData(
 		t.Magic, Transfer,
 		[]tdata.Type{

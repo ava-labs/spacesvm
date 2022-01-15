@@ -36,7 +36,7 @@ func SignIssueTx(
 		return ids.Empty, err
 	}
 
-	price, blockCost, err := cli.SuggestedFee()
+	price, blockCost, err := cli.SuggestedRawFee()
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -64,7 +64,7 @@ func SignIssueTx(
 		"issuing tx %s (fee units=%d, load units=%d, price=%d, blkID=%s)",
 		tx.ID(), tx.FeeUnits(g), tx.LoadUnits(g), tx.GetPrice(), tx.GetBlockID(),
 	)
-	txID, err = cli.IssueTx(tx.Bytes())
+	txID, err = cli.IssueRawTx(tx.Bytes())
 	if err != nil {
 		return ids.Empty, err
 	}

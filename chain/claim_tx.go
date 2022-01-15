@@ -95,7 +95,7 @@ func (c *ClaimTx) Copy() UnsignedTransaction {
 	}
 }
 
-func (c *ClaimTx) TypedData() tdata.TypedData {
+func (c *ClaimTx) TypedData() *tdata.TypedData {
 	return tdata.CreateTypedData(
 		c.Magic, Claim,
 		[]tdata.Type{

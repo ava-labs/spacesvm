@@ -282,7 +282,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		err = tx.Init(genesis)
 		gomega.Ω(err).Should(gomega.BeNil())
 
-		_, err = instances[0].cli.IssueTx(tx.Bytes())
+		_, err = instances[0].cli.IssueRawTx(tx.Bytes())
 		gomega.Ω(err.Error()).Should(gomega.Equal(chain.ErrInvalidBlockID.Error()))
 	})
 
@@ -378,7 +378,7 @@ func expectBlkAccept(
 	gomega.Ω(err).Should(gomega.BeNil())
 	utx.SetBlockID(la)
 
-	price, blockCost, err := i.cli.SuggestedFee()
+	price, blockCost, err := i.cli.SuggestedRawFee()
 	gomega.Ω(err).Should(gomega.BeNil())
 	utx.SetPrice(price + blockCost/utx.FeeUnits(g))
 
@@ -393,7 +393,7 @@ func expectBlkAccept(
 
 	// or to use VM directly
 	// err = vm.Submit(tx)
-	_, err = i.cli.IssueTx(tx.Bytes())
+	_, err = i.cli.IssueRawTx(tx.Bytes())
 	gomega.Ω(err).To(gomega.BeNil())
 
 	// manually signal ready

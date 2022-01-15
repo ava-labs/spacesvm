@@ -66,7 +66,7 @@ func (l *LifelineTx) Copy() UnsignedTransaction {
 	}
 }
 
-func (l *LifelineTx) TypedData() tdata.TypedData {
+func (l *LifelineTx) TypedData() *tdata.TypedData {
 	return tdata.CreateTypedData(
 		l.Magic, Lifeline,
 		[]tdata.Type{
