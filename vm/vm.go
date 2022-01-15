@@ -187,8 +187,8 @@ func (vm *VM) Initialize(
 		log.Info("initialized spacesvm from genesis", "block", gBlkID)
 	}
 
-	if vm.config.ClearStandardAllocation {
-		vm.genesis.Clean() // free any any unecessary memory
+	if vm.config.ClearAirdropData {
+		chain.CleanAirdropData() // free any any unecessary memory
 	}
 
 	go vm.builder.Build()

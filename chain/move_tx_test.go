@@ -53,7 +53,7 @@ func TestMoveTx(t *testing.T) {
 	if err := g.Load(db); err != nil {
 		t.Fatal(err)
 	}
-	g.Clean()
+	CleanAirdropData()
 
 	// Items: transfer without balance, transfer with small balance, transfer some balance, transfer from
 	// account that now has balance, transfer prefix, transfer to self

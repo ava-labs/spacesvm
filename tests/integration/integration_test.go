@@ -135,8 +135,8 @@ var _ = ginkgo.BeforeSuite(func() {
 			Balance: 10000000,
 		},
 	}
-	genesis.StandardAllocation = "0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da"
-	genesis.StanadrdAllocationUnits = 100
+	genesis.AirdropHash = "0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da"
+	genesis.AirdropUnits = 100
 	genesisBytes, err = json.Marshal(genesis)
 	gomega.Ω(err).Should(gomega.BeNil())
 
@@ -163,7 +163,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			db,
 			genesisBytes,
 			nil,
-			[]byte(`{"clearStandardAllocation":false}`),
+			[]byte(`{"clearAirdropData":false}`),
 			toEngine,
 			nil,
 			app,

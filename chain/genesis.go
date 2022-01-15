@@ -19,11 +19,11 @@ var (
 	// All addresses on the C-Chain with > 2 transactions as of 1/15/22
 	// Hash: 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da
 
-	//go:embed genesis/011522.json
-	rawStanardAllocation []byte
+	//go:embed airdrops/011522.json
+	AirdropData []byte
 )
 
-type StandardAllocation struct {
+type Airdrop struct {
 	// Address strings are hex-formatted common.Address
 	Address common.Address `serialize:"true" json:"address"`
 }
@@ -71,9 +71,9 @@ type Genesis struct {
 	MinBlockCost   uint64 `serialize:"true" json:"minBlockCost"`
 
 	// Allocations
-	CustomAllocation        []*CustomAllocation `serialize:"true" json:"customAllocation"`
-	StandardAllocation      string              `serialize:"true" json:"standardAllocation"`
-	StanadrdAllocationUnits uint64              `serialize:"true" json:"standardAllocationAmount"`
+	CustomAllocation []*CustomAllocation `serialize:"true" json:"customAllocation"`
+	AirdropHash      string              `serialize:"true" json:"airdropHash"`
+	AirdropUnits     uint64              `serialize:"true" json:"airdropUnits"`
 }
 
 func DefaultGenesis() *Genesis {
@@ -128,23 +128,23 @@ func (g *Genesis) Verify() error {
 }
 
 func (g *Genesis) Load(db database.KeyValueWriter) error {
-	if len(g.StandardAllocation) > 0 {
-		h := common.BytesToHash(crypto.Keccak256(rawStanardAllocation)).Hex()
-		if g.StandardAllocation != h {
-			return fmt.Errorf("expected standard allocation %s but got %s", g.StandardAllocation, h)
+	if len(g.AirdropHash) > 0 {
+		h := common.BytesToHash(crypto.Keccak256(AirdropData)).Hex()
+		if g.AirdropHash != h {
+			return fmt.Errorf("expected standard allocation %s but got %s", g.AirdropHash, h)
 		}
 
-		standardAllocation := []*StandardAllocation{}
-		if err := json.Unmarshal(rawStanardAllocation, &standardAllocation); err != nil {
+		standardAllocation := []*Airdrop{}
+		if err := json.Unmarshal(AirdropData, &standardAllocation); err != nil {
 			return err
 		}
 
 		for _, alloc := range standardAllocation {
-			if err := SetBalance(db, alloc.Address, g.StanadrdAllocationUnits); err != nil {
-				return fmt.Errorf("%w: addr=%s, bal=%d", err, alloc.Address, g.StanadrdAllocationUnits)
+			if err := SetBalance(db, alloc.Address, g.AirdropUnits); err != nil {
+				return fmt.Errorf("%w: addr=%s, bal=%d", err, alloc.Address, g.AirdropUnits)
 			}
 		}
-		log.Debug("loaded standard genesis allocation", "hash", h, "addrs", len(standardAllocation), "balance", g.StanadrdAllocationUnits)
+		log.Debug("loaded standard genesis allocation", "hash", h, "addrs", len(standardAllocation), "balance", g.AirdropUnits)
 	}
 
 	// Do custom allocation last in case an address shows up in standard
@@ -158,6 +158,6 @@ func (g *Genesis) Load(db database.KeyValueWriter) error {
 	return nil
 }
 
-func (g *Genesis) Clean() {
-	rawStanardAllocation = nil
+func CleanAirdropData() {
+	AirdropData = nil
 }
