@@ -28,7 +28,7 @@ func SignIssueTx(
 	ret := &Op{}
 	ret.applyOpts(opts)
 
-	td, tx, cost, err := cli.SuggestedFee(input)
+	td, cost, err := cli.SuggestedFee(input)
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -49,7 +49,7 @@ func SignIssueTx(
 		return ids.Empty, err
 	}
 
-	txID, err = cli.IssueTx(tx, sig)
+	txID, err = cli.IssueTx(td, sig)
 	if err != nil {
 		return ids.Empty, err
 	}

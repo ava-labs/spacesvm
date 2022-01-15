@@ -4,7 +4,6 @@
 package vm
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -17,8 +16,6 @@ import (
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
 )
-
-var ErrInvalidEmptyTx = errors.New("invalid empty transaction")
 
 type PublicService struct {
 	vm *VM
@@ -78,7 +75,6 @@ func (svc *PublicService) IssueRawTx(_ *http.Request, args *IssueRawTxArgs, repl
 
 type IssueTxArgs struct {
 	TypedData *tdata.TypedData `serialize:"true" json:"typedData"`
-	Tx        []byte           `serialize:"true" json:"transaction"`
 	Signature hexutil.Bytes    `serialize:"true" json:"signature"`
 }
 
@@ -88,11 +84,14 @@ type IssueTxReply struct {
 }
 
 func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
-	var tx chain.Transaction
-	if _, err := chain.Unmarshal(args.Tx, &tx); err != nil {
+	if args.TypedData == nil {
+		return ErrTypedDataIsNil
+	}
+	utx, err := chain.ParseTypedData(args.TypedData)
+	if err != nil {
 		return err
 	}
-	tx.Signature = args.Signature[:]
+	tx := chain.NewTx(utx, args.Signature[:])
 
 	// otherwise, unexported tx.id field is empty
 	if err := tx.Init(svc.vm.genesis); err != nil {
@@ -101,7 +100,7 @@ func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *Iss
 	}
 	reply.TxID = tx.ID()
 
-	errs := svc.vm.Submit(&tx)
+	errs := svc.vm.Submit(tx)
 	reply.Success = len(errs) == 0
 	if reply.Success {
 		return nil
@@ -152,7 +151,6 @@ type SuggestedFeeArgs struct {
 
 type SuggestedFeeReply struct {
 	TypedData *tdata.TypedData `serialize:"true" json:"typedData"`
-	Tx        []byte           `serialize:"true" json:"transaction"`
 	TotalCost uint64           `serialize:"true" json:"totalCost"`
 }
 
@@ -162,32 +160,29 @@ func (svc *PublicService) SuggestedFee(
 	reply *SuggestedFeeReply,
 ) error {
 	if args.Input == nil {
-		return errors.New("input is empty")
+		return ErrInputIsNil
 	}
 	utx, err := args.Input.Decode()
 	if err != nil {
 		return err
 	}
 
-	g := svc.vm.genesis
+	// Determine suggested fee
 	price, cost, err := svc.vm.SuggestedFee()
 	if err != nil {
 		return err
 	}
+	g := svc.vm.genesis
 	fu := utx.FeeUnits(g)
 	price += cost / fu
+
+	// Update meta
 	utx.SetBlockID(svc.vm.lastAccepted.ID())
 	utx.SetMagic(g.Magic)
 	utx.SetPrice(price)
 
 	reply.TypedData = utx.TypedData()
 	reply.TotalCost = fu * price
-	tx := chain.NewTx(utx, nil) // need to use a non-interface
-	b, err := chain.Marshal(tx)
-	if err != nil {
-		return err
-	}
-	reply.Tx = b
 	return nil
 }
 
@@ -280,7 +275,7 @@ func (svc *PublicService) Resolve(_ *http.Request, args *ResolveArgs, reply *Res
 }
 
 type BalanceArgs struct {
-	Address string `serialize:"true" json:"address"`
+	Address common.Address `serialize:"true" json:"address"`
 }
 
 type BalanceReply struct {
@@ -288,8 +283,7 @@ type BalanceReply struct {
 }
 
 func (svc *PublicService) Balance(_ *http.Request, args *BalanceArgs, reply *BalanceReply) error {
-	paddr := common.HexToAddress(args.Address)
-	bal, err := chain.GetBalance(svc.vm.db, paddr)
+	bal, err := chain.GetBalance(svc.vm.db, args.Address)
 	if err != nil {
 		return err
 	}
