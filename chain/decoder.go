@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/spacesvm/tdata"
@@ -138,6 +139,54 @@ func ParseTypedData(td *tdata.TypedData) (UnsignedTransaction, error) {
 			return nil, err
 		}
 		return &LifelineTx{BaseTx: bTx, Space: space, Units: units}, nil
+	case Set:
+		space, ok := td.Message[tdSpace].(string)
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdSpace)
+		}
+		key, ok := td.Message[tdKey].(string)
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdKey)
+		}
+		rvalue, ok := td.Message[tdValue].(string)
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdValue)
+		}
+		value, err := hexutil.Decode(rvalue)
+		if err != nil {
+			return nil, err
+		}
+		return &SetTx{BaseTx: bTx, Space: space, Key: key, Value: value}, nil
+	case Delete:
+		space, ok := td.Message[tdSpace].(string)
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdSpace)
+		}
+		key, ok := td.Message[tdKey].(string)
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdKey)
+		}
+		return &DeleteTx{BaseTx: bTx, Space: space, Key: key}, nil
+	case Move:
+		space, ok := td.Message[tdSpace].(string)
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdSpace)
+		}
+		to, ok := td.Message[tdTo].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdTo)
+		}
+		return &MoveTx{BaseTx: bTx, Space: space, To: to}, nil
+	case Transfer:
+		to, ok := td.Message[tdTo].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdTo)
+		}
+		units, err := parseUint64Message(td, tdUnits)
+		if err != nil {
+			return nil, err
+		}
+		return &TransferTx{BaseTx: bTx, To: to, Units: units}, nil
 	default:
 		return nil, ErrInvalidType
 	}

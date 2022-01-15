@@ -73,7 +73,7 @@ var (
 func spacesDomain(m uint64) TypedDataDomain {
 	return TypedDataDomain{
 		Name:  "Spaces",
-		Magic: hexutil.EncodeUint64(m),
+		Magic: strconv.FormatUint(m, 10),
 	}
 }
 
