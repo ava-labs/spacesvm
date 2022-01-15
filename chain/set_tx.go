@@ -122,3 +122,11 @@ func (s *SetTx) TypedData() *tdata.TypedData {
 		},
 	)
 }
+
+func (s *SetTx) Activity() *Activity {
+	return &Activity{
+		Typ:   Set,
+		Space: s.Space,
+		Key:   s.Key,
+	}
+}

@@ -138,5 +138,7 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blk *StatelessBl
 }
 
 func (t *Transaction) Activity() *Activity {
-	return t.UnsignedTransaction.Activity()
+	activity := t.UnsignedTransaction.Activity()
+	activity.Sender = t.sender
+	return activity
 }

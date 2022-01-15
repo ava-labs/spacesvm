@@ -54,7 +54,9 @@ func (vm *VM) Accepted(b *chain.StatelessBlock) {
 	}
 	cs := uint64(vm.config.ActivityCacheSize)
 	for _, tx := range b.Txs {
-		vm.activityCache[vm.activityCacheCursor%cs] = tx.Activity()
+		activity := tx.Activity()
+		activity.Tmstmp = b.Tmstmp
+		vm.activityCache[vm.activityCacheCursor%cs] = activity
 		vm.activityCacheCursor++
 	}
 }

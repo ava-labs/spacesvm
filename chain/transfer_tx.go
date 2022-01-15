@@ -72,3 +72,11 @@ func (t *TransferTx) TypedData() *tdata.TypedData {
 		},
 	)
 }
+
+func (t *TransferTx) Activity() *Activity {
+	return &Activity{
+		Typ:   Transfer,
+		To:    t.To,
+		Units: t.Units,
+	}
+}

@@ -7,6 +7,7 @@ import "github.com/ethereum/go-ethereum/common"
 
 type Activity struct {
 	Tmstmp int64          `serialize:"true" json:"timestamp"`
+	Sender common.Address `serialize:"true" json:"sender"`
 	Typ    string         `serialize:"true" json:"type"`
 	Space  string         `serialize:"true" json:"space,omitempty"`
 	Key    string         `serialize:"true" json:"key,omitempty"`

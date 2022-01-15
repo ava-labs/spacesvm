@@ -84,3 +84,11 @@ func (m *MoveTx) TypedData() *tdata.TypedData {
 		},
 	)
 }
+
+func (m *MoveTx) Activity() *Activity {
+	return &Activity{
+		Typ:   Move,
+		Space: m.Space,
+		To:    m.To,
+	}
+}

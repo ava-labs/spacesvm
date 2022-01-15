@@ -110,3 +110,10 @@ func (c *ClaimTx) TypedData() *tdata.TypedData {
 		},
 	)
 }
+
+func (c *ClaimTx) Activity() *Activity {
+	return &Activity{
+		Typ:   Claim,
+		Space: c.Space,
+	}
+}

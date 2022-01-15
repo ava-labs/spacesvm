@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	Claim    = "Claim"
-	Lifeline = "Lifeline"
-	Set      = "Set"
-	Delete   = "Delete"
-	Move     = "Move"
-	Transfer = "Transfer"
+	Claim    = "claim"
+	Lifeline = "lifeline"
+	Set      = "set"
+	Delete   = "delete"
+	Move     = "move"
+	Transfer = "transfer"
 )
 
 type Input struct {
