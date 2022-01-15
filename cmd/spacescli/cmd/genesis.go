@@ -18,13 +18,15 @@ import (
 
 var (
 	genesisFile string
+	magic       uint64
 
 	minPrice           int64
 	minBlockCost       int64
 	claimReward        int64
 	lifelineUnitReward int64
 
-	magic uint64
+	airdropHash  string
+	airdropUnits uint64
 )
 
 func init() {
@@ -58,10 +60,28 @@ func init() {
 		-1,
 		"seconds per unit of fee that will be rewarded in a lifeline transaction",
 	)
+	genesisCmd.PersistentFlags().Int64Var(
+		&lifelineUnitReward,
+		"lifeline-unit-reward",
+		-1,
+		"seconds per unit of fee that will be rewarded in a lifeline transaction",
+	)
+	genesisCmd.PersistentFlags().StringVar(
+		&airdropHash,
+		"airdrop-hash",
+		"",
+		"hash of airdrop data",
+	)
+	genesisCmd.PersistentFlags().Uint64Var(
+		&airdropUnits,
+		"airdrop-units",
+		0,
+		"units to allocate to each airdrop address",
+	)
 }
 
 var genesisCmd = &cobra.Command{
-	Use:   "genesis [magic] [allocations file] [options]",
+	Use:   "genesis [magic] [custom allocations file] [options]",
 	Short: "Creates a new genesis in the default location",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
@@ -97,17 +117,23 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	if lifelineUnitReward >= 0 {
 		genesis.LifelineUnitReward = uint64(lifelineUnitReward)
 	}
+	if len(airdropHash) >= 0 {
+		genesis.AirdropHash = airdropHash
+		if airdropUnits == 0 {
+			return errors.New("non-zero airdrop units required")
+		}
+		genesis.AirdropUnits = airdropUnits
+	}
 
 	a, err := os.ReadFile(args[1])
 	if err != nil {
 		return err
 	}
-	allocs := []*chain.Allocation{}
+	allocs := []*chain.CustomAllocation{}
 	if err := json.Unmarshal(a, &allocs); err != nil {
 		return err
 	}
-	// Store hash instead
-	genesis.Allocations = allocs
+	genesis.CustomAllocation = allocs
 
 	b, err := json.Marshal(genesis)
 	if err != nil {
