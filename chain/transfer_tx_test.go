@@ -38,7 +38,7 @@ func TestTransferTx(t *testing.T) {
 	defer db.Close()
 
 	g := DefaultGenesis()
-	g.Allocations = []*Allocation{
+	g.CustomAllocation = []*CustomAllocation{
 		{
 			Address: sender,
 			Balance: 10000000,

@@ -95,7 +95,7 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 	}
 	for i, tv := range tt {
 		db := memdb.New()
-		g.Allocations = []*Allocation{
+		g.CustomAllocation = []*CustomAllocation{
 			{
 				Address: sender,
 				Balance: 10000000,

@@ -4,15 +4,28 @@
 package chain
 
 import (
+	_ "embed"
+	"encoding/json"
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	log "github.com/inconshreveable/log15"
 )
 
-type Allocation struct {
+var (
+	//go:embed genesis/011522.json
+	rawStanardAllocation []byte
+)
+
+type StandardAllocation struct {
+	// Address strings are hex-formatted common.Address
+	Address common.Address `serialize:"true" json:"address"`
+}
+
+type CustomAllocation struct {
 	// Address strings are hex-formatted common.Address
 	Address common.Address `serialize:"true" json:"address"`
 	Balance uint64         `serialize:"true" json:"balance"`
@@ -55,8 +68,9 @@ type Genesis struct {
 	MinBlockCost   uint64 `serialize:"true" json:"minBlockCost"`
 
 	// Allocations
-	// TODO: move to a hash and use external file to avoid 1MB limit
-	Allocations []*Allocation `serialize:"true" json:"allocations"`
+	CustomAllocation        []*CustomAllocation `serialize:"true" json:"customAllocation"`
+	StandardAllocation      string              `serialize:"true" json:"standardAllocation"`
+	StanadrdAllocationUnits uint64              `serialize:"true" json:"standardAllocationAmount"`
 }
 
 func DefaultGenesis() *Genesis {
@@ -111,11 +125,36 @@ func (g *Genesis) Verify() error {
 }
 
 func (g *Genesis) Load(db database.KeyValueWriter) error {
-	for _, alloc := range g.Allocations {
+	if len(g.StandardAllocation) > 0 {
+		h := common.BytesToHash(crypto.Keccak256(rawStanardAllocation)).Hex()
+		if g.StandardAllocation != h {
+			return fmt.Errorf("expected standard allocation %s but got %s", g.StandardAllocation, h)
+		}
+
+		standardAllocation := []*StandardAllocation{}
+		if err := json.Unmarshal(rawStanardAllocation, &standardAllocation); err != nil {
+			return err
+		}
+
+		for _, alloc := range standardAllocation {
+			if err := SetBalance(db, alloc.Address, g.StanadrdAllocationUnits); err != nil {
+				return fmt.Errorf("%w: addr=%s, bal=%d", err, alloc.Address, g.StanadrdAllocationUnits)
+			}
+		}
+		log.Debug("loaded standard genesis allocation", "hash", h, "addrs", len(standardAllocation), "balance", g.StanadrdAllocationUnits)
+	}
+
+	// Do custom allocation last in case an address shows up in standard
+	// allocation
+	for _, alloc := range g.CustomAllocation {
 		if err := SetBalance(db, alloc.Address, alloc.Balance); err != nil {
 			return fmt.Errorf("%w: addr=%s, bal=%d", err, alloc.Address, alloc.Balance)
 		}
 		log.Debug("loaded genesis balance", "addr", alloc.Address, "balance", alloc.Balance)
 	}
 	return nil
+}
+
+func (g *Genesis) Clean() {
+	rawStanardAllocation = nil
 }

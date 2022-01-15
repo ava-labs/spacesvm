@@ -39,7 +39,7 @@ func TestMoveTx(t *testing.T) {
 	defer db.Close()
 
 	g := DefaultGenesis()
-	g.Allocations = []*Allocation{
+	g.CustomAllocation = []*CustomAllocation{
 		{
 			Address: sender,
 			Balance: 10000000,
@@ -53,6 +53,7 @@ func TestMoveTx(t *testing.T) {
 	if err := g.Load(db); err != nil {
 		t.Fatal(err)
 	}
+	g.Clean()
 
 	// Items: transfer without balance, transfer with small balance, transfer some balance, transfer from
 	// account that now has balance, transfer prefix, transfer to self
