@@ -47,6 +47,11 @@ func DigestHash(utx UnsignedTransaction) []byte {
 	return accounts.TextHash(hashing.ComputeHash256(b))
 }
 
+// https://gist.github.com/danfinlay/750ce1e165a75e1c3387ec38cf452b71
+// https://github.com/MetaMask/eth-sig-util/blob/main/src/sign-typed-data.ts
+// https://medium.com/alpineintel/issuing-and-verifying-eip-712-challenges-with-go-32635ca78aaf
+// https://metamask.github.io/test-dapp/
+
 func (t *Transaction) Init(g *Genesis) error {
 	stx, err := Marshal(t)
 	if err != nil {
