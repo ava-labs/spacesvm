@@ -12,9 +12,7 @@ fi
 # Load the constants
 # Set the PATHS
 GOPATH="$(go env GOPATH)"
-
-# SpacesVM root directory
-SPACESVM_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )"; cd .. && pwd )
+GOBIN="$(go env GOBIN)"
 
 VM=${VM:-false}
 if [[ ${VM} == true ]]; then
