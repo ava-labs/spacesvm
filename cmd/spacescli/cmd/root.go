@@ -46,6 +46,8 @@ func init() {
 		resolveCmd,
 		infoCmd,
 		activityCmd,
+		transferCmd,
+		moveCmd,
 	)
 
 	rootCmd.PersistentFlags().StringVar(

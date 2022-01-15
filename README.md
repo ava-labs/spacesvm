@@ -31,8 +31,10 @@ Available Commands:
   help        Help about any command
   info        Reads space info and all values at space
   lifeline    Extends the life of a given prefix
+  move        Transfers a space to another address
   resolve     Reads a value at space/key
   set         Writes a key-value pair for the given prefix
+  transfer    Transfers units to another address
 
 Flags:
       --endpoint string           RPC Endpoint for VM (default "https://memeshowdown.com")
