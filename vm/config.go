@@ -18,6 +18,8 @@ type Config struct {
 
 	MempoolSize       int `serialize:"true" json:"mempoolSize"`
 	ActivityCacheSize int `serialize:"true" json:"activityCacheSize"`
+
+	ClearStandardAllocation bool `serialize:"true" json:"clearStandardAllocation"`
 }
 
 func (c *Config) SetDefaults() {
@@ -31,4 +33,6 @@ func (c *Config) SetDefaults() {
 
 	c.MempoolSize = 1024
 	c.ActivityCacheSize = 128
+
+	c.ClearStandardAllocation = true
 }

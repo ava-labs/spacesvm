@@ -163,7 +163,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			db,
 			genesisBytes,
 			nil,
-			nil,
+			[]byte(`{"clearStandardAllocation":false}`),
 			toEngine,
 			nil,
 			app,
