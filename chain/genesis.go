@@ -16,6 +16,9 @@ import (
 )
 
 var (
+	// All addresses on the C-Chain with > 2 transactions as of 1/15/22
+	// Hash: 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da
+
 	//go:embed genesis/011522.json
 	rawStanardAllocation []byte
 )

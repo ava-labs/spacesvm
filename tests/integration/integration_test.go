@@ -125,7 +125,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	}
 	genesis.Magic = 5
 	genesis.BlockTarget = 0 // disable block throttling
-	genesis.Allocations = []*chain.Allocation{
+	genesis.CustomAllocation = []*chain.CustomAllocation{
 		{
 			Address: sender,
 			Balance: 10000000,
@@ -135,6 +135,8 @@ var _ = ginkgo.BeforeSuite(func() {
 			Balance: 10000000,
 		},
 	}
+	genesis.StandardAllocation = "0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da"
+	genesis.StanadrdAllocationUnits = 100
 	genesisBytes, err = json.Marshal(genesis)
 	gomega.Ω(err).Should(gomega.BeNil())
 
@@ -196,7 +198,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		g, err := cli.Genesis()
 		gomega.Ω(err).Should(gomega.BeNil())
 
-		for _, alloc := range g.Allocations {
+		for _, alloc := range g.CustomAllocation {
 			bal, err := cli.Balance(alloc.Address)
 			gomega.Ω(err).Should(gomega.BeNil())
 			gomega.Ω(bal).Should(gomega.Equal(alloc.Balance))
