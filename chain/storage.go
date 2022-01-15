@@ -614,10 +614,11 @@ func ApplyReward(db database.Database, blkID ids.ID, txID ids.ID, sender common.
 		if _, err := Unmarshal(cursor.Value(), &i); err != nil {
 			return err
 		}
+		space := string(curKey[2:])
 
 		// Do not give sender their funds back
 		if bytes.Equal(i.Owner[:], sender[:]) {
-			log.Debug("skipping reward: same owner", "owner", i.Owner)
+			log.Debug("skipping reward: same owner", "space", space, "owner", i.Owner)
 			return nil
 		}
 
@@ -625,7 +626,8 @@ func ApplyReward(db database.Database, blkID ids.ID, txID ids.ID, sender common.
 		if _, err := ModifyBalance(db, i.Owner, true, reward); err != nil {
 			return err
 		}
-		log.Debug("rewarded space owner", "owner", i.Owner, "amount", reward)
+
+		log.Debug("rewarded space owner", "space", space, "owner", i.Owner, "amount", reward)
 		return nil
 	}
 
