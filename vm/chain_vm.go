@@ -48,6 +48,15 @@ func (vm *VM) Accepted(b *chain.StatelessBlock) {
 	delete(vm.verifiedBlocks, b.ID())
 	vm.lastAccepted = b
 	log.Debug("accepted block", "blkID", b.ID())
+
+	if vm.config.ActivityCacheSize == 0 {
+		return
+	}
+	cs := uint64(vm.config.ActivityCacheSize)
+	for _, tx := range b.Txs {
+		vm.activityCache[vm.activityCacheCursor%cs] = tx.Activity()
+		vm.activityCacheCursor++
+	}
 }
 
 func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) (*chain.Context, error) {

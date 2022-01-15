@@ -33,4 +33,5 @@ type UnsignedTransaction interface {
 	ExecuteBase(*Genesis) error
 	Execute(*TransactionContext) error
 	TypedData() *tdata.TypedData
+	Activity() *Activity
 }
