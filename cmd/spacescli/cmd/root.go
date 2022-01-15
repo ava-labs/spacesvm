@@ -43,7 +43,8 @@ func init() {
 		lifelineCmd,
 		setCmd,
 		deleteCmd,
-		getCmd,
+		resolveCmd,
+		infoCmd,
 	)
 
 	rootCmd.PersistentFlags().StringVar(
