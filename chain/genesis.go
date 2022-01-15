@@ -42,8 +42,10 @@ type Genesis struct {
 	// Reward Params
 	ClaimReward        uint64 `serialize:"true" json:"claimReward"`
 	LifelineUnitReward uint64 `serialize:"true" json:"lifelineUnitReward"`
-	// TODO: replace with lottery mining
-	BeneficiaryReward uint64 `serialize:"true" json:"beneficiaryReward"`
+
+	// Mining Reward (% of min required fee)
+	LotteryRewardMultipler uint64 `serialize:"true" json:"lotteryRewardMultipler"`
+	LotteryRewardDivisor   uint64 `serialize:"true" json:"lotteryRewardDivisor"`
 
 	// Fee Mechanism Params
 	LookbackWindow int64  `serialize:"true" json:"lookbackWindow"`
@@ -80,7 +82,10 @@ func DefaultGenesis() *Genesis {
 		// Reward Params
 		ClaimReward:        60 * 60 * 24 * 15, // 15 Days
 		LifelineUnitReward: 60 * 60 * 6,       // 6 Hours Per Fee Unit (1 ms of work)
-		BeneficiaryReward:  60 * 60 * 6,       // 6 Hours
+
+		// Lottery Reward (80% of tx.FeeUnits() * block.Price)
+		LotteryRewardMultipler: 8,
+		LotteryRewardDivisor:   10,
 
 		// Fee Mechanism Params
 		LookbackWindow: 60,            // 60 Seconds

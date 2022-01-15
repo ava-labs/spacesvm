@@ -90,7 +90,7 @@ func (t *Transaction) DigestHash() []byte { return t.digestHash }
 
 func (t *Transaction) Sender() common.Address { return t.sender }
 
-func (t *Transaction) Execute(g *Genesis, db database.Database, blockTime int64, context *Context) error {
+func (t *Transaction) Execute(g *Genesis, db database.Database, blk *StatelessBlock, context *Context) error {
 	if err := t.UnsignedTransaction.ExecuteBase(g); err != nil {
 		return err
 	}
@@ -117,12 +117,24 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blockTime int64,
 	if err := t.UnsignedTransaction.Execute(&TransactionContext{
 		Genesis:   g,
 		Database:  db,
-		BlockTime: uint64(blockTime),
+		BlockTime: uint64(blk.Tmstmp),
 		TxID:      t.id,
 		Sender:    t.sender,
 	}); err != nil {
 		return err
 	}
-	// TODO: add lottery reward
-	return SetTransaction(db, t)
+	if err := SetTransaction(db, t); err != nil {
+		return err
+	}
+
+	// Process lottery reward
+	//
+	// If there is no space after the selected iterator, no reward will be
+	// distributed.
+	if blk.Dummy() {
+		// Do not process any rewards if it is just a dummy block
+		return nil
+	}
+	rewardAmount := t.FeeUnits(g) * blk.Price * g.LotteryRewardMultipler / g.LotteryRewardDivisor
+	return ApplyReward(db, blk.ID(), t.ID(), t.sender, rewardAmount)
 }

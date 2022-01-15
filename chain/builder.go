@@ -56,7 +56,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		}
 		// Verify that changes pass
 		tvdb := versiondb.New(vdb)
-		if err := next.Execute(g, tvdb, b.Tmstmp, context); err != nil {
+		if err := next.Execute(g, tvdb, b, context); err != nil {
 			log.Debug("skipping tx: failed verification", "err", err)
 			continue
 		}
