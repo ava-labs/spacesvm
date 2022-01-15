@@ -3,9 +3,14 @@
 
 package chain
 
+import (
+	"github.com/ava-labs/avalanchego/ids"
+)
+
 type Activity struct {
 	Tmstmp int64  `serialize:"true" json:"timestamp"`
 	Sender string `serialize:"true" json:"sender"`
+	TxID   ids.ID `serialize:"true" json:"txId"`
 	Typ    string `serialize:"true" json:"type"`
 	Space  string `serialize:"true" json:"space,omitempty"`
 	Key    string `serialize:"true" json:"key,omitempty"`

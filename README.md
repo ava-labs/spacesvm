@@ -235,6 +235,7 @@ transfer {type,to,units}
 {
   "timestamp":<unix>,
   "sender":<address>,
+  "txId":<ID>,
   "type":<string>,
   "space":<string>,
   "key":<string>,
