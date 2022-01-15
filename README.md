@@ -10,7 +10,7 @@ KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin)
 
 # spaces-cli
 ```
-SpacesVM client CLI
+SpacesVM CLI
 
 Usage:
   spaces-cli [command]

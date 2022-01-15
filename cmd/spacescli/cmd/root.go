@@ -23,7 +23,7 @@ var (
 
 	rootCmd = &cobra.Command{
 		Use:        "spaces-cli",
-		Short:      "SpacesVM client CLI",
+		Short:      "SpacesVM CLI",
 		SuggestFor: []string{"spaces-cli", "spacescli", "spacesctl"},
 	}
 )
