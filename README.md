@@ -8,6 +8,211 @@ KVVM defines a blockchain that is a key-value storage server. Each block in the 
 
 KVVM is served over RPC with [go-plugin](https://github.com/hashicorp/go-plugin).
 
+# Public Endpoints (`/public`)
+
+## spacesvm.ping
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.ping",
+  "params":{},
+  "id": 1
+}
+>>> {"sucess":<bool>}
+```
+
+## spacesvm.genesis
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.genesis",
+  "params":{},
+  "id": 1
+}
+>>> {"genesis":<genesis file>}
+```
+
+## spacesvm.suggestedFee
+_Provide your intent and get back a transaction to sign._
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.suggestedFee",
+  "params":{
+    "input":<chain.Input (tx abstractor)>
+  },
+  "id": 1
+}
+>>> {"typedData":<EIP-712 compliant typed data for signing>,
+>>> "totalCost":<uint64>}
+```
+
+### chain.Input
+```
+{
+  "type":<string>,
+  "space":<string>,
+  "key":<string>,
+  "value":<base64 encoded>,
+  "to":<hex encoded>,
+  "units":<uint64>
+}
+```
+
+#### Transaction Types
+```
+Claim    {type,space}
+Lifeline {type,space,units}
+Set      {type,space,key,value}
+Delete   {type,space,key}
+Move     {type,space,to}
+Transfer {type,to,units}
+
+```
+
+## spacesvm.issueTx
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.issueTx",
+  "params":{
+    "typedData":<EIP-712 compliant typed data>,
+    "signature":<hex-encoded sig>
+  },
+  "id": 1
+}
+>>> {"txID":<ID>}
+```
+
+## spacesvm.hasTx
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.hasTx",
+  "params":{
+    "txID":<transaction ID>
+  },
+  "id": 1
+}
+>>> {"accepted":<bool>}
+```
+
+## spacesvm.lastAccepted
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.lastAccepted",
+  "params":{},
+  "id": 1
+}
+>>> {"height":<uint64>, "blockID":<ID>}
+```
+
+## spacesvm.claimed
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.claimed",
+  "params":{
+    "space":<string>
+  },
+  "id": 1
+}
+>>> {"claimed":<bool>}
+```
+
+## spacesvm.info
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.info",
+  "params":{
+    "space":<string>
+  },
+  "id": 1
+}
+>>> {"info":<chain.SpaceInfo>, "values":[{"key":<string>, "value":<base64 encoded>}]}
+```
+
+### chain.SpaceInfo
+```
+{
+  "owner":<hex encoded>,
+  "created":<unix>,
+  "lastUpdated":<unix>,
+  "expiry":<unix>,
+  "units":<uint64>,
+  "rawSpace":<ShortID>
+}
+```
+
+## spacesvm.resolve
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.resolve",
+  "params":{
+    "path":<string | ex:jim/twitter>
+  },
+  "id": 1
+}
+>>> {"exists":<bool>, "value":<base64 encoded>}
+```
+
+## spacesvm.balance
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.balance",
+  "params":{
+    "address":<hex encoded>
+  },
+  "id": 1
+}
+>>> {"balance":<uint64>}
+```
+
+# Advanced Public Endpoints (`/public`)
+
+## spacesvm.suggestedRawFee
+_Can use this to get the current fee rate._
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.suggestedRawFee",
+  "params":{},
+  "id": 1
+}
+>>> {"price":<uint64>,"cost":<uint64>}
+```
+
+## spacesvm.issueRawTx
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.issueRawTx",
+  "params":{
+    "tx":<raw tx bytes>
+  },
+  "id": 1
+}
+>>> {"txID":<ID>}
+```
+
+
+////// REWRITE ///////////////
 # Features
 TODO: Extend on
 * PoW Transactions (no tokens)

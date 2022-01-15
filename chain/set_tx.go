@@ -107,18 +107,18 @@ func (s *SetTx) TypedData() *tdata.TypedData {
 	return tdata.CreateTypedData(
 		s.Magic, Set,
 		[]tdata.Type{
-			{Name: "blockID", Type: "string"},
-			{Name: "price", Type: "uint64"},
-			{Name: "space", Type: "string"},
-			{Name: "key", Type: "string"},
-			{Name: "value", Type: "bytes"},
+			{Name: tdSpace, Type: tdString},
+			{Name: tdKey, Type: tdString},
+			{Name: tdValue, Type: tdBytes},
+			{Name: tdPrice, Type: tdUint64},
+			{Name: tdBlockID, Type: tdString},
 		},
 		tdata.TypedDataMessage{
-			"blockID": s.BlockID.String(),
-			"price":   strconv.FormatUint(s.Price, 10),
-			"space":   s.Space,
-			"key":     s.Key,
-			"value":   hexutil.Encode(s.Value),
+			tdSpace:   s.Space,
+			tdKey:     s.Key,
+			tdValue:   hexutil.Encode(s.Value),
+			tdPrice:   strconv.FormatUint(s.Price, 10),
+			tdBlockID: s.BlockID.String(),
 		},
 	)
 }

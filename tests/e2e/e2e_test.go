@@ -311,6 +311,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 	})
 
 	ginkgo.It("Claim/SetTx in a single node", func() {
+		// TODO: repeat above without copying all code
 		space := strings.Repeat("b", parser.MaxIdentifierSize)
 		ginkgo.By("mine and issue ClaimTx to the first node", func() {
 			claimed, err := instances[0].cli.Claimed(space)

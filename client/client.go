@@ -46,9 +46,9 @@ type Client interface {
 
 	// Requests the suggested price and cost from VM, returns the input as
 	// TypedData.
-	SuggestedFee(i *chain.Input) (*tdata.TypedData, []byte, uint64, error)
+	SuggestedFee(i *chain.Input) (*tdata.TypedData, uint64, error)
 	// Issues a human-readable transaction and returns the transaction ID.
-	IssueTx(tx []byte, sig []byte) (ids.ID, error)
+	IssueTx(td *tdata.TypedData, sig []byte) (ids.ID, error)
 
 	// Checks the status of the transaction, and returns "true" if confirmed.
 	HasTx(id ids.ID) (bool, error)
@@ -172,23 +172,23 @@ func (cli *client) HasTx(txID ids.ID) (bool, error) {
 	return resp.Confirmed, nil
 }
 
-func (cli *client) SuggestedFee(i *chain.Input) (*tdata.TypedData, []byte, uint64, error) {
+func (cli *client) SuggestedFee(i *chain.Input) (*tdata.TypedData, uint64, error) {
 	resp := new(vm.SuggestedFeeReply)
 	if err := cli.req.SendRequest(
 		"suggestedFee",
 		&vm.SuggestedFeeArgs{Input: i},
 		resp,
 	); err != nil {
-		return nil, nil, 0, err
+		return nil, 0, err
 	}
-	return resp.TypedData, resp.Tx, resp.TotalCost, nil
+	return resp.TypedData, resp.TotalCost, nil
 }
 
-func (cli *client) IssueTx(tx []byte, sig []byte) (ids.ID, error) {
+func (cli *client) IssueTx(td *tdata.TypedData, sig []byte) (ids.ID, error) {
 	resp := new(vm.IssueTxReply)
 	if err := cli.req.SendRequest(
 		"issueTx",
-		&vm.IssueTxArgs{Tx: tx, Signature: sig},
+		&vm.IssueTxArgs{TypedData: td, Signature: sig},
 		resp,
 	); err != nil {
 		return ids.Empty, err
@@ -245,7 +245,7 @@ func (cli *client) Balance(addr common.Address) (bal uint64, err error) {
 	if err = cli.req.SendRequest(
 		"balance",
 		&vm.BalanceArgs{
-			Address: addr.Hex(),
+			Address: addr,
 		},
 		resp,
 	); err != nil {

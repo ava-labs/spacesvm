@@ -99,14 +99,14 @@ func (c *ClaimTx) TypedData() *tdata.TypedData {
 	return tdata.CreateTypedData(
 		c.Magic, Claim,
 		[]tdata.Type{
-			{Name: "blockID", Type: "string"},
-			{Name: "price", Type: "uint64"},
-			{Name: "space", Type: "string"},
+			{Name: tdSpace, Type: tdString},
+			{Name: tdPrice, Type: tdUint64},
+			{Name: tdBlockID, Type: tdString},
 		},
 		tdata.TypedDataMessage{
-			"blockID": c.BlockID.String(),
-			"price":   strconv.FormatUint(c.Price, 10),
-			"space":   c.Space,
+			tdSpace:   c.Space,
+			tdPrice:   strconv.FormatUint(c.Price, 10),
+			tdBlockID: c.BlockID.String(),
 		},
 	)
 }

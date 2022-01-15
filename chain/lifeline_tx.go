@@ -71,16 +71,16 @@ func (l *LifelineTx) TypedData() *tdata.TypedData {
 	return tdata.CreateTypedData(
 		l.Magic, Lifeline,
 		[]tdata.Type{
-			{Name: "blockID", Type: "string"},
-			{Name: "price", Type: "uint64"},
-			{Name: "space", Type: "string"},
-			{Name: "units", Type: "uint64"},
+			{Name: tdSpace, Type: tdString},
+			{Name: tdUnits, Type: tdUint64},
+			{Name: tdPrice, Type: tdUint64},
+			{Name: tdBlockID, Type: tdString},
 		},
 		tdata.TypedDataMessage{
-			"blockID": l.BlockID.String(),
-			"price":   strconv.FormatUint(l.Price, 10),
-			"space":   l.Space,
-			"units":   strconv.FormatUint(l.Units, 10),
+			tdSpace:   l.Space,
+			tdUnits:   strconv.FormatUint(l.Units, 10),
+			tdPrice:   strconv.FormatUint(l.Price, 10),
+			tdBlockID: l.BlockID.String(),
 		},
 	)
 }
