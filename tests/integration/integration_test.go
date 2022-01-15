@@ -237,6 +237,13 @@ func RandStringRunes(n int) string {
 }
 
 var _ = ginkgo.Describe("[ClaimTx]", func() {
+	ginkgo.It("ensure activity yet", func() {
+		activity, err := instances[0].cli.RecentActivity()
+		gomega.Ω(err).To(gomega.BeNil())
+
+		gomega.Ω(len(activity)).To(gomega.Equal(0))
+	})
+
 	ginkgo.It("get currently accepted block ID", func() {
 		for _, inst := range instances {
 			cli := inst.cli
@@ -288,6 +295,17 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			lastAccepted, err := instances[1].vm.LastAccepted()
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
+		})
+
+		ginkgo.By("ensure all activity accounted for", func() {
+			activity, err := instances[1].cli.RecentActivity()
+			gomega.Ω(err).To(gomega.BeNil())
+
+			gomega.Ω(len(activity)).To(gomega.Equal(1))
+			a0 := activity[0]
+			gomega.Ω(a0.Typ).To(gomega.Equal("claim"))
+			gomega.Ω(a0.Space).To(gomega.Equal(space))
+			gomega.Ω(a0.Sender).To(gomega.Equal(sender))
 		})
 	})
 
@@ -354,6 +372,22 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(exists).To(gomega.BeTrue())
 			gomega.Ω(value).To(gomega.Equal(v))
+		})
+
+		ginkgo.By("ensure all activity accounted for", func() {
+			activity, err := instances[0].cli.RecentActivity()
+			gomega.Ω(err).To(gomega.BeNil())
+
+			gomega.Ω(len(activity)).To(gomega.Equal(3))
+			a0 := activity[0]
+			gomega.Ω(a0.Typ).To(gomega.Equal("set"))
+			gomega.Ω(a0.Space).To(gomega.Equal(space))
+			gomega.Ω(a0.Key).To(gomega.Equal(k))
+			gomega.Ω(a0.Sender).To(gomega.Equal(sender))
+			a1 := activity[1]
+			gomega.Ω(a1.Typ).To(gomega.Equal("claim"))
+			gomega.Ω(a1.Space).To(gomega.Equal(space))
+			gomega.Ω(a1.Sender).To(gomega.Equal(sender))
 		})
 	})
 
