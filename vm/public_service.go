@@ -45,8 +45,7 @@ type IssueRawTxArgs struct {
 }
 
 type IssueRawTxReply struct {
-	TxID    ids.ID `serialize:"true" json:"txId"`
-	Success bool   `serialize:"true" json:"success"`
+	TxID ids.ID `serialize:"true" json:"txID"`
 }
 
 func (svc *PublicService) IssueRawTx(_ *http.Request, args *IssueRawTxArgs, reply *IssueRawTxReply) error {
@@ -57,14 +56,12 @@ func (svc *PublicService) IssueRawTx(_ *http.Request, args *IssueRawTxArgs, repl
 
 	// otherwise, unexported tx.id field is empty
 	if err := tx.Init(svc.vm.genesis); err != nil {
-		reply.Success = false
 		return err
 	}
 	reply.TxID = tx.ID()
 
 	errs := svc.vm.Submit(tx)
-	reply.Success = len(errs) == 0
-	if reply.Success {
+	if len(errs) == 0 {
 		return nil
 	}
 	if len(errs) == 1 {
@@ -79,8 +76,7 @@ type IssueTxArgs struct {
 }
 
 type IssueTxReply struct {
-	TxID    ids.ID `serialize:"true" json:"txId"`
-	Success bool   `serialize:"true" json:"success"`
+	TxID ids.ID `serialize:"true" json:"txID"`
 }
 
 func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *IssueTxReply) error {
@@ -95,14 +91,12 @@ func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *Iss
 
 	// otherwise, unexported tx.id field is empty
 	if err := tx.Init(svc.vm.genesis); err != nil {
-		reply.Success = false
 		return err
 	}
 	reply.TxID = tx.ID()
 
 	errs := svc.vm.Submit(tx)
-	reply.Success = len(errs) == 0
-	if reply.Success {
+	if len(errs) == 0 {
 		return nil
 	}
 	if len(errs) == 1 {
@@ -112,11 +106,11 @@ func (svc *PublicService) IssueTx(_ *http.Request, args *IssueTxArgs, reply *Iss
 }
 
 type HasTxArgs struct {
-	TxID ids.ID `serialize:"true" json:"txId"`
+	TxID ids.ID `serialize:"true" json:"txID"`
 }
 
 type HasTxReply struct {
-	Confirmed bool `serialize:"true" json:"confirmed"`
+	Accepted bool `serialize:"true" json:"accepted"`
 }
 
 func (svc *PublicService) HasTx(_ *http.Request, args *HasTxArgs, reply *HasTxReply) error {
@@ -124,25 +118,20 @@ func (svc *PublicService) HasTx(_ *http.Request, args *HasTxArgs, reply *HasTxRe
 	if err != nil {
 		return err
 	}
-	reply.Confirmed = has
+	reply.Accepted = has
 	return nil
 }
 
 type LastAcceptedReply struct {
-	BlockID ids.ID `serialize:"true" json:"blockId"`
+	Height  uint64 `serialize:"true" json:"height"`
+	BlockID ids.ID `serialize:"true" json:"blockID"`
 }
 
 func (svc *PublicService) LastAccepted(_ *http.Request, _ *struct{}, reply *LastAcceptedReply) error {
-	reply.BlockID = svc.vm.lastAccepted.ID()
+	la := svc.vm.lastAccepted
+	reply.Height = la.Hght
+	reply.BlockID = la.ID()
 	return nil
-}
-
-type ValidBlockIDArgs struct {
-	BlockID ids.ID `serialize:"true" json:"blockId"`
-}
-
-type ValidBlockIDReply struct {
-	Valid bool `serialize:"true" json:"valid"`
 }
 
 type SuggestedFeeArgs struct {
@@ -231,7 +220,7 @@ type InfoArgs struct {
 
 type InfoReply struct {
 	Info   *chain.SpaceInfo  `serialize:"true" json:"info"`
-	Values []*chain.KeyValue `serialize:"true" json:"pairs"`
+	Values []*chain.KeyValue `serialize:"true" json:"values"`
 }
 
 func (svc *PublicService) Info(_ *http.Request, args *InfoArgs, reply *InfoReply) error {
