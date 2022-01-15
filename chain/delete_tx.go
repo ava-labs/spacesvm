@@ -6,6 +6,7 @@ package chain
 import (
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 var _ UnsignedTransaction = &DeleteTx{}
@@ -67,13 +68,13 @@ func (d *DeleteTx) TypedData() tdata.TypedData {
 		d.Magic, Delete,
 		[]tdata.Type{
 			{Name: "blockID", Type: "string"},
-			{Name: "price", Type: "uint64"},
+			{Name: "price", Type: "string"},
 			{Name: "space", Type: "string"},
 			{Name: "key", Type: "string"},
 		},
 		tdata.TypedDataMessage{
 			"blockID": d.BlockID.String(),
-			"price":   d.Price,
+			"price":   hexutil.EncodeUint64(d.Price),
 			"space":   d.Space,
 			"key":     d.Key,
 		},

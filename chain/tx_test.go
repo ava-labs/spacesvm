@@ -6,6 +6,7 @@ package chain
 import (
 	"crypto/ecdsa"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -31,9 +32,13 @@ func TestTransaction(t *testing.T) {
 				Space:  strings.Repeat("b", i*10),
 			},
 		}
-		dh := tx.DigestHash()
-		if len(tx.DigestHash()) != 32 {
-			t.Fatal("hash insufficient")
+		fmt.Println(tx.UnsignedTransaction.TypedData())
+		dh, err := DigestHash(tx.UnsignedTransaction)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(dh) != 32 {
+			t.Fatalf("hash insufficient d=%d", len(dh))
 		}
 		tx.Signature, err = crypto.Sign(dh, priv)
 		if err != nil {
@@ -120,11 +125,13 @@ func createTestTx(t *testing.T, blockID ids.ID, priv *ecdsa.PrivateKey) *Transac
 			Space: "a",
 		},
 	}
-	dh := tx.DigestHash()
-	if len(tx.DigestHash()) != 32 {
-		t.Fatal("hash insufficient")
+	dh, err := DigestHash(tx.UnsignedTransaction)
+	if err != nil {
+		t.Fatal(err)
 	}
-
+	if len(dh) != 32 {
+		t.Fatalf("hash insufficient d=%d", len(dh))
+	}
 	sig, err := crypto.Sign(dh, priv)
 	if err != nil {
 		t.Fatal(err)

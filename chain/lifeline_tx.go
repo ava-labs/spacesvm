@@ -6,6 +6,7 @@ package chain
 import (
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 var _ UnsignedTransaction = &LifelineTx{}
@@ -76,9 +77,9 @@ func (l *LifelineTx) TypedData() tdata.TypedData {
 		},
 		tdata.TypedDataMessage{
 			"blockID": l.BlockID.String(),
-			"price":   l.Price,
+			"price":   hexutil.EncodeUint64(l.Price),
 			"space":   l.Space,
-			"units":   l.Units,
+			"units":   hexutil.EncodeUint64(l.Units),
 		},
 	)
 }

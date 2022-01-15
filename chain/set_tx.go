@@ -8,6 +8,7 @@ import (
 
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 const (
@@ -113,10 +114,10 @@ func (s *SetTx) TypedData() tdata.TypedData {
 		},
 		tdata.TypedDataMessage{
 			"blockID": s.BlockID.String(),
-			"price":   s.Price,
+			"price":   hexutil.EncodeUint64(s.Price),
 			"space":   s.Space,
 			"key":     s.Key,
-			"value":   s.Value,
+			"value":   hexutil.Encode(s.Value),
 		},
 	)
 }

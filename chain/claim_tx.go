@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
@@ -104,7 +105,7 @@ func (c *ClaimTx) TypedData() tdata.TypedData {
 		},
 		tdata.TypedDataMessage{
 			"blockID": c.BlockID.String(),
-			"price":   c.Price,
+			"price":   hexutil.EncodeUint64(c.Price),
 			"space":   c.Space,
 		},
 	)

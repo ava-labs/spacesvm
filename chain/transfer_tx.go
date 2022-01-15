@@ -8,6 +8,7 @@ import (
 
 	"github.com/ava-labs/spacesvm/tdata"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 var _ UnsignedTransaction = &TransferTx{}
@@ -65,9 +66,9 @@ func (t *TransferTx) TypedData() tdata.TypedData {
 		},
 		tdata.TypedDataMessage{
 			"blockID": t.BlockID.String(),
-			"price":   t.Price,
+			"price":   hexutil.EncodeUint64(t.Price),
 			"to":      t.To,
-			"units":   t.Units,
+			"units":   hexutil.EncodeUint64(t.Units),
 		},
 	)
 }

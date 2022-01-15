@@ -7,6 +7,7 @@ import (
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
@@ -77,7 +78,7 @@ func (m *MoveTx) TypedData() tdata.TypedData {
 		},
 		tdata.TypedDataMessage{
 			"blockID": m.BlockID.String(),
-			"price":   m.Price,
+			"price":   hexutil.EncodeUint64(m.Price),
 			"space":   m.Space,
 			"to":      m.To,
 		},

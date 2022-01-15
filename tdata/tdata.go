@@ -53,7 +53,7 @@ type TypedDataMessage = map[string]interface{}
 // https://github.com/ethereum/go-ethereum/blob/619a3e70858e60240ce1df75bdf65ba748387e57/signer/core/apitypes/types.go#L246
 type TypedDataDomain struct {
 	Name  string `json:"name"`
-	Magic uint64 `json:"magic"`
+	Magic string `json:"magic"`
 }
 
 type TypedData struct {
@@ -73,7 +73,7 @@ var (
 func spacesDomain(m uint64) TypedDataDomain {
 	return TypedDataDomain{
 		Name:  "Spaces",
-		Magic: m,
+		Magic: hexutil.EncodeUint64(m),
 	}
 }
 
