@@ -305,7 +305,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			a0 := activity[0]
 			gomega.Ω(a0.Typ).To(gomega.Equal("claim"))
 			gomega.Ω(a0.Space).To(gomega.Equal(space))
-			gomega.Ω(a0.Sender).To(gomega.Equal(sender))
+			gomega.Ω(a0.Sender).To(gomega.Equal(sender.Hex()))
 		})
 	})
 
@@ -383,11 +383,11 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(a0.Typ).To(gomega.Equal("set"))
 			gomega.Ω(a0.Space).To(gomega.Equal(space))
 			gomega.Ω(a0.Key).To(gomega.Equal(k))
-			gomega.Ω(a0.Sender).To(gomega.Equal(sender))
+			gomega.Ω(a0.Sender).To(gomega.Equal(sender.Hex()))
 			a1 := activity[1]
 			gomega.Ω(a1.Typ).To(gomega.Equal("claim"))
 			gomega.Ω(a1.Space).To(gomega.Equal(space))
-			gomega.Ω(a1.Sender).To(gomega.Equal(sender))
+			gomega.Ω(a1.Sender).To(gomega.Equal(sender.Hex()))
 		})
 	})
 

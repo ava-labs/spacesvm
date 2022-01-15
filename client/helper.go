@@ -26,16 +26,15 @@ func PPInfo(info *chain.SpaceInfo) {
 }
 
 func PPActivity(a []*chain.Activity) error {
+	if len(a) == 0 {
+		color.Blue("no recent activity")
+	}
 	for _, item := range a {
-		t := time.Unix(int64(item.Tmstmp), 0)
-		b, err := json.Marshal(a)
+		b, err := json.Marshal(item)
 		if err != nil {
 			return err
 		}
-		color.Blue(
-			"[%v] %s",
-			t, string(b),
-		)
+		color.Blue(string(b))
 	}
 	return nil
 }

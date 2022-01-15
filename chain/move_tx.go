@@ -89,6 +89,6 @@ func (m *MoveTx) Activity() *Activity {
 	return &Activity{
 		Typ:   Move,
 		Space: m.Space,
-		To:    m.To,
+		To:    m.To.Hex(),
 	}
 }

@@ -76,7 +76,7 @@ func (t *TransferTx) TypedData() *tdata.TypedData {
 func (t *TransferTx) Activity() *Activity {
 	return &Activity{
 		Typ:   Transfer,
-		To:    t.To,
+		To:    t.To.Hex(),
 		Units: t.Units,
 	}
 }

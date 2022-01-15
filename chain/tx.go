@@ -139,6 +139,6 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blk *StatelessBl
 
 func (t *Transaction) Activity() *Activity {
 	activity := t.UnsignedTransaction.Activity()
-	activity.Sender = t.sender
+	activity.Sender = t.sender.Hex()
 	return activity
 }

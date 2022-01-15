@@ -3,14 +3,12 @@
 
 package chain
 
-import "github.com/ethereum/go-ethereum/common"
-
 type Activity struct {
-	Tmstmp int64          `serialize:"true" json:"timestamp"`
-	Sender common.Address `serialize:"true" json:"sender"`
-	Typ    string         `serialize:"true" json:"type"`
-	Space  string         `serialize:"true" json:"space,omitempty"`
-	Key    string         `serialize:"true" json:"key,omitempty"`
-	To     common.Address `serialize:"true" json:"to,omitempty"`
-	Units  uint64         `serialize:"true" json:"units,omitempty"`
+	Tmstmp int64  `serialize:"true" json:"timestamp"`
+	Sender string `serialize:"true" json:"sender"`
+	Typ    string `serialize:"true" json:"type"`
+	Space  string `serialize:"true" json:"space,omitempty"`
+	Key    string `serialize:"true" json:"key,omitempty"`
+	To     string `serialize:"true" json:"to,omitempty"` // common.Address will be 0x000 when not populated
+	Units  uint64 `serialize:"true" json:"units,omitempty"`
 }
