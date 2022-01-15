@@ -7,7 +7,6 @@ package client
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -152,12 +151,7 @@ func (cli *client) IssueRawTx(d []byte) (ids.ID, error) {
 	); err != nil {
 		return ids.Empty, err
 	}
-
-	txID := resp.TxID
-	if !resp.Success {
-		return ids.Empty, fmt.Errorf("issue tx %s failed", txID)
-	}
-	return txID, nil
+	return resp.TxID, nil
 }
 
 func (cli *client) HasTx(txID ids.ID) (bool, error) {
@@ -169,7 +163,7 @@ func (cli *client) HasTx(txID ids.ID) (bool, error) {
 	); err != nil {
 		return false, err
 	}
-	return resp.Confirmed, nil
+	return resp.Accepted, nil
 }
 
 func (cli *client) SuggestedFee(i *chain.Input) (*tdata.TypedData, uint64, error) {
@@ -194,11 +188,7 @@ func (cli *client) IssueTx(td *tdata.TypedData, sig []byte) (ids.ID, error) {
 		return ids.Empty, err
 	}
 
-	txID := resp.TxID
-	if !resp.Success {
-		return ids.Empty, fmt.Errorf("issue tx %s failed", txID)
-	}
-	return txID, nil
+	return resp.TxID, nil
 }
 
 func (cli *client) PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error) {
