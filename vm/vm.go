@@ -188,7 +188,7 @@ func (vm *VM) Initialize(
 	}
 
 	if vm.config.ClearAirdropData {
-		chain.CleanAirdropData() // free any any unecessary memory
+		chain.CleanAirdropData()
 	}
 
 	go vm.builder.Build()

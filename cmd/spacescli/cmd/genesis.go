@@ -117,7 +117,7 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	if lifelineUnitReward >= 0 {
 		genesis.LifelineUnitReward = uint64(lifelineUnitReward)
 	}
-	if len(airdropHash) >= 0 {
+	if len(airdropHash) > 0 {
 		genesis.AirdropHash = airdropHash
 		if airdropUnits == 0 {
 			return errors.New("non-zero airdrop units required")

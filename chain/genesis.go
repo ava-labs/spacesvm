@@ -15,13 +15,11 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-var (
-	// All addresses on the C-Chain with > 2 transactions as of 1/15/22
-	// Hash: 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da
+// All addresses on the C-Chain with > 2 transactions as of 1/15/22
+// Hash: 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da
 
-	//go:embed airdrops/011522.json
-	AirdropData []byte
-)
+//go:embed airdrops/011522.json
+var AirdropData []byte
 
 type Airdrop struct {
 	// Address strings are hex-formatted common.Address
@@ -144,7 +142,10 @@ func (g *Genesis) Load(db database.KeyValueWriter) error {
 				return fmt.Errorf("%w: addr=%s, bal=%d", err, alloc.Address, g.AirdropUnits)
 			}
 		}
-		log.Debug("loaded standard genesis allocation", "hash", h, "addrs", len(standardAllocation), "balance", g.AirdropUnits)
+		log.Debug(
+			"applied airdrop allocation",
+			"hash", h, "addrs", len(standardAllocation), "balance", g.AirdropUnits,
+		)
 	}
 
 	// Do custom allocation last in case an address shows up in standard
@@ -153,7 +154,7 @@ func (g *Genesis) Load(db database.KeyValueWriter) error {
 		if err := SetBalance(db, alloc.Address, alloc.Balance); err != nil {
 			return fmt.Errorf("%w: addr=%s, bal=%d", err, alloc.Address, alloc.Balance)
 		}
-		log.Debug("loaded genesis balance", "addr", alloc.Address, "balance", alloc.Balance)
+		log.Debug("applied custom allocation", "addr", alloc.Address, "balance", alloc.Balance)
 	}
 	return nil
 }
