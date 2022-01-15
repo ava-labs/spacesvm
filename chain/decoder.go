@@ -73,9 +73,10 @@ func (i *Input) Decode() (UnsignedTransaction, error) {
 }
 
 const (
-	tdString = "string"
-	tdUint64 = "uint64"
-	tdBytes  = "bytes"
+	tdString  = "string"
+	tdUint64  = "uint64"
+	tdBytes   = "bytes"
+	tdAddress = "address"
 
 	tdBlockID = "blockID"
 	tdMagic   = "magic"

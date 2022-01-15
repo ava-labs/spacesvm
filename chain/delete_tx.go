@@ -68,16 +68,16 @@ func (d *DeleteTx) TypedData() *tdata.TypedData {
 	return tdata.CreateTypedData(
 		d.Magic, Delete,
 		[]tdata.Type{
-			{Name: "blockID", Type: "string"},
-			{Name: "price", Type: "uint64"},
-			{Name: "space", Type: "string"},
-			{Name: "key", Type: "string"},
+			{Name: tdSpace, Type: tdString},
+			{Name: tdKey, Type: tdString},
+			{Name: tdPrice, Type: tdUint64},
+			{Name: tdBlockID, Type: tdString},
 		},
 		tdata.TypedDataMessage{
-			"blockID": d.BlockID.String(),
-			"price":   strconv.FormatUint(d.Price, 10),
-			"space":   d.Space,
-			"key":     d.Key,
+			tdSpace:   d.Space,
+			tdKey:     d.Key,
+			tdPrice:   strconv.FormatUint(d.Price, 10),
+			tdBlockID: d.BlockID.String(),
 		},
 	)
 }

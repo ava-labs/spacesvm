@@ -59,16 +59,16 @@ func (t *TransferTx) TypedData() *tdata.TypedData {
 	return tdata.CreateTypedData(
 		t.Magic, Transfer,
 		[]tdata.Type{
-			{Name: "blockID", Type: "string"},
-			{Name: "price", Type: "uint64"},
-			{Name: "to", Type: "address"},
-			{Name: "units", Type: "uint64"},
+			{Name: tdTo, Type: tdAddress},
+			{Name: tdUnits, Type: tdUint64},
+			{Name: tdPrice, Type: tdUint64},
+			{Name: tdBlockID, Type: tdString},
 		},
 		tdata.TypedDataMessage{
-			"blockID": t.BlockID.String(),
-			"price":   strconv.FormatUint(t.Price, 10),
-			"to":      t.To,
-			"units":   strconv.FormatUint(t.Units, 10),
+			tdTo:      t.To,
+			tdUnits:   strconv.FormatUint(t.Units, 10),
+			tdPrice:   strconv.FormatUint(t.Price, 10),
+			tdBlockID: t.BlockID.String(),
 		},
 	)
 }
