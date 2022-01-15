@@ -6,6 +6,7 @@ package client
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/json"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -44,6 +45,13 @@ func SignIssueTx(
 	utx.SetBlockID(la)
 	utx.SetMagic(g.Magic)
 	utx.SetPrice(price + blockCost/utx.FeeUnits(g))
+
+	// Log typed data
+	b, err := json.Marshal(utx.TypedData())
+	if err != nil {
+		return ids.Empty, err
+	}
+	color.Cyan("typed data: %v", string(b))
 
 	dh, err := chain.DigestHash(utx)
 	if err != nil {
