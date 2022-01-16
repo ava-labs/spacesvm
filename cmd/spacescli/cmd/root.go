@@ -50,6 +50,7 @@ func init() {
 		moveCmd,
 		setFileCmd,
 		resolveFileCmd,
+		deleteFileCmd,
 	)
 
 	rootCmd.PersistentFlags().StringVar(

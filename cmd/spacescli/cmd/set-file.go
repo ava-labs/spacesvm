@@ -12,9 +12,10 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/spacesvm/client"
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tree"
 )
 
 var setFileCmd = &cobra.Command{
@@ -30,19 +31,10 @@ func setFileFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	space, key, val := getSetFileOp(args)
+	space, f := getSetFileOp(args)
 	cli := client.New(uri, requestTimeout)
 
-	utx := &chain.SetTx{
-		BaseTx: &chain.BaseTx{},
-		Space:  space,
-		Key:    key,
-		Value:  val,
-	}
-
-	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
-	_, err = client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
-	if err != nil {
+	if _, err := tree.Upload(context.Background(), cli, priv, space, f, 64*units.KiB); err != nil {
 		return err
 	}
 
@@ -55,23 +47,29 @@ func setFileFunc(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getSetFileOp(args []string) (space string, key string, val []byte) {
+func getSetFileOp(args []string) (space string, f *os.File) {
 	if len(args) != 2 {
 		fmt.Fprintf(os.Stderr, "expected exactly 2 arguments, got %d", len(args))
 		os.Exit(128)
 	}
 
-	// [space/key] == "foo/bar"
 	spaceKey := args[0]
-
-	var err error
-	space, key, err = parser.ResolvePath(spaceKey)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
+	if err := parser.CheckContents(spaceKey); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to parse space %v", err)
 		os.Exit(128)
 	}
 
-	val = []byte(args[1])
+	filePath := args[1]
+	if _, err := os.Stat(filePath); err != nil {
+		fmt.Fprintf(os.Stderr, "file is not accessible %v", err)
+		os.Exit(128)
+	}
 
-	return space, key, val
+	f, err := os.Open(filePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to open file %v", err)
+		os.Exit(128)
+	}
+
+	return spaceKey, f
 }

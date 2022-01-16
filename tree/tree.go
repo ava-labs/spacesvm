@@ -82,11 +82,11 @@ func Upload(
 	}
 	totalCost += cost
 	color.Green("uploaded root=%s txID=%s cost=%d totalCost=%d", rk, txID, cost, totalCost)
-	return rk, nil
+	return space + parser.Delimiter + rk, nil
 }
 
 // TODO: make multi-threaded
-func Download(ctx context.Context, cli client.Client, path string, f *os.File, workers int) error {
+func Download(cli client.Client, path string, f *os.File) error {
 	exists, rb, err := cli.Resolve(path)
 	if err != nil {
 		return err
