@@ -7,12 +7,16 @@ package integration_test
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math/rand"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -22,6 +26,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/utils/units"
 	avago_version "github.com/ava-labs/avalanchego/version"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -34,6 +39,7 @@ import (
 	"github.com/ava-labs/spacesvm/client"
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
+	"github.com/ava-labs/spacesvm/tree"
 	"github.com/ava-labs/spacesvm/vm"
 )
 
@@ -519,6 +525,72 @@ var _ = ginkgo.Describe("Tx Types", func() {
 
 			// mempool in 1 should be empty, since gossip/submit failed
 			gomega.Ω(instances[1].vm.Mempool().Len()).Should(gomega.Equal(0))
+		})
+	})
+
+	ginkgo.It("file ops work", func() {
+		space := "coolfilestorageforall"
+		ginkgo.By("create space", func() {
+			createIssueTx(instances[0], &chain.Input{
+				Typ:   chain.Move,
+				To:    sender,
+				Space: space,
+			}, priv2)
+			expectBlkAccept(instances[0])
+		})
+
+		var path string
+		var originalFile *os.File
+		var err error
+		ginkgo.By("upload file", func() {
+			originalFile, err = os.Open("tests/integration/computer.gif")
+			gomega.Ω(err).Should(gomega.BeNil())
+
+			path, _, err = tree.Upload(context.Background(), instances[0].cli, priv, space, originalFile, 64*units.KiB)
+			gomega.Ω(err).Should(gomega.BeNil())
+			expectBlkAccept(instances[0])
+		})
+
+		var newFile *os.File
+		ginkgo.By("download file", func() {
+			newFile, err = ioutil.TempFile("spacesvm-integration", "")
+			gomega.Ω(err).Should(gomega.BeNil())
+
+			err = tree.Download(instances[0].cli, path, newFile)
+			gomega.Ω(err).Should(gomega.BeNil())
+		})
+
+		ginkgo.By("compare file contents", func() {
+			_, err = originalFile.Seek(0, io.SeekStart)
+			gomega.Ω(err).Should(gomega.BeNil())
+			rho := sha256.New()
+			_, err = io.Copy(rho, originalFile)
+			gomega.Ω(err).Should(gomega.BeNil())
+			ho := fmt.Sprintf("%x", rho.Sum(nil))
+
+			_, err = newFile.Seek(0, io.SeekStart)
+			gomega.Ω(err).Should(gomega.BeNil())
+			rhn := sha256.New()
+			_, err = io.Copy(rhn, newFile)
+			gomega.Ω(err).Should(gomega.BeNil())
+			hn := fmt.Sprintf("%x", rhn.Sum(nil))
+
+			gomega.Ω(ho).Should(gomega.Equal(hn))
+
+			originalFile.Close()
+			newFile.Close()
+		})
+
+		ginkgo.By("delete file", func() {
+			err = tree.Delete(context.Background(), instances[0].cli, path, priv)
+			gomega.Ω(err).Should(gomega.BeNil())
+
+			// Should error
+			dummyFile, err := ioutil.TempFile("spacesvm-integration", "")
+			gomega.Ω(err).Should(gomega.BeNil())
+			err = tree.Download(instances[0].cli, path, dummyFile)
+			gomega.Ω(err).Should(gomega.BeNil())
+			dummyFile.Close()
 		})
 	})
 
