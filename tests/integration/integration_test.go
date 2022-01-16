@@ -538,74 +538,76 @@ var _ = ginkgo.Describe("Tx Types", func() {
 			expectBlkAccept(instances[0])
 		})
 
-		var path string
-		var originalFile *os.File
-		var err error
-		ginkgo.By("upload file", func() {
-			originalFile, err = os.Open("computer.gif")
-			gomega.Ω(err).Should(gomega.BeNil())
+		for _, file := range []string{"computer.gif", "small.txt"} {
+			var path string
+			var originalFile *os.File
+			var err error
+			ginkgo.By("upload file", func() {
+				originalFile, err = os.Open(file)
+				gomega.Ω(err).Should(gomega.BeNil())
 
-			c := make(chan struct{})
-			d := make(chan struct{})
-			go func() {
-				asyncBlockPush(instances[0], c)
-				close(d)
-			}()
-			path, err = tree.Upload(context.Background(), instances[0].cli, priv, space, originalFile, 64*units.KiB)
-			gomega.Ω(err).Should(gomega.BeNil())
-			close(c)
-			<-d
-		})
+				c := make(chan struct{})
+				d := make(chan struct{})
+				go func() {
+					asyncBlockPush(instances[0], c)
+					close(d)
+				}()
+				path, err = tree.Upload(context.Background(), instances[0].cli, priv, space, originalFile, 64*units.KiB)
+				gomega.Ω(err).Should(gomega.BeNil())
+				close(c)
+				<-d
+			})
 
-		var newFile *os.File
-		ginkgo.By("download file", func() {
-			newFile, err = ioutil.TempFile("", "computer")
-			gomega.Ω(err).Should(gomega.BeNil())
+			var newFile *os.File
+			ginkgo.By("download file", func() {
+				newFile, err = ioutil.TempFile("", "computer")
+				gomega.Ω(err).Should(gomega.BeNil())
 
-			err = tree.Download(instances[0].cli, path, newFile)
-			gomega.Ω(err).Should(gomega.BeNil())
-		})
+				err = tree.Download(instances[0].cli, path, newFile)
+				gomega.Ω(err).Should(gomega.BeNil())
+			})
 
-		ginkgo.By("compare file contents", func() {
-			_, err = originalFile.Seek(0, io.SeekStart)
-			gomega.Ω(err).Should(gomega.BeNil())
-			rho := sha256.New()
-			_, err = io.Copy(rho, originalFile)
-			gomega.Ω(err).Should(gomega.BeNil())
-			ho := fmt.Sprintf("%x", rho.Sum(nil))
+			ginkgo.By("compare file contents", func() {
+				_, err = originalFile.Seek(0, io.SeekStart)
+				gomega.Ω(err).Should(gomega.BeNil())
+				rho := sha256.New()
+				_, err = io.Copy(rho, originalFile)
+				gomega.Ω(err).Should(gomega.BeNil())
+				ho := fmt.Sprintf("%x", rho.Sum(nil))
 
-			_, err = newFile.Seek(0, io.SeekStart)
-			gomega.Ω(err).Should(gomega.BeNil())
-			rhn := sha256.New()
-			_, err = io.Copy(rhn, newFile)
-			gomega.Ω(err).Should(gomega.BeNil())
-			hn := fmt.Sprintf("%x", rhn.Sum(nil))
+				_, err = newFile.Seek(0, io.SeekStart)
+				gomega.Ω(err).Should(gomega.BeNil())
+				rhn := sha256.New()
+				_, err = io.Copy(rhn, newFile)
+				gomega.Ω(err).Should(gomega.BeNil())
+				hn := fmt.Sprintf("%x", rhn.Sum(nil))
 
-			gomega.Ω(ho).Should(gomega.Equal(hn))
+				gomega.Ω(ho).Should(gomega.Equal(hn))
 
-			originalFile.Close()
-			newFile.Close()
-		})
+				originalFile.Close()
+				newFile.Close()
+			})
 
-		ginkgo.By("delete file", func() {
-			c := make(chan struct{})
-			d := make(chan struct{})
-			go func() {
-				asyncBlockPush(instances[0], c)
-				close(d)
-			}()
-			err = tree.Delete(context.Background(), instances[0].cli, path, priv)
-			gomega.Ω(err).Should(gomega.BeNil())
-			close(c)
-			<-d
+			ginkgo.By("delete file", func() {
+				c := make(chan struct{})
+				d := make(chan struct{})
+				go func() {
+					asyncBlockPush(instances[0], c)
+					close(d)
+				}()
+				err = tree.Delete(context.Background(), instances[0].cli, path, priv)
+				gomega.Ω(err).Should(gomega.BeNil())
+				close(c)
+				<-d
 
-			// Should error
-			dummyFile, err := ioutil.TempFile("", "computer_copy")
-			gomega.Ω(err).Should(gomega.BeNil())
-			err = tree.Download(instances[0].cli, path, dummyFile)
-			gomega.Ω(err).Should(gomega.MatchError(tree.ErrMissing))
-			dummyFile.Close()
-		})
+				// Should error
+				dummyFile, err := ioutil.TempFile("", "computer_copy")
+				gomega.Ω(err).Should(gomega.BeNil())
+				err = tree.Download(instances[0].cli, path, dummyFile)
+				gomega.Ω(err).Should(gomega.MatchError(tree.ErrMissing))
+				dummyFile.Close()
+			})
+		}
 	})
 
 	// TODO: full replicate blocks between nodes
