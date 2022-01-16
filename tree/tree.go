@@ -122,5 +122,46 @@ func Download(ctx context.Context, cli client.Client, path string, f *os.File, w
 
 // Delete all hashes under a root
 func Delete(ctx context.Context, cli client.Client, path string, priv *ecdsa.PrivateKey) error {
+	exists, rb, err := cli.Resolve(path)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w:%s", ErrMissing, path)
+	}
+	var r Root
+	if err := json.Unmarshal(rb, &r); err != nil {
+		return err
+	}
+	// Path must be formatted correctly if made it here
+	spl := strings.Split(path, parser.Delimiter)
+	space := spl[0]
+	root := spl[1]
+	opts := []client.OpOption{client.WithPollTx()}
+	totalCost := uint64(0)
+	for _, h := range r.Children {
+		tx := &chain.DeleteTx{
+			BaseTx: &chain.BaseTx{},
+			Space:  space,
+			Key:    h,
+		}
+		txID, cost, err := client.SignIssueRawTx(ctx, cli, tx, priv, opts...)
+		if err != nil {
+			return err
+		}
+		totalCost += cost
+		color.Yellow("deleted k=%s txID=%s cost=%d totalCost=%d", h, txID, cost, totalCost)
+	}
+	tx := &chain.DeleteTx{
+		BaseTx: &chain.BaseTx{},
+		Space:  space,
+		Key:    root,
+	}
+	txID, cost, err := client.SignIssueRawTx(ctx, cli, tx, priv, opts...)
+	if err != nil {
+		return err
+	}
+	totalCost += cost
+	color.Green("deleted root=%s txID=%s cost=%d totalCost=%d", path, txID, cost, totalCost)
 	return nil
 }
