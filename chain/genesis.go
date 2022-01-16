@@ -18,6 +18,7 @@ import (
 
 const (
 	LotteryRewardDivisor = 100
+	MinBlockCost         = 0
 )
 
 type Airdrop struct {
@@ -64,7 +65,6 @@ type Genesis struct {
 	BlockTarget    int64  `serialize:"true" json:"blockTarget"`
 	TargetUnits    uint64 `serialize:"true" json:"targetUnits"`
 	MinPrice       uint64 `serialize:"true" json:"minPrice"`
-	MinBlockCost   uint64 `serialize:"true" json:"minBlockCost"`
 
 	// Allocations
 	CustomAllocation []*CustomAllocation `serialize:"true" json:"customAllocation"`
@@ -104,14 +104,13 @@ func DefaultGenesis() *Genesis {
 		BlockTarget:    1,             // 1 Block per Second
 		TargetUnits:    10 * 512 * 60, // 5012 Units Per Block (~1.2MB of SetTx)
 		MinPrice:       1,             // (50 for easiest claim)
-		MinBlockCost:   0,             // Minimum Unit Overhead
 	}
 }
 
 func (g *Genesis) StatefulBlock() *StatefulBlock {
 	return &StatefulBlock{
 		Price: g.MinPrice,
-		Cost:  g.MinBlockCost,
+		Cost:  MinBlockCost,
 	}
 }
 

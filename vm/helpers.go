@@ -76,8 +76,8 @@ func (vm *VM) SuggestedFee() (uint64, uint64, error) {
 	}
 	sort.Slice(ctx.Costs, func(i, j int) bool { return ctx.Costs[i] < ctx.Costs[j] })
 	pCost := ctx.Costs[(len(ctx.Costs)-1)*feePercentile/100]
-	if pCost < g.MinBlockCost {
-		pCost = g.MinBlockCost
+	if pCost < chain.MinBlockCost {
+		pCost = chain.MinBlockCost
 	}
 
 	// Adjust cost estimate based on recent txs
@@ -86,10 +86,10 @@ func (vm *VM) SuggestedFee() (uint64, uint64, error) {
 		return pPrice, pCost, nil
 	}
 	cPerTx := pCost / uint64(recentTxs) / uint64(ctx.RecentBlockIDs.Len())
-	if cPerTx < g.MinBlockCost {
+	if cPerTx < chain.MinBlockCost {
 		// We always recommend at least the minBlockCost in case there are no other
 		// transactions.
-		cPerTx = g.MinBlockCost
+		cPerTx = chain.MinBlockCost
 	}
 	return pPrice, cPerTx, nil
 }
