@@ -178,13 +178,13 @@ func ParseTypedData(td *tdata.TypedData) (UnsignedTransaction, error) {
 		if !ok {
 			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdSpace)
 		}
-		to, ok := td.Message[tdTo].(common.Address)
+		to, ok := td.Message[tdTo].(string)
 		if !ok {
 			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdTo)
 		}
-		return &MoveTx{BaseTx: bTx, Space: space, To: to}, nil
+		return &MoveTx{BaseTx: bTx, Space: space, To: common.HexToAddress(to)}, nil
 	case Transfer:
-		to, ok := td.Message[tdTo].(common.Address)
+		to, ok := td.Message[tdTo].(string)
 		if !ok {
 			return nil, fmt.Errorf("%w: %s", ErrTypedDataKeyMissing, tdTo)
 		}
@@ -192,7 +192,7 @@ func ParseTypedData(td *tdata.TypedData) (UnsignedTransaction, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &TransferTx{BaseTx: bTx, To: to, Units: units}, nil
+		return &TransferTx{BaseTx: bTx, To: common.HexToAddress(to), Units: units}, nil
 	default:
 		return nil, ErrInvalidType
 	}

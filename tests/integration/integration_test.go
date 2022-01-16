@@ -237,7 +237,7 @@ func RandStringRunes(n int) string {
 	return string(b)
 }
 
-var _ = ginkgo.Describe("[ClaimTx]", func() {
+var _ = ginkgo.Describe("Tx Types", func() {
 	ginkgo.It("ensure activity yet", func() {
 		activity, err := instances[0].cli.RecentActivity()
 		gomega.Ω(err).To(gomega.BeNil())
@@ -402,15 +402,6 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			expectBlkAccept(instances[0])
 		})
 
-		ginkgo.By("transfer funds to other sender (simple)", func() {
-			createIssueTx(instances[0], &chain.Input{
-				Typ:   chain.Transfer,
-				To:    sender2,
-				Units: 100,
-			}, priv)
-			expectBlkAccept(instances[0])
-		})
-
 		ginkgo.By("move space to other sender", func() {
 			moveTx := &chain.MoveTx{
 				BaseTx: &chain.BaseTx{},
@@ -418,15 +409,6 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 				Space:  space,
 			}
 			createIssueRawTx(instances[0], moveTx, priv)
-			expectBlkAccept(instances[0])
-		})
-
-		ginkgo.By("move space to other sender (simple)", func() {
-			createIssueTx(instances[0], &chain.Input{
-				Typ:   chain.Move,
-				To:    sender,
-				Space: space,
-			}, priv2)
 			expectBlkAccept(instances[0])
 		})
 
@@ -454,6 +436,24 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			gomega.Ω(a3.Typ).To(gomega.Equal("claim"))
 			gomega.Ω(a3.Space).To(gomega.Equal(space))
 			gomega.Ω(a3.Sender).To(gomega.Equal(sender.Hex()))
+		})
+
+		ginkgo.By("transfer funds to other sender (simple)", func() {
+			createIssueTx(instances[0], &chain.Input{
+				Typ:   chain.Transfer,
+				To:    sender2,
+				Units: 100,
+			}, priv)
+			expectBlkAccept(instances[0])
+		})
+
+		ginkgo.By("move space to other sender (simple)", func() {
+			createIssueTx(instances[0], &chain.Input{
+				Typ:   chain.Move,
+				To:    sender,
+				Space: space,
+			}, priv2)
+			expectBlkAccept(instances[0])
 		})
 	})
 
