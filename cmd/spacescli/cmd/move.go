@@ -41,7 +41,7 @@ func moveFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := []client.OpOption{client.WithPollTx()}
-	_, err = client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
+	_, cost, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func moveFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	color.Cyan("Address=%s Balance=%d", addr, b)
+	color.Cyan("Address=%s Balance=%d Cost=%d", addr, b, cost)
 	return nil
 }
 

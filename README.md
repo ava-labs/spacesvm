@@ -22,19 +22,22 @@ Usage:
   spaces-cli [command]
 
 Available Commands:
-  activity    View recent activity on the network
-  claim       Claims the given prefix
-  completion  generate the autocompletion script for the specified shell
-  create      Creates a new key in the default location
-  delete      Deletes a key-value pair for the given prefix
-  genesis     Creates a new genesis in the default location
-  help        Help about any command
-  info        Reads space info and all values at space
-  lifeline    Extends the life of a given prefix
-  move        Transfers a space to another address
-  resolve     Reads a value at space/key
-  set         Writes a key-value pair for the given prefix
-  transfer    Transfers units to another address
+  activity     View recent activity on the network
+  claim        Claims the given prefix
+  completion   generate the autocompletion script for the specified shell
+  create       Creates a new key in the default location
+  delete       Deletes a key-value pair for the given prefix
+  delete-file  Deletes all hashes reachable from root file identifier
+  genesis      Creates a new genesis in the default location
+  help         Help about any command
+  info         Reads space info and all values at space
+  lifeline     Extends the life of a given prefix
+  move         Transfers a space to another address
+  resolve      Reads a value at space/key
+  resolve-file Reads a file at space/key and saves it to disk
+  set          Writes a key-value pair for the given prefix
+  set-file     Writes a file to the given space
+  transfer     Transfers units to another address
 
 Flags:
       --endpoint string           RPC Endpoint for VM (default "https://memeshowdown.com")
@@ -280,6 +283,13 @@ _Can use this to get the current fee rate._
 3) sign EIP-712 Typed Data
 4) spacesvm.issueTx {"typedData":<from spacesvm.suggestedFee>, "signature":<sig from step 3>} => {"txId":<ID>}
 5) [loop] spacesvm.hasTx {"txId":<ID>} => {"accepted":true"}
+```
+
+# Uploading Files
+```
+spaces-cli set-file patrick ~/Downloads/computer.gif -> patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
+spaces-cli resolve-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8 computer_copy.gif
+spaces-cli delete-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
 ```
 
 ////// REWRITE ///////////////

@@ -14,7 +14,7 @@ import (
 
 const (
 	// 0x + hex-encoded hash
-	hashLen = 66
+	HashLen = 66
 )
 
 var _ UnsignedTransaction = &SetTx{}
@@ -59,7 +59,7 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 
 	// If Key is equal to hash length, ensure it is equal to the hash of the
 	// value
-	if len(s.Key) == hashLen {
+	if len(s.Key) == HashLen {
 		h := valueHash(s.Value)
 		if s.Key != h {
 			return fmt.Errorf("%w: expected %s got %x", ErrInvalidKey, h, s.Key)

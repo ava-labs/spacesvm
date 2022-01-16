@@ -7,14 +7,17 @@ package client
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/rpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 
 	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
 	"github.com/ava-labs/spacesvm/vm"
 )
@@ -226,7 +229,21 @@ func (cli *client) Resolve(path string) (exists bool, value []byte, err error) {
 	); err != nil {
 		return false, nil, err
 	}
-	return resp.Exists, resp.Value, nil
+
+	if !resp.Exists {
+		return false, nil, nil
+	}
+
+	// If we are here, path is valid
+	k := strings.Split(path, parser.Delimiter)[1]
+
+	// Ensure we are not served malicious chunks
+	if len(k) == chain.HashLen {
+		if k != strings.ToLower(common.Bytes2Hex(crypto.Keccak256(resp.Value))) {
+			return false, nil, ErrIntegrityFailure
+		}
+	}
+	return true, resp.Value, nil
 }
 
 func (cli *client) IssueTxHR(d []byte, sig []byte) (ids.ID, error) {

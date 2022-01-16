@@ -5,4 +5,4 @@ package client
 
 import "errors"
 
-var ErrSolution = errors.New("solution found")
+var ErrIntegrityFailure = errors.New("received file that does not match hash")
