@@ -48,6 +48,8 @@ func init() {
 		activityCmd,
 		transferCmd,
 		moveCmd,
+		setFileCmd,
+		resolveFileCmd,
 	)
 
 	rootCmd.PersistentFlags().StringVar(
