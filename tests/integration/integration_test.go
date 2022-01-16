@@ -33,6 +33,7 @@ import (
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/client"
 	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tdata"
 	"github.com/ava-labs/spacesvm/vm"
 )
 
@@ -303,7 +304,8 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 				Space:  space,
 				Units:  1,
 			}
-			expectBlkAccept(instances[1], lifelineTx, priv)
+			createIssueRawTx(instances[1], lifelineTx, priv)
+			expectBlkAccept(instances[1])
 		})
 
 		ginkgo.By("ensure all activity accounted for", func() {
@@ -350,7 +352,8 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		}
 
 		ginkgo.By("mine and accept block with the first ClaimTx", func() {
-			expectBlkAccept(instances[0], claimTx, priv)
+			createIssueRawTx(instances[0], claimTx, priv)
+			expectBlkAccept(instances[0])
 		})
 
 		ginkgo.By("check prefix after ClaimTx has been accepted", func() {
@@ -371,7 +374,8 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 		}
 
 		ginkgo.By("accept block with a new SetTx", func() {
-			expectBlkAccept(instances[0], setTx, priv)
+			createIssueRawTx(instances[0], setTx, priv)
+			expectBlkAccept(instances[0])
 		})
 
 		ginkgo.By("read back from VM with range query", func() {
@@ -394,7 +398,8 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 				To:     sender2,
 				Units:  100,
 			}
-			expectBlkAccept(instances[0], transferTx, priv)
+			createIssueRawTx(instances[0], transferTx, priv)
+			expectBlkAccept(instances[0])
 		})
 
 		ginkgo.By("move space to other sender", func() {
@@ -403,7 +408,8 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 				To:     sender2,
 				Space:  space,
 			}
-			expectBlkAccept(instances[0], moveTx, priv)
+			createIssueRawTx(instances[0], moveTx, priv)
+			expectBlkAccept(instances[0])
 		})
 
 		ginkgo.By("ensure all activity accounted for", func() {
@@ -446,7 +452,8 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 				}
 
 				// Use a different sender so that sender is rewarded
-				expectBlkAccept(instances[0], claimTx, priv2)
+				createIssueRawTx(instances[0], claimTx, priv2)
+				expectBlkAccept(instances[0])
 
 				bal2, err := instances[0].cli.Balance(sender)
 				gomega.Ω(err).To(gomega.BeNil())
@@ -500,11 +507,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 	// TODO: full replicate blocks between nodes
 })
 
-func expectBlkAccept(
-	i instance,
-	utx chain.UnsignedTransaction,
-	signer *ecdsa.PrivateKey,
-) {
+func createIssueRawTx(i instance, utx chain.UnsignedTransaction, signer *ecdsa.PrivateKey) {
 	g, err := i.cli.Genesis()
 	gomega.Ω(err).Should(gomega.BeNil())
 	utx.SetMagic(g.Magic)
@@ -526,11 +529,25 @@ func expectBlkAccept(
 	err = tx.Init(genesis)
 	gomega.Ω(err).To(gomega.BeNil())
 
-	// or to use VM directly
-	// err = vm.Submit(tx)
 	_, err = i.cli.IssueRawTx(tx.Bytes())
 	gomega.Ω(err).To(gomega.BeNil())
+}
 
+func createIssueTx(i instance, input *chain.Input, signer *ecdsa.PrivateKey) {
+	td, _, err := i.cli.SuggestedFee(input)
+	gomega.Ω(err).Should(gomega.BeNil())
+
+	dh, err := tdata.DigestHash(td)
+	gomega.Ω(err).Should(gomega.BeNil())
+
+	sig, err := chain.Sign(dh, signer)
+	gomega.Ω(err).Should(gomega.BeNil())
+
+	_, err = i.cli.IssueTx(td, sig)
+	gomega.Ω(err).To(gomega.BeNil())
+}
+
+func expectBlkAccept(i instance) {
 	// manually signal ready
 	i.builder.NotifyBuild()
 	// manually ack ready sig as in engine
