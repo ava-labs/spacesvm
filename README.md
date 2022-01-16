@@ -285,6 +285,13 @@ _Can use this to get the current fee rate._
 5) [loop] spacesvm.hasTx {"txId":<ID>} => {"accepted":true"}
 ```
 
+# Uploading Files
+```
+spaces-cli set-file patrick ~/Downloads/computer.gif -> patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
+spaces-cli resolve-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8 computer_copy.gif
+spaces-cli delete-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
+```
+
 ////// REWRITE ///////////////
 # Features
 TODO: Extend on

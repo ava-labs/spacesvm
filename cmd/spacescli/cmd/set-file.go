@@ -32,6 +32,8 @@ func setFileFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	space, f := getSetFileOp(args)
+	defer f.Close()
+
 	cli := client.New(uri, requestTimeout)
 
 	if _, err := tree.Upload(context.Background(), cli, priv, space, f, 64*units.KiB); err != nil {
@@ -70,7 +72,6 @@ func getSetFileOp(args []string) (space string, f *os.File) {
 		fmt.Fprintf(os.Stderr, "failed to open file %v", err)
 		os.Exit(128)
 	}
-	defer f.Close()
 
 	return spaceKey, f
 }
