@@ -22,6 +22,7 @@ import (
 )
 
 type Root struct {
+	Contents []byte   `json:"contents"`
 	Children []string `json:"children"`
 }
 
@@ -45,6 +46,11 @@ func Upload(
 		if read < chunkSize {
 			shouldExit = true
 			chunk = chunk[:read]
+
+			// Use small file optimization
+			if len(hashes) == 0 {
+				break
+			}
 		}
 		k := strings.ToLower(common.Bytes2Hex(crypto.Keccak256(chunk)))
 		tx := &chain.SetTx{
@@ -61,13 +67,18 @@ func Upload(
 		color.Yellow("uploaded k=%s txID=%s cost=%d totalCost=%d", k, txID, cost, totalCost)
 		hashes = append(hashes, k)
 	}
+
+	r := &Root{}
 	if len(hashes) == 0 {
-		return "", ErrEmpty
+		if len(chunk) == 0 {
+			return "", ErrEmpty
+		}
+		r.Contents = chunk
+	} else {
+		r.Children = hashes
 	}
 
-	rb, err := json.Marshal(&Root{
-		Children: hashes,
-	})
+	rb, err := json.Marshal(r)
 	if err != nil {
 		return "", err
 	}
@@ -99,6 +110,19 @@ func Download(cli client.Client, path string, f io.Writer) error {
 	var r Root
 	if err := json.Unmarshal(rb, &r); err != nil {
 		return err
+	}
+
+	// Use small file optimization
+	if contentLen := len(r.Contents); contentLen > 0 {
+		if _, err := f.Write(r.Contents); err != nil {
+			return err
+		}
+		color.Green("downloaded path=%s size=%fKB", path, float64(contentLen)/units.KiB)
+		return nil
+	}
+
+	if len(r.Children) == 0 {
+		return ErrEmpty
 	}
 
 	// Path must be formatted correctly if made it here
