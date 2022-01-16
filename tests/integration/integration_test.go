@@ -559,7 +559,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 
 		var newFile *os.File
 		ginkgo.By("download file", func() {
-			newFile, err = ioutil.TempFile("spacesvm-integration", "")
+			newFile, err = ioutil.TempFile("", "computer")
 			gomega.Ω(err).Should(gomega.BeNil())
 
 			err = tree.Download(instances[0].cli, path, newFile)
@@ -600,10 +600,10 @@ var _ = ginkgo.Describe("Tx Types", func() {
 			<-d
 
 			// Should error
-			dummyFile, err := ioutil.TempFile("spacesvm-integration", "")
+			dummyFile, err := ioutil.TempFile("", "computer_copy")
 			gomega.Ω(err).Should(gomega.BeNil())
 			err = tree.Download(instances[0].cli, path, dummyFile)
-			gomega.Ω(err).Should(gomega.BeNil())
+			gomega.Ω(err).Should(gomega.MatchError(tree.ErrMissing))
 			dummyFile.Close()
 		})
 	})
