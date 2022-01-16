@@ -67,6 +67,9 @@ func (t *Transaction) Init(g *Genesis) error {
 	}
 	t.digestHash = dh
 
+	// Modify signature (for compatibility with MetaMask)
+	t.Signature[64] -= 27
+
 	// Derive sender
 	pk, err := crypto.SigToPub(t.digestHash, t.Signature)
 	if err != nil {
