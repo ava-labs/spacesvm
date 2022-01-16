@@ -4,7 +4,6 @@
 package chain
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 

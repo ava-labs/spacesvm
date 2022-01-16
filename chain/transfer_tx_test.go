@@ -49,7 +49,7 @@ func TestTransferTx(t *testing.T) {
 		},
 		// sender3 is not given any balance
 	}
-	if err := g.Load(db); err != nil {
+	if err := g.Load(db, nil); err != nil {
 		t.Fatal(err)
 	}
 

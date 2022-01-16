@@ -102,7 +102,7 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 			},
 			// sender2 is not given any balance
 		}
-		if err := g.Load(db); err != nil {
+		if err := g.Load(db, nil); err != nil {
 			t.Fatal(err)
 		}
 		tx := tv.createTx()

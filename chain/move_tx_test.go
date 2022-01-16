@@ -50,10 +50,9 @@ func TestMoveTx(t *testing.T) {
 		},
 		// sender3 is not given any balance
 	}
-	if err := g.Load(db); err != nil {
+	if err := g.Load(db, nil); err != nil {
 		t.Fatal(err)
 	}
-	CleanAirdropData()
 
 	// Items: transfer without balance, transfer with small balance, transfer some balance, transfer from
 	// account that now has balance, transfer prefix, transfer to self
