@@ -40,10 +40,11 @@ var (
 )
 
 type VM struct {
-	ctx     *snow.Context
-	db      database.Database
-	config  Config
-	genesis *chain.Genesis
+	ctx         *snow.Context
+	db          database.Database
+	config      Config
+	genesis     *chain.Genesis
+	AirdropData []byte
 
 	bootstrapped bool
 
@@ -173,7 +174,7 @@ func (vm *VM) Initialize(
 		}
 
 		// Set Balances
-		if err := vm.genesis.Load(vm.db); err != nil {
+		if err := vm.genesis.Load(vm.db, vm.AirdropData); err != nil {
 			log.Error("could not set genesis allocation", "err", err)
 			return err
 		}
@@ -186,6 +187,7 @@ func (vm *VM) Initialize(
 		vm.preferred, vm.lastAccepted = gBlkID, genesisBlk
 		log.Info("initialized spacesvm from genesis", "block", gBlkID)
 	}
+	vm.AirdropData = nil
 
 	go vm.builder.Build()
 	go vm.builder.Gossip()

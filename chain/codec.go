@@ -35,7 +35,8 @@ func init() {
 		c.RegisterType(&Transaction{}),
 		c.RegisterType(&StatefulBlock{}),
 		c.RegisterType(&SpaceInfo{}),
-		c.RegisterType(&Allocation{}),
+		c.RegisterType(&CustomAllocation{}),
+		c.RegisterType(&Airdrop{}),
 		c.RegisterType(&Genesis{}),
 		codecManager.RegisterCodec(codecVersion, c),
 	)

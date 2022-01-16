@@ -39,7 +39,7 @@ func TestMoveTx(t *testing.T) {
 	defer db.Close()
 
 	g := DefaultGenesis()
-	g.Allocations = []*Allocation{
+	g.CustomAllocation = []*CustomAllocation{
 		{
 			Address: sender,
 			Balance: 10000000,
@@ -50,7 +50,7 @@ func TestMoveTx(t *testing.T) {
 		},
 		// sender3 is not given any balance
 	}
-	if err := g.Load(db); err != nil {
+	if err := g.Load(db, nil); err != nil {
 		t.Fatal(err)
 	}
 
