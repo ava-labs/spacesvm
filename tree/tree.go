@@ -118,10 +118,10 @@ func Download(cli client.Client, path string, f io.Writer) error {
 			return err
 		}
 		size := len(b)
-		color.Yellow("downloaded chunk=%s size=%dKB", chunk, float64(size)/units.KiB)
+		color.Yellow("downloaded chunk=%s size=%fKB", chunk, float64(size)/units.KiB)
 		amountDownloaded += size
 	}
-	color.Green("download path=%s size=%dMB", path, float64(amountDownloaded)/units.KiB)
+	color.Green("download path=%s size=%fMB", path, float64(amountDownloaded)/units.MiB)
 	return nil
 }
 
