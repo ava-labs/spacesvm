@@ -33,11 +33,12 @@ func resolveFileFunc(cmd *cobra.Command, args []string) error {
 		os.Exit(128)
 	}
 
-	f, err := os.Open(filePath)
+	f, err := os.Create(filePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to open file %v", err)
+		fmt.Fprintf(os.Stderr, "failed to create file %v", err)
 		os.Exit(128)
 	}
+	defer f.Close()
 
 	cli := client.New(uri, requestTimeout)
 	return tree.Download(cli, args[0], f)

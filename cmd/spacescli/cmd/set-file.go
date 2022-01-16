@@ -70,6 +70,7 @@ func getSetFileOp(args []string) (space string, f *os.File) {
 		fmt.Fprintf(os.Stderr, "failed to open file %v", err)
 		os.Exit(128)
 	}
+	defer f.Close()
 
 	return spaceKey, f
 }

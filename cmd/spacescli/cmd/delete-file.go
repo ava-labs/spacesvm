@@ -28,8 +28,8 @@ func deleteFileFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 2 argument, got %d", len(args))
+	if len(args) != 1 {
+		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
 		os.Exit(128)
 	}
 
