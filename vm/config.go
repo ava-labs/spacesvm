@@ -18,8 +18,6 @@ type Config struct {
 
 	MempoolSize       int `serialize:"true" json:"mempoolSize"`
 	ActivityCacheSize int `serialize:"true" json:"activityCacheSize"`
-
-	ClearAirdropData bool `serialize:"true" json:"clearAirdropData"`
 }
 
 func (c *Config) SetDefaults() {
@@ -33,6 +31,4 @@ func (c *Config) SetDefaults() {
 
 	c.MempoolSize = 1024
 	c.ActivityCacheSize = 128
-
-	c.ClearAirdropData = true
 }

@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"math/rand"
 	"net/http/httptest"
 	"strings"
@@ -130,13 +131,10 @@ var _ = ginkgo.BeforeSuite(func() {
 			Address: sender,
 			Balance: 10000000,
 		},
-		{
-			Address: sender2,
-			Balance: 10000000,
-		},
 	}
-	genesis.AirdropHash = "0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da"
-	genesis.AirdropUnits = 100
+	airdropData := []byte(fmt.Sprintf(`[{"address":"%s"}]`, sender2))
+	genesis.AirdropHash = ecommon.BytesToHash(crypto.Keccak256(airdropData)).Hex()
+	genesis.AirdropUnits = 1000000000
 	genesisBytes, err = json.Marshal(genesis)
 	gomega.Ω(err).Should(gomega.BeNil())
 
@@ -157,13 +155,13 @@ var _ = ginkgo.BeforeSuite(func() {
 		db := manager.NewMemDB(avago_version.CurrentDatabase)
 
 		// TODO: test appsender
-		v := &vm.VM{}
+		v := &vm.VM{AirdropData: airdropData}
 		err := v.Initialize(
 			ctx,
 			db,
 			genesisBytes,
 			nil,
-			[]byte(`{"clearAirdropData":false}`),
+			nil,
 			toEngine,
 			nil,
 			app,

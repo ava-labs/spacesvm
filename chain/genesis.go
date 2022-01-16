@@ -15,12 +15,6 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-// All addresses on the C-Chain with > 2 transactions as of 1/15/22
-// Hash: 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da
-
-//go:embed airdrops/011522.json
-var AirdropData []byte
-
 type Airdrop struct {
 	// Address strings are hex-formatted common.Address
 	Address common.Address `serialize:"true" json:"address"`
@@ -125,15 +119,15 @@ func (g *Genesis) Verify() error {
 	return nil
 }
 
-func (g *Genesis) Load(db database.KeyValueWriter) error {
+func (g *Genesis) Load(db database.KeyValueWriter, airdropData []byte) error {
 	if len(g.AirdropHash) > 0 {
-		h := common.BytesToHash(crypto.Keccak256(AirdropData)).Hex()
+		h := common.BytesToHash(crypto.Keccak256(airdropData)).Hex()
 		if g.AirdropHash != h {
 			return fmt.Errorf("expected standard allocation %s but got %s", g.AirdropHash, h)
 		}
 
 		standardAllocation := []*Airdrop{}
-		if err := json.Unmarshal(AirdropData, &standardAllocation); err != nil {
+		if err := json.Unmarshal(airdropData, &standardAllocation); err != nil {
 			return err
 		}
 
@@ -157,8 +151,4 @@ func (g *Genesis) Load(db database.KeyValueWriter) error {
 		log.Debug("applied custom allocation", "addr", alloc.Address, "balance", alloc.Balance)
 	}
 	return nil
-}
-
-func CleanAirdropData() {
-	AirdropData = nil
 }

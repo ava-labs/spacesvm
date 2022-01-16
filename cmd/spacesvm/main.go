@@ -15,6 +15,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// All addresses on the C-Chain with > 2 transactions as of 1/15/22
+// Hash: 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da
+
+//go:embed airdrops/011522.json
+var AirdropData []byte
+
 func init() {
 	log.Root().SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stderr, log.LogfmtFormat())))
 }
@@ -50,11 +56,14 @@ func runFunc(cmd *cobra.Command, args []string) error {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: rpcchainvm.Handshake,
 		Plugins: map[string]plugin.Plugin{
-			"vm": rpcchainvm.New(&vm.VM{}),
+			"vm": rpcchainvm.New(&vm.VM{AirdropData: AirdropData}),
 		},
 
 		// A non-nil value here enables gRPC serving for this plugin...
 		GRPCServer: plugin.DefaultGRPCServer,
 	})
+
+	// Remove reference so VM can free when ready
+	AirdropData = nil
 	return nil
 }

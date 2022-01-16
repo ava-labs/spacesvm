@@ -60,12 +60,6 @@ func init() {
 		-1,
 		"seconds per unit of fee that will be rewarded in a lifeline transaction",
 	)
-	genesisCmd.PersistentFlags().Int64Var(
-		&lifelineUnitReward,
-		"lifeline-unit-reward",
-		-1,
-		"seconds per unit of fee that will be rewarded in a lifeline transaction",
-	)
 	genesisCmd.PersistentFlags().StringVar(
 		&airdropHash,
 		"airdrop-hash",
