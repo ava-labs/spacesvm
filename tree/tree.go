@@ -1,50 +1,77 @@
 package tree
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"os"
 	"strings"
 
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/client"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/fatih/color"
 )
 
 type Root struct {
-	Children []common.Hash `json:"children"`
+	Children []string `json:"children"`
 }
 
-// TODO: upload in place so don't need to load into memory
-func Create(b []byte, chunkSize int) (string, []*chain.KeyValue, error) {
-	requiredChunks := len(b)/chunkSize + 1
-	max := len(b) - 1
-
-	r := &Root{Children: make([]common.Hash, requiredChunks)}
-	kv := make([]*chain.KeyValue, requiredChunks+1)
-	for i := 0; i < requiredChunks; i++ {
-		start := i * chunkSize
-		end := (i + 1) * chunkSize
-		if end > max {
-			end = max
+func Upload(ctx context.Context, cli client.Client, priv *ecdsa.PrivateKey, space string, f *os.File, chunkSize int) (string, error) {
+	hashes := []string{}
+	chunk := make([]byte, chunkSize)
+	shouldExit := false
+	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
+	for !shouldExit {
+		read, err := f.Read(chunk)
+		if err != nil {
+			return "", err
 		}
-		chunk := b[start:max]
-		kv[i] = &chain.KeyValue{
-			Key:   strings.ToLower(common.Bytes2Hex(crypto.Keccak256(chunk))),
-			Value: chunk,
+		if read == 0 {
+			break
 		}
+		if read < chunkSize {
+			shouldExit = true
+			chunk = chunk[:read]
+		}
+		k := strings.ToLower(common.Bytes2Hex(crypto.Keccak256(chunk)))
+		tx := &chain.SetTx{
+			BaseTx: &chain.BaseTx{},
+			Space:  space,
+			Key:    k,
+			Value:  chunk,
+		}
+		txID, err := client.SignIssueRawTx(ctx, cli, tx, priv, opts...)
+		if err != nil {
+			return "", err
+		}
+		color.Yellow("uploaded k=%s txID=%s", k, txID)
+		hashes = append(hashes, k)
+	}
+	if len(hashes) == 0 {
+		return "", ErrEmpty
 	}
 
-	rb, err := json.Marshal(r)
+	rb, err := json.Marshal(&Root{
+		Children: hashes,
+	})
 	if err != nil {
-		return "", nil, err
+		return "", err
 	}
 	rk := strings.ToLower(common.Bytes2Hex(crypto.Keccak256(rb)))
-	kv[requiredChunks+1] = &chain.KeyValue{
-		Key:   rk,
-		Value: rb,
+	tx := &chain.SetTx{
+		BaseTx: &chain.BaseTx{},
+		Space:  space,
+		Key:    rk,
+		Value:  rb,
 	}
-	return rk, kv, nil
+	txID, err := client.SignIssueRawTx(ctx, cli, tx, priv, opts...)
+	if err != nil {
+		return "", err
+	}
+	color.Green("uploaded root=%s txID=%s", rk, txID)
+	return rk, nil
 }
 
 func Download(cli *client.Client, priv *ecdsa.PrivateKey, kvs []*chain.KeyValue) error {
