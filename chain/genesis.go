@@ -75,8 +75,8 @@ func DefaultGenesis() *Genesis {
 		BaseTxUnits: 10,
 
 		// SetTx params
-		ValueUnitSize: 256,             // 256B
-		MaxValueSize:  128 * units.KiB, // (500 Units)
+		ValueUnitSize: 256,            // 256B
+		MaxValueSize:  64 * units.KiB, // (250 Units)
 
 		// Claim Params
 		ClaimFeeMultiplier:   5,
@@ -91,7 +91,7 @@ func DefaultGenesis() *Genesis {
 
 		// Reward Params
 		ClaimReward:        60 * 60 * 24 * 15, // 15 Days
-		LifelineUnitReward: 60 * 60 * 6,       // 6 Hours Per Fee Unit (1 ms of work)
+		LifelineUnitReward: 60 * 60,           // 1 Hours Per Fee Unit
 
 		// Lottery Reward (80% of tx.FeeUnits() * block.Price)
 		LotteryRewardMultipler: 8,
