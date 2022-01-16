@@ -592,7 +592,7 @@ func ModifyBalance(db database.KeyValueReaderWriter, address common.Address, add
 	return n, SetBalance(db, address, n)
 }
 
-func ApplyReward(db database.Database, blkID ids.ID, txID ids.ID, sender common.Address, reward uint64) error {
+func ApplyReward(db database.Database, blkID ids.ID, txID ids.ID, sender common.Address, reward uint64) (common.Address, bool, error) {
 	seed := [64]byte{}
 	copy(seed[:], blkID[:])
 	copy(seed[32:], txID[:])
@@ -612,26 +612,26 @@ func ApplyReward(db database.Database, blkID ids.ID, txID ids.ID, sender common.
 
 		var i SpaceInfo
 		if _, err := Unmarshal(cursor.Value(), &i); err != nil {
-			return err
+			return common.Address{}, false, err
 		}
 		space := string(curKey[2:])
 
 		// Do not give sender their funds back
 		if bytes.Equal(i.Owner[:], sender[:]) {
 			log.Debug("skipping reward: same owner", "space", space, "owner", i.Owner)
-			return nil
+			return common.Address{}, false, nil
 		}
 
 		// Distribute reward
 		if _, err := ModifyBalance(db, i.Owner, true, reward); err != nil {
-			return err
+			return common.Address{}, false, err
 		}
 
 		log.Debug("rewarded space owner", "space", space, "owner", i.Owner, "amount", reward)
-		return nil
+		return i.Owner, true, nil
 	}
 
 	// No reward applied
 	log.Debug("skipping reward: no valid space")
-	return nil
+	return common.Address{}, false, nil
 }
