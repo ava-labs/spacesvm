@@ -46,41 +46,41 @@ func SignIssueTx(
 	input *chain.Input,
 	priv *ecdsa.PrivateKey,
 	opts ...OpOption,
-) (txID ids.ID, err error) {
+) (txID ids.ID, cost uint64, err error) {
 	ret := &Op{}
 	ret.applyOpts(opts)
 
-	td, cost, err := cli.SuggestedFee(input)
+	td, txCost, err := cli.SuggestedFee(input)
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 	// Log typed data
 	b, err := json.Marshal(td)
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
-	color.Cyan("typed data (cost=%d): %v", cost, string(b))
+	color.Cyan("typed data (cost=%d): %v", txCost, string(b))
 
 	dh, err := tdata.DigestHash(td)
 	if err != nil {
-		return ids.Empty, fmt.Errorf("%w: failed to compute digest hash", err)
+		return ids.Empty, 0, fmt.Errorf("%w: failed to compute digest hash", err)
 	}
 
 	sig, err := chain.Sign(dh, priv)
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 
 	txID, err = cli.IssueTx(td, sig)
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 
 	if ret.pollTx {
 		color.Green("issued transaction %s (now polling)", txID)
 		confirmed, err := cli.PollTx(ctx, txID)
 		if err != nil {
-			return ids.Empty, err
+			return ids.Empty, 0, err
 		}
 		if !confirmed {
 			color.Yellow("transaction %s not confirmed", txID)
@@ -93,12 +93,12 @@ func SignIssueTx(
 		info, _, err := cli.Info(ret.space)
 		if err != nil {
 			color.Red("cannot get prefix info %v", err)
-			return ids.Empty, err
+			return ids.Empty, 0, err
 		}
 		PPInfo(info)
 	}
 
-	return txID, nil
+	return txID, txCost, nil
 }
 
 // Signs and issues the transaction (local construction).
@@ -108,23 +108,23 @@ func SignIssueRawTx(
 	utx chain.UnsignedTransaction,
 	priv *ecdsa.PrivateKey,
 	opts ...OpOption,
-) (txID ids.ID, err error) {
+) (txID ids.ID, cost uint64, err error) {
 	ret := &Op{}
 	ret.applyOpts(opts)
 
 	g, err := cli.Genesis()
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 
 	la, err := cli.Accepted()
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 
 	price, blockCost, err := cli.SuggestedRawFee()
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 
 	utx.SetBlockID(la)
@@ -134,23 +134,23 @@ func SignIssueRawTx(
 	// Log typed data
 	b, err := json.Marshal(utx.TypedData())
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 	color.Cyan("typed data: %v", string(b))
 
 	dh, err := chain.DigestHash(utx)
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 
 	sig, err := chain.Sign(dh, priv)
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 
 	tx := chain.NewTx(utx, sig)
 	if err := tx.Init(g); err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 
 	color.Yellow(
@@ -159,14 +159,14 @@ func SignIssueRawTx(
 	)
 	txID, err = cli.IssueRawTx(tx.Bytes())
 	if err != nil {
-		return ids.Empty, err
+		return ids.Empty, 0, err
 	}
 
 	if ret.pollTx {
 		color.Green("issued transaction %s (now polling)", txID)
 		confirmed, err := cli.PollTx(ctx, txID)
 		if err != nil {
-			return ids.Empty, err
+			return ids.Empty, 0, err
 		}
 		if !confirmed {
 			color.Yellow("transaction %s not confirmed", txID)
@@ -179,12 +179,12 @@ func SignIssueRawTx(
 		info, _, err := cli.Info(ret.space)
 		if err != nil {
 			color.Red("cannot get prefix info %v", err)
-			return ids.Empty, err
+			return ids.Empty, 0, err
 		}
 		PPInfo(info)
 	}
 
-	return txID, nil
+	return txID, utx.GetPrice() * utx.FeeUnits(g), nil
 }
 
 type Op struct {

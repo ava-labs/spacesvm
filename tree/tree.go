@@ -4,25 +4,31 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 
-	"github.com/ava-labs/spacesvm/chain"
-	"github.com/ava-labs/spacesvm/client"
+	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
+
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/client"
+	"github.com/ava-labs/spacesvm/parser"
 )
 
 type Root struct {
 	Children []string `json:"children"`
 }
 
-func Upload(ctx context.Context, cli client.Client, priv *ecdsa.PrivateKey, space string, f *os.File, chunkSize int) (string, error) {
+func Upload(
+	ctx context.Context, cli client.Client, priv *ecdsa.PrivateKey, space string, f *os.File, chunkSize int) (string, error) {
 	hashes := []string{}
 	chunk := make([]byte, chunkSize)
 	shouldExit := false
-	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
+	opts := []client.OpOption{client.WithPollTx()}
+	totalCost := uint64(0)
 	for !shouldExit {
 		read, err := f.Read(chunk)
 		if err != nil {
@@ -42,11 +48,12 @@ func Upload(ctx context.Context, cli client.Client, priv *ecdsa.PrivateKey, spac
 			Key:    k,
 			Value:  chunk,
 		}
-		txID, err := client.SignIssueRawTx(ctx, cli, tx, priv, opts...)
+		txID, cost, err := client.SignIssueRawTx(ctx, cli, tx, priv, opts...)
 		if err != nil {
 			return "", err
 		}
-		color.Yellow("uploaded k=%s txID=%s", k, txID)
+		totalCost += cost
+		color.Yellow("uploaded k=%s txID=%s cost=%d totalCost=%d", k, txID, cost, totalCost)
 		hashes = append(hashes, k)
 	}
 	if len(hashes) == 0 {
@@ -66,14 +73,54 @@ func Upload(ctx context.Context, cli client.Client, priv *ecdsa.PrivateKey, spac
 		Key:    rk,
 		Value:  rb,
 	}
-	txID, err := client.SignIssueRawTx(ctx, cli, tx, priv, opts...)
+	txID, cost, err := client.SignIssueRawTx(ctx, cli, tx, priv, opts...)
 	if err != nil {
 		return "", err
 	}
-	color.Green("uploaded root=%s txID=%s", rk, txID)
+	totalCost += cost
+	color.Green("uploaded root=%s txID=%s cost=%d totalCost=%d", rk, txID, cost, totalCost)
 	return rk, nil
 }
 
-func Download(cli *client.Client, priv *ecdsa.PrivateKey, kvs []*chain.KeyValue) error {
+// TODO: make multi-threaded
+func Download(ctx context.Context, cli client.Client, path string, f *os.File, workers int) error {
+	exists, rb, err := cli.Resolve(path)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("%w:%s", ErrMissing, path)
+	}
+	var r Root
+	if err := json.Unmarshal(rb, &r); err != nil {
+		return err
+	}
+
+	// Path must be formatted correctly if made it here
+	space := strings.Split(path, parser.Delimiter)[0]
+
+	amountDownloaded := 0
+	for _, h := range r.Children {
+		chunk := space + parser.Delimiter + h
+		exists, b, err := cli.Resolve(chunk)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return fmt.Errorf("%w:%s", ErrMissing, chunk)
+		}
+		if _, err := f.Write(b); err != nil {
+			return err
+		}
+		size := len(b)
+		color.Yellow("downloaded chunk=%s size=%dKB", chunk, float64(size)/units.KiB)
+		amountDownloaded += size
+	}
+	color.Green("download path=%s size=%dMB", path, float64(amountDownloaded)/units.KiB)
+	return nil
+}
+
+// Delete all hashes under a root
+func Delete(ctx context.Context, cli client.Client, path string, priv *ecdsa.PrivateKey) error {
 	return nil
 }
