@@ -331,7 +331,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 		dh, err := chain.DigestHash(utx)
 		gomega.Ω(err).Should(gomega.BeNil())
-		sig, err := crypto.Sign(dh, priv)
+		sig, err := chain.Sign(dh, priv)
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		tx := chain.NewTx(utx, sig)
@@ -509,7 +509,7 @@ func expectBlkAccept(
 
 	dh, err := chain.DigestHash(utx)
 	gomega.Ω(err).Should(gomega.BeNil())
-	sig, err := crypto.Sign(dh, signer)
+	sig, err := chain.Sign(dh, signer)
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	tx := chain.NewTx(utx, sig)

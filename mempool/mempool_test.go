@@ -33,7 +33,7 @@ func TestMempool(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		sig, err := crypto.Sign(dh, priv)
+		sig, err := chain.Sign(dh, priv)
 		if err != nil {
 			t.Fatal(err)
 		}
