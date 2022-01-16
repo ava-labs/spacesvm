@@ -592,7 +592,9 @@ func ModifyBalance(db database.KeyValueReaderWriter, address common.Address, add
 	return n, SetBalance(db, address, n)
 }
 
-func ApplyReward(db database.Database, blkID ids.ID, txID ids.ID, sender common.Address, reward uint64) (common.Address, bool, error) {
+func ApplyReward(
+	db database.Database, blkID ids.ID, txID ids.ID, sender common.Address, reward uint64,
+) (common.Address, bool, error) {
 	seed := [64]byte{}
 	copy(seed[:], blkID[:])
 	copy(seed[32:], txID[:])
