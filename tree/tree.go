@@ -8,7 +8,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
-	"os"
+	"io"
 	"strings"
 
 	"github.com/ava-labs/avalanchego/utils/units"
@@ -26,7 +26,7 @@ type Root struct {
 }
 
 func Upload(
-	ctx context.Context, cli client.Client, priv *ecdsa.PrivateKey, space string, f *os.File, chunkSize int) (string, error) {
+	ctx context.Context, cli client.Client, priv *ecdsa.PrivateKey, space string, f io.Reader, chunkSize int) (string, error) {
 	hashes := []string{}
 	chunk := make([]byte, chunkSize)
 	shouldExit := false
@@ -86,7 +86,7 @@ func Upload(
 }
 
 // TODO: make multi-threaded
-func Download(cli client.Client, path string, f *os.File) error {
+func Download(cli client.Client, path string, f io.Writer) error {
 	exists, rb, err := cli.Resolve(path)
 	if err != nil {
 		return err
