@@ -45,6 +45,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		return nil, err
 	}
 
+	b.Winners = map[ids.ID]*Activity{}
 	b.Txs = []*Transaction{}
 	units := uint64(0)
 	for units < g.TargetUnits && mempool.Len() > 0 {

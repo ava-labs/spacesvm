@@ -21,6 +21,9 @@ const (
 	Delete   = "delete"
 	Move     = "move"
 	Transfer = "transfer"
+
+	// Non-user created event
+	Reward = "reward"
 )
 
 type Input struct {

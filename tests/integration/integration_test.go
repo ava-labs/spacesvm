@@ -458,6 +458,16 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			}
 			gomega.Ω(found).To(gomega.BeTrue())
 		})
+
+		ginkgo.By("ensure all activity accounted for", func() {
+			activity, err := instances[0].cli.RecentActivity()
+			gomega.Ω(err).To(gomega.BeNil())
+
+			a0 := activity[0]
+			gomega.Ω(a0.Typ).To(gomega.Equal("reward"))
+			gomega.Ω(a0.To).To(gomega.Equal(sender.Hex()))
+			gomega.Ω(len(a0.Sender)).To(gomega.Equal(0))
+		})
 	})
 
 	ginkgo.It("fail Gossip ClaimTx to a stale node when missing previous blocks", func() {

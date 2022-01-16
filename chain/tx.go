@@ -129,7 +129,20 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blk *StatelessBl
 		return nil
 	}
 	rewardAmount := t.FeeUnits(g) * blk.Price * g.LotteryRewardMultipler / g.LotteryRewardDivisor
-	return ApplyReward(db, blk.ID(), t.ID(), t.sender, rewardAmount)
+	recipient, distributed, err := ApplyReward(db, blk.ID(), t.ID(), t.sender, rewardAmount)
+	if err != nil {
+		return err
+	}
+	if distributed {
+		blk.Winners[t.ID()] = &Activity{
+			Tmstmp: blk.Tmstmp,
+			Typ:    Reward,
+			TxID:   t.ID(),
+			To:     recipient.Hex(),
+			Units:  rewardAmount,
+		}
+	}
+	return nil
 }
 
 func (t *Transaction) Activity() *Activity {

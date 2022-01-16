@@ -40,6 +40,8 @@ type StatelessBlock struct {
 	t     time.Time
 	bytes []byte
 
+	Winners map[ids.ID]*Activity
+
 	vm         VM
 	children   []*StatelessBlock
 	onAcceptDB *versiondb.Database
@@ -90,6 +92,7 @@ func ParseStatefulBlock(
 		bytes:         source,
 		st:            status,
 		vm:            vm,
+		Winners:       map[ids.ID]*Activity{},
 	}
 	id, err := ids.ToID(crypto.Keccak256(b.bytes))
 	if err != nil {
@@ -106,6 +109,7 @@ func ParseStatefulBlock(
 }
 
 func (b *StatelessBlock) init() error {
+	b.Winners = map[ids.ID]*Activity{}
 	bytes, err := Marshal(b.StatefulBlock)
 	if err != nil {
 		return err
