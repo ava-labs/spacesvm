@@ -402,6 +402,15 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 			expectBlkAccept(instances[0])
 		})
 
+		ginkgo.By("transfer funds to other sender (simple)", func() {
+			createIssueTx(instances[0], &chain.Input{
+				Typ:   chain.Transfer,
+				To:    sender2,
+				Units: 100,
+			}, priv)
+			expectBlkAccept(instances[0])
+		})
+
 		ginkgo.By("move space to other sender", func() {
 			moveTx := &chain.MoveTx{
 				BaseTx: &chain.BaseTx{},
@@ -409,6 +418,15 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 				Space:  space,
 			}
 			createIssueRawTx(instances[0], moveTx, priv)
+			expectBlkAccept(instances[0])
+		})
+
+		ginkgo.By("move space to other sender (simple)", func() {
+			createIssueTx(instances[0], &chain.Input{
+				Typ:   chain.Move,
+				To:    sender,
+				Space: space,
+			}, priv2)
 			expectBlkAccept(instances[0])
 		})
 
