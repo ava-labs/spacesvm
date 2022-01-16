@@ -16,6 +16,10 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
+const (
+	LotteryRewardDivisor = 100
+)
+
 type Airdrop struct {
 	// Address strings are hex-formatted common.Address
 	Address common.Address `serialize:"true" json:"address"`
@@ -53,8 +57,7 @@ type Genesis struct {
 	LifelineUnitReward uint64 `serialize:"true" json:"lifelineUnitReward"`
 
 	// Mining Reward (% of min required fee)
-	LotteryRewardMultipler uint64 `serialize:"true" json:"lotteryRewardMultipler"`
-	LotteryRewardDivisor   uint64 `serialize:"true" json:"lotteryRewardDivisor"`
+	LotteryRewardMultipler uint64 `serialize:"true" json:"lotteryRewardMultipler"` // divided by 100
 
 	// Fee Mechanism Params
 	LookbackWindow int64  `serialize:"true" json:"lookbackWindow"`
@@ -94,8 +97,7 @@ func DefaultGenesis() *Genesis {
 		LifelineUnitReward: 60 * 60,           // 1 Hours Per Fee Unit
 
 		// Lottery Reward (80% of tx.FeeUnits() * block.Price)
-		LotteryRewardMultipler: 8,
-		LotteryRewardDivisor:   10,
+		LotteryRewardMultipler: 80,
 
 		// Fee Mechanism Params
 		LookbackWindow: 60,            // 60 Seconds
