@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 
 	"github.com/ava-labs/spacesvm/chain"
@@ -67,7 +66,7 @@ func SignIssueTx(
 		return ids.Empty, fmt.Errorf("%w: failed to compute digest hash", err)
 	}
 
-	sig, err := crypto.Sign(dh, priv)
+	sig, err := chain.Sign(dh, priv)
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -144,7 +143,7 @@ func SignIssueRawTx(
 		return ids.Empty, err
 	}
 
-	sig, err := crypto.Sign(dh, priv)
+	sig, err := chain.Sign(dh, priv)
 	if err != nil {
 		return ids.Empty, err
 	}

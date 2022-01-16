@@ -78,7 +78,7 @@ func createTestMempool(
 				Space: string(pfx),
 			},
 		}
-		sig, err := crypto.Sign(tx.DigestHash(), priv)
+		sig, err := chain.Sign(tx.DigestHash(), priv)
 		if err != nil {
 			b.Fatal(err)
 		}

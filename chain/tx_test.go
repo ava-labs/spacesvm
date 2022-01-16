@@ -40,7 +40,7 @@ func TestTransaction(t *testing.T) {
 		if len(dh) != 32 {
 			t.Fatalf("hash insufficient d=%d", len(dh))
 		}
-		tx.Signature, err = crypto.Sign(dh, priv)
+		tx.Signature, err = Sign(dh, priv)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -133,7 +133,7 @@ func createTestTx(t *testing.T, blockID ids.ID, priv *ecdsa.PrivateKey) *Transac
 	if len(dh) != 32 {
 		t.Fatalf("hash insufficient d=%d", len(dh))
 	}
-	sig, err := crypto.Sign(dh, priv)
+	sig, err := Sign(dh, priv)
 	if err != nil {
 		t.Fatal(err)
 	}
