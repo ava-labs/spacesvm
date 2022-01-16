@@ -41,17 +41,18 @@ func transferFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := []client.OpOption{client.WithPollTx()}
-	_, err = client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
+	_, cost, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
 	if err != nil {
 		return err
 	}
 
+	// TODO: move to opt
 	addr := crypto.PubkeyToAddress(priv.PublicKey)
 	b, err := cli.Balance(addr)
 	if err != nil {
 		return err
 	}
-	color.Cyan("Address=%s Balance=%d", addr, b)
+	color.Cyan("Address=%s Balance=%d Cost=%d", addr, b, cost)
 	return nil
 }
 
