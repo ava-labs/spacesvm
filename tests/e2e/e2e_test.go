@@ -145,7 +145,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			gomega.Ω(claimed).Should(gomega.BeFalse())
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err = client.SignIssueRawTx(
+			_, _, err = client.SignIssueRawTx(
 				ctx,
 				instances[0].cli,
 				claimTx,
@@ -186,7 +186,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueRawTx(
+			_, _, err := client.SignIssueRawTx(
 				ctx,
 				cli,
 				setTx,
@@ -233,7 +233,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueRawTx(
+			_, _, err := client.SignIssueRawTx(
 				ctx,
 				cli,
 				setTx,
@@ -278,7 +278,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueRawTx(
+			_, _, err := client.SignIssueRawTx(
 				ctx,
 				cli,
 				deleteTx,
@@ -319,7 +319,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			gomega.Ω(claimed).Should(gomega.BeFalse())
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err = client.SignIssueTx(
+			_, _, err = client.SignIssueTx(
 				ctx,
 				instances[0].cli,
 				&chain.Input{
@@ -356,7 +356,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(
+			_, _, err := client.SignIssueTx(
 				ctx,
 				cli,
 				&chain.Input{
@@ -401,7 +401,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(
+			_, _, err := client.SignIssueTx(
 				ctx,
 				cli,
 				&chain.Input{
@@ -445,7 +445,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueTx(
+			_, _, err := client.SignIssueTx(
 				ctx,
 				cli,
 				&chain.Input{

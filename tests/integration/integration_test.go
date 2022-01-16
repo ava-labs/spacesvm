@@ -261,7 +261,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 		ginkgo.By("mine and issue ClaimTx", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueRawTx(ctx, instances[0].cli, claimTx, priv)
+			_, _, err := client.SignIssueRawTx(ctx, instances[0].cli, claimTx, priv)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
@@ -479,7 +479,7 @@ var _ = ginkgo.Describe("[ClaimTx]", func() {
 
 		ginkgo.By("mine and issue ClaimTx", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-			_, err := client.SignIssueRawTx(ctx, instances[0].cli, claimTx, priv)
+			_, _, err := client.SignIssueRawTx(ctx, instances[0].cli, claimTx, priv)
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
