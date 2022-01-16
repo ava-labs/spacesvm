@@ -102,9 +102,9 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 
 	// compute new min difficulty
 	nextPrice := lastBlock.Price
-	if recentUnits > g.TargetUnits {
+	if recentUnits > g.TargetBlockSize() {
 		nextPrice++
-	} else if recentUnits < g.TargetUnits {
+	} else if recentUnits < g.TargetBlockSize() {
 		elapsedWindows := uint64(secondsSinceLast/g.LookbackWindow) + 1 // account for current window being less
 		if nextPrice >= g.MinPrice && elapsedWindows < nextPrice-g.MinPrice {
 			nextPrice -= elapsedWindows

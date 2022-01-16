@@ -38,4 +38,5 @@ var (
 	ErrUnauthorized    = errors.New("sender is not authorized")
 	ErrInvalidBalance  = errors.New("invalid balance")
 	ErrNonActionable   = errors.New("transaction doesn't do anything")
+	ErrBlockTooBig     = errors.New("block too big")
 )

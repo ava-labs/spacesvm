@@ -139,21 +139,31 @@ func (b *StatelessBlock) ID() ids.ID { return b.id }
 func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) {
 	g := b.vm.Genesis()
 
+	// Perform basic correctness checks before doing any expensive work
+	if len(b.Txs) == 0 {
+		return nil, nil, ErrNoTxs
+	}
+	if b.Timestamp().Unix() >= time.Now().Add(futureBound).Unix() {
+		return nil, nil, ErrTimestampTooLate
+	}
+	blockSize := uint64(0)
+	for _, tx := range b.Txs {
+		blockSize += tx.LoadUnits(g)
+		if blockSize > g.MaxBlockSize {
+			return nil, nil, ErrBlockTooBig
+		}
+	}
+
+	// Verify parent is available
 	parent, err := b.vm.GetStatelessBlock(b.Prnt)
 	if err != nil {
 		log.Debug("could not get parent", "id", b.Prnt)
 		return nil, nil, err
 	}
-
-	if len(b.Txs) == 0 {
-		return nil, nil, ErrNoTxs
-	}
 	if b.Timestamp().Unix() < parent.Timestamp().Unix() {
 		return nil, nil, ErrTimestampTooEarly
 	}
-	if b.Timestamp().Unix() >= time.Now().Add(futureBound).Unix() {
-		return nil, nil, ErrTimestampTooLate
-	}
+
 	context, err := b.vm.ExecutionContext(b.Tmstmp, parent)
 	if err != nil {
 		return nil, nil, err
