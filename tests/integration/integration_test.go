@@ -7,12 +7,16 @@ package integration_test
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math/rand"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -22,6 +26,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/utils/units"
 	avago_version "github.com/ava-labs/avalanchego/version"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -34,6 +39,7 @@ import (
 	"github.com/ava-labs/spacesvm/client"
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
+	"github.com/ava-labs/spacesvm/tree"
 	"github.com/ava-labs/spacesvm/vm"
 )
 
@@ -522,6 +528,88 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 	})
 
+	ginkgo.It("file ops work", func() {
+		space := "coolfilestorageforall"
+		ginkgo.By("create space", func() {
+			createIssueTx(instances[0], &chain.Input{
+				Typ:   chain.Claim,
+				Space: space,
+			}, priv)
+			expectBlkAccept(instances[0])
+		})
+
+		for _, file := range []string{"computer.gif", "small.txt"} {
+			var path string
+			var originalFile *os.File
+			var err error
+			ginkgo.By("upload file", func() {
+				originalFile, err = os.Open(file)
+				gomega.Ω(err).Should(gomega.BeNil())
+
+				c := make(chan struct{})
+				d := make(chan struct{})
+				go func() {
+					asyncBlockPush(instances[0], c)
+					close(d)
+				}()
+				path, err = tree.Upload(context.Background(), instances[0].cli, priv, space, originalFile, 64*units.KiB)
+				gomega.Ω(err).Should(gomega.BeNil())
+				close(c)
+				<-d
+			})
+
+			var newFile *os.File
+			ginkgo.By("download file", func() {
+				newFile, err = ioutil.TempFile("", "computer")
+				gomega.Ω(err).Should(gomega.BeNil())
+
+				err = tree.Download(instances[0].cli, path, newFile)
+				gomega.Ω(err).Should(gomega.BeNil())
+			})
+
+			ginkgo.By("compare file contents", func() {
+				_, err = originalFile.Seek(0, io.SeekStart)
+				gomega.Ω(err).Should(gomega.BeNil())
+				rho := sha256.New()
+				_, err = io.Copy(rho, originalFile)
+				gomega.Ω(err).Should(gomega.BeNil())
+				ho := fmt.Sprintf("%x", rho.Sum(nil))
+
+				_, err = newFile.Seek(0, io.SeekStart)
+				gomega.Ω(err).Should(gomega.BeNil())
+				rhn := sha256.New()
+				_, err = io.Copy(rhn, newFile)
+				gomega.Ω(err).Should(gomega.BeNil())
+				hn := fmt.Sprintf("%x", rhn.Sum(nil))
+
+				gomega.Ω(ho).Should(gomega.Equal(hn))
+
+				originalFile.Close()
+				newFile.Close()
+			})
+
+			ginkgo.By("delete file", func() {
+				c := make(chan struct{})
+				d := make(chan struct{})
+				go func() {
+					asyncBlockPush(instances[0], c)
+					close(d)
+				}()
+				err = tree.Delete(context.Background(), instances[0].cli, path, priv)
+				gomega.Ω(err).Should(gomega.BeNil())
+				close(c)
+				<-d
+
+				// Should error
+				dummyFile, err := ioutil.TempFile("", "computer_copy")
+				gomega.Ω(err).Should(gomega.BeNil())
+				err = tree.Download(instances[0].cli, path, dummyFile)
+				gomega.Ω(err).Should(gomega.MatchError(tree.ErrMissing))
+				dummyFile.Close()
+			})
+		}
+	})
+
 	// TODO: full replicate blocks between nodes
 })
 
@@ -563,6 +651,39 @@ func createIssueTx(i instance, input *chain.Input, signer *ecdsa.PrivateKey) {
 
 	_, err = i.cli.IssueTx(td, sig)
 	gomega.Ω(err).To(gomega.BeNil())
+}
+
+func asyncBlockPush(i instance, c chan struct{}) {
+	timer := time.NewTicker(500 * time.Millisecond)
+	for {
+		select {
+		case <-c:
+			return
+		case <-timer.C:
+			// manually signal ready
+			i.builder.NotifyBuild()
+			// manually ack ready sig as in engine
+			<-i.toEngine
+
+			blk, err := i.vm.BuildBlock()
+			if err != nil {
+				continue
+			}
+
+			gomega.Ω(blk.Verify()).To(gomega.BeNil())
+			gomega.Ω(blk.Status()).To(gomega.Equal(choices.Processing))
+
+			err = i.vm.SetPreference(blk.ID())
+			gomega.Ω(err).To(gomega.BeNil())
+
+			gomega.Ω(blk.Accept()).To(gomega.BeNil())
+			gomega.Ω(blk.Status()).To(gomega.Equal(choices.Accepted))
+
+			lastAccepted, err := i.vm.LastAccepted()
+			gomega.Ω(err).To(gomega.BeNil())
+			gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
+		}
+	}
 }
 
 func expectBlkAccept(i instance) {
