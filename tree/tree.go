@@ -26,7 +26,9 @@ type Root struct {
 }
 
 func Upload(
-	ctx context.Context, cli client.Client, priv *ecdsa.PrivateKey, space string, f io.Reader, chunkSize int) (string, error) {
+	ctx context.Context, cli client.Client, priv *ecdsa.PrivateKey,
+	space string, f io.Reader, chunkSize int,
+) (string, error) {
 	hashes := []string{}
 	chunk := make([]byte, chunkSize)
 	shouldExit := false
