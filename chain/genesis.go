@@ -19,6 +19,11 @@ import (
 const (
 	LotteryRewardDivisor = 100
 	MinBlockCost         = 0
+
+	DefaultFreeClaimStorage  = 4 * units.MiB
+	DefaultValueUnitSize     = 1 * units.KiB
+	DefaultFreeClaimUnits    = DefaultFreeClaimStorage / DefaultValueUnitSize
+	DefaultFreeClaimDuration = 60 * 60 * 24 * 30 // 30 Days
 )
 
 type Airdrop struct {
@@ -43,12 +48,9 @@ type Genesis struct {
 	MaxValueSize  uint64 `serialize:"true" json:"maxValueSize"`
 
 	// Claim Params
-	ClaimFeeMultiplier   uint64 `serialize:"true" json:"claimFeeMultiplier"`
-	ClaimTier3Multiplier uint64 `serialize:"true" json:"claimTier3Multiplier"`
-	ClaimTier2Size       uint64 `serialize:"true" json:"claimTier2Size"`
-	ClaimTier2Multiplier uint64 `serialize:"true" json:"claimTier2Multiplier"`
-	ClaimTier1Size       uint64 `serialize:"true" json:"claimTier1Size"`
-	ClaimTier1Multiplier uint64 `serialize:"true" json:"claimTier1Multiplier"`
+	ClaimLoadMultiplier         uint64 `serialize:"true" json:"claimLoadMultiplier"`
+	MinClaimFee                 uint64 `serialize:"true" json:"minClaimFee"`
+	SpaceDesirabilityMultiplier uint64 `serialize:"true" json:"spaceDesirabilityMultiplier"`
 
 	// Lifeline Params
 	SpaceRenewalDiscount uint64 `serialize:"true" json:"prefixRenewalDiscount"`
@@ -79,31 +81,28 @@ func DefaultGenesis() *Genesis {
 		BaseTxUnits: 1,
 
 		// SetTx params
-		ValueUnitSize: 512,            // 512B
-		MaxValueSize:  64 * units.KiB, // (125 Units)
+		ValueUnitSize: DefaultValueUnitSize,
+		MaxValueSize:  256 * units.KiB,
 
 		// Claim Params
-		ClaimFeeMultiplier:   5,
-		ClaimTier3Multiplier: 1,
-		ClaimTier2Size:       36,
-		ClaimTier2Multiplier: 5,
-		ClaimTier1Size:       12,
-		ClaimTier1Multiplier: 25,
+		ClaimLoadMultiplier:         5,
+		MinClaimFee:                 100,
+		SpaceDesirabilityMultiplier: 5,
 
 		// Lifeline Params
 		SpaceRenewalDiscount: 10,
 
 		// Reward Params
-		ClaimReward: 60 * 60 * 24 * 30, // 30 Days
+		ClaimReward: DefaultFreeClaimUnits * DefaultFreeClaimDuration,
 
-		// Lottery Reward (80% of tx.FeeUnits() * block.Price)
-		LotteryRewardMultipler: 80,
+		// Lottery Reward (50% of tx.FeeUnits() * block.Price)
+		LotteryRewardMultipler: 50,
 
 		// Fee Mechanism Params
 		LookbackWindow: 60,        // 60 Seconds
 		BlockTarget:    1,         // 1 Block per Second
-		LookbackTarget: 1500 * 60, // 1500 Units Per Block (~768KB of SetTx)
-		MaxBlockSize:   2000,      // 2000 Units (~1MB)
+		LookbackTarget: 1500 * 60, // 1500 Units Per Block (~1.5MB of SetTx)
+		MaxBlockSize:   2000,      // 2000 Units (~2MB)
 		MinPrice:       1,
 	}
 }

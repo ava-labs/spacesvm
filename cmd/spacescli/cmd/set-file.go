@@ -35,8 +35,12 @@ func setFileFunc(cmd *cobra.Command, args []string) error {
 	defer f.Close()
 
 	cli := client.New(uri, requestTimeout)
+	g, err := cli.Genesis()
+	if err != nil {
+		return err
+	}
 
-	if _, err := tree.Upload(context.Background(), cli, priv, space, f, 64*units.KiB); err != nil {
+	if _, err := tree.Upload(context.Background(), cli, priv, space, f, g.MaxValueSize); err != nil {
 		return err
 	}
 

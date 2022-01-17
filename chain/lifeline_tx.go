@@ -28,6 +28,10 @@ type LifelineTx struct {
 }
 
 func (l *LifelineTx) Execute(t *TransactionContext) error {
+	if l.Units == 0 {
+		return ErrNonActionable
+	}
+
 	if err := parser.CheckContents(l.Space); err != nil {
 		return err
 	}
@@ -43,8 +47,7 @@ func (l *LifelineTx) Execute(t *TransactionContext) error {
 	}
 	// Lifeline spread across all units
 	lastExpiry := i.Expiry
-	adjUnits := l.Units + 1
-	i.Expiry += (g.ClaimReward * adjUnits) / i.Units
+	i.Expiry += (g.ClaimReward * l.Units) / i.Units
 	return PutSpaceInfo(t.Database, []byte(l.Space), i, lastExpiry)
 }
 

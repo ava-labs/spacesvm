@@ -71,13 +71,11 @@ func (c *ClaimTx) Execute(t *TransactionContext) error {
 // [spaceNameUnits] should only be called on a space that is valid
 func spaceNameUnits(g *Genesis, s string) uint64 {
 	desirability := uint64(parser.MaxIdentifierSize - len(s))
-	if uint64(len(s)) > g.ClaimTier2Size {
-		return desirability * g.ClaimTier3Multiplier
+	desirability *= g.SpaceDesirabilityMultiplier
+	if desirability < g.MinClaimFee {
+		return g.MinClaimFee
 	}
-	if uint64(len(s)) > g.ClaimTier1Size {
-		return desirability * g.ClaimTier2Multiplier
-	}
-	return desirability * g.ClaimTier1Multiplier
+	return desirability
 }
 
 func (c *ClaimTx) FeeUnits(g *Genesis) uint64 {
@@ -85,7 +83,7 @@ func (c *ClaimTx) FeeUnits(g *Genesis) uint64 {
 }
 
 func (c *ClaimTx) LoadUnits(g *Genesis) uint64 {
-	return c.BaseTx.LoadUnits(g) * g.ClaimFeeMultiplier
+	return c.BaseTx.LoadUnits(g) * g.ClaimLoadMultiplier
 }
 
 func (c *ClaimTx) Copy() UnsignedTransaction {
