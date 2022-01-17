@@ -63,6 +63,10 @@ func (l *LifelineTx) FeeUnits(g *Genesis) uint64 {
 	return l.LoadUnits(g) + dSpaceNameUnits*l.Units
 }
 
+func (l *LifelineTx) LoadUnits(g *Genesis) uint64 {
+	return l.BaseTx.LoadUnits(g) * g.ClaimLoadMultiplier
+}
+
 func (l *LifelineTx) Copy() UnsignedTransaction {
 	return &LifelineTx{
 		BaseTx: l.BaseTx.Copy(),
