@@ -53,7 +53,6 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 }
 
 func (vm *VM) SuggestedFee() (uint64, uint64, error) {
-	g := vm.genesis
 	prnt, err := vm.GetBlock(vm.preferred)
 	if err != nil {
 		return 0, 0, err
@@ -71,7 +70,7 @@ func (vm *VM) SuggestedFee() (uint64, uint64, error) {
 	// Sort useful costs/prices
 	sort.Slice(ctx.Prices, func(i, j int) bool { return ctx.Prices[i] < ctx.Prices[j] })
 	pPrice := ctx.Prices[(len(ctx.Prices)-1)*feePercentile/100]
-	if pPrice < g.MinPrice {
+	if g := vm.genesis; pPrice < g.MinPrice {
 		pPrice = g.MinPrice
 	}
 	sort.Slice(ctx.Costs, func(i, j int) bool { return ctx.Costs[i] < ctx.Costs[j] })
