@@ -56,8 +56,7 @@ type Genesis struct {
 	SpaceRenewalDiscount uint64 `serialize:"true" json:"prefixRenewalDiscount"`
 
 	// Reward Params
-	ClaimReward        uint64 `serialize:"true" json:"claimReward"`
-	LifelineUnitReward uint64 `serialize:"true" json:"lifelineUnitReward"`
+	ClaimReward uint64 `serialize:"true" json:"claimReward"`
 
 	// Mining Reward (% of min required fee)
 	LotteryRewardMultipler uint64 `serialize:"true" json:"lotteryRewardMultipler"` // divided by 100

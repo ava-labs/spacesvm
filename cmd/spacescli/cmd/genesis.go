@@ -20,10 +20,8 @@ var (
 	genesisFile string
 	magic       uint64
 
-	minPrice           int64
-	minBlockCost       int64
-	claimReward        int64
-	lifelineUnitReward int64
+	minPrice    int64
+	claimReward int64
 
 	airdropHash  string
 	airdropUnits uint64
@@ -43,22 +41,10 @@ func init() {
 		"minimum price",
 	)
 	genesisCmd.PersistentFlags().Int64Var(
-		&minBlockCost,
-		"min-block-cost",
-		-1,
-		"minimum block cost",
-	)
-	genesisCmd.PersistentFlags().Int64Var(
 		&claimReward,
 		"claim-reward",
 		-1,
 		"seconds until a prefix will expire after being claimed",
-	)
-	genesisCmd.PersistentFlags().Int64Var(
-		&lifelineUnitReward,
-		"lifeline-unit-reward",
-		-1,
-		"seconds per unit of fee that will be rewarded in a lifeline transaction",
 	)
 	genesisCmd.PersistentFlags().StringVar(
 		&airdropHash,
@@ -102,14 +88,8 @@ func genesisFunc(cmd *cobra.Command, args []string) error {
 	if minPrice >= 0 {
 		genesis.MinPrice = uint64(minPrice)
 	}
-	if minBlockCost >= 0 {
-		genesis.MinBlockCost = uint64(minBlockCost)
-	}
 	if claimReward >= 0 {
 		genesis.ClaimReward = uint64(claimReward)
-	}
-	if lifelineUnitReward >= 0 {
-		genesis.LifelineUnitReward = uint64(lifelineUnitReward)
 	}
 	if len(airdropHash) > 0 {
 		genesis.AirdropHash = airdropHash
