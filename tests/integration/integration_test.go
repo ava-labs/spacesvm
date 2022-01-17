@@ -543,7 +543,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 					asyncBlockPush(instances[0], c)
 					close(d)
 				}()
-				path, err = tree.Upload(context.Background(), instances[0].cli, priv, space, originalFile, 64*units.KiB)
+				path, err = tree.Upload(context.Background(), instances[0].cli, priv, space, originalFile, int(genesis.MaxValueSize))
 				gomega.Ω(err).Should(gomega.BeNil())
 				close(c)
 				<-d
