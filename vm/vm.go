@@ -145,7 +145,8 @@ func (vm *VM) Initialize(
 		log.Error("genesis is invalid")
 		return err
 	}
-	vm.targetRangeUnits = (vm.genesis.TargetBlockSize / uint64(vm.genesis.TargetBlockRate)) * uint64(vm.genesis.LookbackWindow)
+	targetUnitsPerSecond := vm.genesis.TargetBlockSize / uint64(vm.genesis.TargetBlockRate)
+	vm.targetRangeUnits = targetUnitsPerSecond * uint64(vm.genesis.LookbackWindow)
 	log.Debug("loaded genesis", "genesis", string(genesisBytes), "target range units", vm.targetRangeUnits)
 
 	vm.mempool = mempool.New(vm.genesis, vm.config.MempoolSize)
