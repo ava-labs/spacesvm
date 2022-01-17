@@ -28,6 +28,10 @@ type LifelineTx struct {
 }
 
 func (l *LifelineTx) Execute(t *TransactionContext) error {
+	if l.Units == 0 {
+		return ErrNonActionable
+	}
+
 	if err := parser.CheckContents(l.Space); err != nil {
 		return err
 	}
@@ -43,20 +47,24 @@ func (l *LifelineTx) Execute(t *TransactionContext) error {
 	}
 	// Lifeline spread across all units
 	lastExpiry := i.Expiry
-	i.Expiry += g.LifelineUnitReward * l.Units / i.Units
+	i.Expiry += (g.ClaimReward * l.Units) / i.Units
 	return PutSpaceInfo(t.Database, []byte(l.Space), i, lastExpiry)
 }
 
 func (l *LifelineTx) FeeUnits(g *Genesis) uint64 {
 	// FeeUnits are discounted so that, all else equal, it is easier for an owner
 	// to retain their space than for another to claim it.
-	discountedPrefixUnits := spaceUnits(g, l.Space) / g.PrefixRenewalDiscount
+	dSpaceNameUnits := spaceNameUnits(g, l.Space) / g.SpaceRenewalDiscount
 
 	// The more desirable the space, the more it costs to maintain it.
 	//
 	// Note, this heavy base cost incentivizes users to send fewer transactions
 	// to extend their space's life instead of many small ones.
-	return l.LoadUnits(g) + discountedPrefixUnits + l.Units
+	return l.LoadUnits(g) + dSpaceNameUnits*l.Units
+}
+
+func (l *LifelineTx) LoadUnits(g *Genesis) uint64 {
+	return l.BaseTx.LoadUnits(g) * g.ClaimLoadMultiplier
 }
 
 func (l *LifelineTx) Copy() UnsignedTransaction {

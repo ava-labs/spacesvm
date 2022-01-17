@@ -171,11 +171,10 @@ func createTestBlk(
 	vm := NewMockVM(ctrl)
 	vm.EXPECT().Genesis().Return(DefaultGenesis()).AnyTimes()
 	parentBlk.vm = vm
-
 	if err := parentBlk.init(); err != nil {
 		t.Fatal(err)
 	}
-	vm.EXPECT().GetStatelessBlock(parentBlk.ID()).Return(parentBlk, nil)
+	vm.EXPECT().GetStatelessBlock(parentBlk.ID()).Return(parentBlk, nil).AnyTimes()
 
 	blk := NewBlock(vm, parentBlk, blkTmpstp, blkCtx)
 	if uint64(blk.StatefulBlock.Tmstmp) != uint64(blkTmpstp) {

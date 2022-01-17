@@ -12,7 +12,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/spacesvm/client"
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tree"
@@ -35,8 +34,13 @@ func setFileFunc(cmd *cobra.Command, args []string) error {
 	defer f.Close()
 
 	cli := client.New(uri, requestTimeout)
+	g, err := cli.Genesis()
+	if err != nil {
+		return err
+	}
 
-	if _, err := tree.Upload(context.Background(), cli, priv, space, f, 64*units.KiB); err != nil {
+	// TODO: protect against overflow
+	if _, err := tree.Upload(context.Background(), cli, priv, space, f, int(g.MaxValueSize)); err != nil {
 		return err
 	}
 

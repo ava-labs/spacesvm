@@ -128,7 +128,7 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blk *StatelessBl
 		// Do not process any rewards if it is just a dummy block
 		return nil
 	}
-	rewardAmount := t.FeeUnits(g) * blk.Price * g.LotteryRewardMultipler / g.LotteryRewardDivisor
+	rewardAmount := t.FeeUnits(g) * blk.Price * g.LotteryRewardMultipler / LotteryRewardDivisor
 	recipient, distributed, err := ApplyReward(db, blk.ID(), t.ID(), t.sender, rewardAmount)
 	if err != nil {
 		return err

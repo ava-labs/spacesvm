@@ -14,8 +14,8 @@ const (
 	// codecVersion is the current default codec version
 	codecVersion = 0
 
-	// maxSize is 2MB to support large values
-	maxSize = 2 * units.MiB
+	// maxSize is 4MB to support large values
+	maxSize = 4 * units.MiB
 )
 
 var codecManager codec.Manager

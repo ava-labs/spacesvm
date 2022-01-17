@@ -48,12 +48,27 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	b.Winners = map[ids.ID]*Activity{}
 	b.Txs = []*Transaction{}
 	units := uint64(0)
-	for units < g.TargetUnits && mempool.Len() > 0 {
+
+	// Restorable txs after block attempt finishes
+	unusableTxs := []*Transaction{}
+	defer func() {
+		for _, tx := range unusableTxs {
+			mempool.Add(tx)
+		}
+	}()
+
+	for mempool.Len() > 0 {
 		next, price := mempool.PopMax()
 		if price < b.Price {
 			mempool.Add(next)
-			log.Debug("skipping tx: too low price", "block price", b.Price, "tx price", next.GetPrice())
+			log.Debug("skipping tx: too low price", "block price", b.Price, "tx price", price)
 			break
+		}
+		nextLoad := next.LoadUnits(g)
+		if units+nextLoad > g.MaxBlockSize {
+			unusableTxs = append(unusableTxs, next)
+			log.Debug("skipping tx: too large", "block size", units, "tx load", nextLoad)
+			continue // could be txs that fit that are smaller
 		}
 		// Verify that changes pass
 		tvdb := versiondb.New(vdb)
@@ -66,7 +81,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		}
 		// Wait to add prefix until after verification
 		b.Txs = append(b.Txs, next)
-		units += next.LoadUnits(g)
+		units += nextLoad
 	}
 	vdb.Abort()
 

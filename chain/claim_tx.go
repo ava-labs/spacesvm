@@ -63,29 +63,27 @@ func (c *ClaimTx) Execute(t *TransactionContext) error {
 	return nil
 }
 
-// [spaceUnits] requires the caller to pay more to get spaces of
+// [spaceNameUnits] requires the caller to pay more to get spaces of
 // a shorter length because they are more desirable. This creates a "lottery"
 // mechanism where the people that spend the most mining power will win the
 // space.
 //
-// [spaceUnits] should only be called on a space that is valid
-func spaceUnits(g *Genesis, s string) uint64 {
+// [spaceNameUnits] should only be called on a space that is valid
+func spaceNameUnits(g *Genesis, s string) uint64 {
 	desirability := uint64(parser.MaxIdentifierSize - len(s))
-	if uint64(len(s)) > g.ClaimTier2Size {
-		return desirability * g.ClaimTier3Multiplier
+	desirability *= g.SpaceDesirabilityMultiplier
+	if desirability < g.MinClaimFee {
+		return g.MinClaimFee
 	}
-	if uint64(len(s)) > g.ClaimTier1Size {
-		return desirability * g.ClaimTier2Multiplier
-	}
-	return desirability * g.ClaimTier1Multiplier
+	return desirability
 }
 
 func (c *ClaimTx) FeeUnits(g *Genesis) uint64 {
-	return c.LoadUnits(g) + spaceUnits(g, c.Space)
+	return c.LoadUnits(g) + spaceNameUnits(g, c.Space)
 }
 
 func (c *ClaimTx) LoadUnits(g *Genesis) uint64 {
-	return c.BaseTx.LoadUnits(g) * g.ClaimFeeMultiplier
+	return c.BaseTx.LoadUnits(g) * g.ClaimLoadMultiplier
 }
 
 func (c *ClaimTx) Copy() UnsignedTransaction {

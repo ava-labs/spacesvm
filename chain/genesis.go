@@ -16,6 +16,18 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
+const (
+	LotteryRewardDivisor = 100
+	MinBlockCost         = 0
+
+	DefaultFreeClaimStorage  = 1 * units.MiB
+	DefaultValueUnitSize     = 1 * units.KiB
+	DefaultFreeClaimUnits    = DefaultFreeClaimStorage / DefaultValueUnitSize
+	DefaultFreeClaimDuration = 60 * 60 * 24 * 30 // 30 Days
+
+	DefaultLookbackWindow = 60
+)
+
 type Airdrop struct {
 	// Address strings are hex-formatted common.Address
 	Address common.Address `serialize:"true" json:"address"`
@@ -38,30 +50,26 @@ type Genesis struct {
 	MaxValueSize  uint64 `serialize:"true" json:"maxValueSize"`
 
 	// Claim Params
-	ClaimFeeMultiplier   uint64 `serialize:"true" json:"claimFeeMultiplier"`
-	ClaimTier3Multiplier uint64 `serialize:"true" json:"claimTier3Multiplier"`
-	ClaimTier2Size       uint64 `serialize:"true" json:"claimTier2Size"`
-	ClaimTier2Multiplier uint64 `serialize:"true" json:"claimTier2Multiplier"`
-	ClaimTier1Size       uint64 `serialize:"true" json:"claimTier1Size"`
-	ClaimTier1Multiplier uint64 `serialize:"true" json:"claimTier1Multiplier"`
+	ClaimLoadMultiplier         uint64 `serialize:"true" json:"claimLoadMultiplier"`
+	MinClaimFee                 uint64 `serialize:"true" json:"minClaimFee"`
+	SpaceDesirabilityMultiplier uint64 `serialize:"true" json:"spaceDesirabilityMultiplier"`
 
 	// Lifeline Params
-	PrefixRenewalDiscount uint64 `serialize:"true" json:"prefixRenewalDiscount"`
+	SpaceRenewalDiscount uint64 `serialize:"true" json:"prefixRenewalDiscount"`
 
 	// Reward Params
-	ClaimReward        uint64 `serialize:"true" json:"claimReward"`
-	LifelineUnitReward uint64 `serialize:"true" json:"lifelineUnitReward"`
+	ClaimReward uint64 `serialize:"true" json:"claimReward"`
 
 	// Mining Reward (% of min required fee)
-	LotteryRewardMultipler uint64 `serialize:"true" json:"lotteryRewardMultipler"`
-	LotteryRewardDivisor   uint64 `serialize:"true" json:"lotteryRewardDivisor"`
+	LotteryRewardMultipler uint64 `serialize:"true" json:"lotteryRewardMultipler"` // divided by 100
 
 	// Fee Mechanism Params
-	LookbackWindow int64  `serialize:"true" json:"lookbackWindow"`
-	BlockTarget    int64  `serialize:"true" json:"blockTarget"`
-	TargetUnits    uint64 `serialize:"true" json:"targetUnits"`
-	MinPrice       uint64 `serialize:"true" json:"minPrice"`
-	MinBlockCost   uint64 `serialize:"true" json:"minBlockCost"`
+	MinPrice         uint64 `serialize:"true" json:"minPrice"`
+	LookbackWindow   int64  `serialize:"true" json:"lookbackWindow"`
+	TargetBlockRate  int64  `serialize:"true" json:"targetBlockRate"` // seconds
+	TargetBlockSize  uint64 `serialize:"true" json:"targetBlockSize"` // units
+	MaxBlockSize     uint64 `serialize:"true" json:"maxBlockSize"`    // units
+	BlockCostEnabled bool   `serialize:"true" json:"blockCostEnabled"`
 
 	// Allocations
 	CustomAllocation []*CustomAllocation `serialize:"true" json:"customAllocation"`
@@ -72,50 +80,49 @@ type Genesis struct {
 func DefaultGenesis() *Genesis {
 	return &Genesis{
 		// Tx params
-		BaseTxUnits: 10,
+		BaseTxUnits: 1,
 
 		// SetTx params
-		ValueUnitSize: 256,            // 256B
-		MaxValueSize:  64 * units.KiB, // (250 Units)
+		ValueUnitSize: DefaultValueUnitSize,
+		MaxValueSize:  256 * units.KiB,
 
 		// Claim Params
-		ClaimFeeMultiplier:   5,
-		ClaimTier3Multiplier: 1,
-		ClaimTier2Size:       36,
-		ClaimTier2Multiplier: 5,
-		ClaimTier1Size:       12,
-		ClaimTier1Multiplier: 25,
+		ClaimLoadMultiplier:         5,
+		MinClaimFee:                 100,
+		SpaceDesirabilityMultiplier: 5,
 
 		// Lifeline Params
-		PrefixRenewalDiscount: 5,
+		SpaceRenewalDiscount: 10,
 
 		// Reward Params
-		ClaimReward:        60 * 60 * 24 * 15, // 15 Days
-		LifelineUnitReward: 60 * 60,           // 1 Hours Per Fee Unit
+		ClaimReward: DefaultFreeClaimUnits * DefaultFreeClaimDuration,
 
-		// Lottery Reward (80% of tx.FeeUnits() * block.Price)
-		LotteryRewardMultipler: 8,
-		LotteryRewardDivisor:   10,
+		// Lottery Reward (50% of tx.FeeUnits() * block.Price)
+		LotteryRewardMultipler: 50,
 
 		// Fee Mechanism Params
-		LookbackWindow: 60,            // 60 Seconds
-		BlockTarget:    1,             // 1 Block per Second
-		TargetUnits:    10 * 512 * 60, // 5012 Units Per Block (~1.2MB of SetTx)
-		MinPrice:       1,             // (50 for easiest claim)
-		MinBlockCost:   0,             // Minimum Unit Overhead
+		LookbackWindow:   DefaultLookbackWindow, // 60 Seconds
+		TargetBlockRate:  1,                     // 1 Block per Second
+		TargetBlockSize:  1500,                  // 1500 Units Per Block (~1.5MB of SetTx)
+		MaxBlockSize:     2000,                  // 2000 Units (~2MB)
+		MinPrice:         1,
+		BlockCostEnabled: true,
 	}
 }
 
 func (g *Genesis) StatefulBlock() *StatefulBlock {
 	return &StatefulBlock{
 		Price: g.MinPrice,
-		Cost:  g.MinBlockCost,
+		Cost:  MinBlockCost,
 	}
 }
 
 func (g *Genesis) Verify() error {
 	if g.Magic == 0 {
 		return ErrInvalidMagic
+	}
+	if g.TargetBlockRate == 0 {
+		return ErrInvalidBlockRate
 	}
 	return nil
 }

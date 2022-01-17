@@ -33,7 +33,7 @@ func TestLifelineTx(t *testing.T) {
 		err       error
 	}{
 		{ // invalid when prefix info is missing
-			utx:       &LifelineTx{BaseTx: &BaseTx{}, Space: "foo"},
+			utx:       &LifelineTx{BaseTx: &BaseTx{}, Space: "foo", Units: 1},
 			blockTime: 1,
 			sender:    sender,
 			err:       ErrSpaceMissing,
@@ -44,8 +44,14 @@ func TestLifelineTx(t *testing.T) {
 			sender:    sender,
 			err:       nil,
 		},
-		{ // successful lifeline when prefix info is not missing
+		{ // invalid when units is missing
 			utx:       &LifelineTx{BaseTx: &BaseTx{}, Space: "foo"},
+			blockTime: 1,
+			sender:    sender,
+			err:       ErrNonActionable,
+		},
+		{ // successful lifeline when prefix info and units is not missing
+			utx:       &LifelineTx{BaseTx: &BaseTx{}, Space: "foo", Units: 1},
 			blockTime: 1,
 			sender:    sender,
 			err:       nil,

@@ -193,7 +193,7 @@ func (b *TimeBuilder) Gossip() {
 	for {
 		select {
 		case <-g.C:
-			newTxs := b.vm.mempool.NewTxs(b.vm.genesis.TargetUnits)
+			newTxs := b.vm.mempool.NewTxs(b.vm.genesis.TargetBlockSize)
 			_ = b.vm.network.GossipNewTxs(newTxs) // handles case where there are none
 		case <-rg.C:
 			_ = b.vm.network.RegossipTxs()

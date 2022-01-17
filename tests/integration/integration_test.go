@@ -52,7 +52,6 @@ var (
 	requestTimeout time.Duration
 	vms            int
 	minPrice       int64
-	minBlockCost   int64
 )
 
 func init() {
@@ -73,12 +72,6 @@ func init() {
 		"min-price",
 		-1,
 		"minimum price",
-	)
-	flag.Int64Var(
-		&minBlockCost,
-		"min-block-cost",
-		-1,
-		"minimum block cost",
 	)
 }
 
@@ -128,11 +121,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	if minPrice >= 0 {
 		genesis.MinPrice = uint64(minPrice)
 	}
-	if minBlockCost >= 0 {
-		genesis.MinBlockCost = uint64(minBlockCost)
-	}
 	genesis.Magic = 5
-	genesis.BlockTarget = 0 // disable block throttling
+	genesis.BlockCostEnabled = false      // disable block throttling
+	genesis.MaxValueSize = 32 * units.KiB // stress tree uploads
 	genesis.CustomAllocation = []*chain.CustomAllocation{
 		{
 			Address: sender,
@@ -274,7 +265,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 
 		ginkgo.By("send gossip from node 0 to 1", func() {
-			newTxs := instances[0].vm.Mempool().NewTxs(genesis.TargetUnits)
+			newTxs := instances[0].vm.Mempool().NewTxs(genesis.TargetBlockSize)
 			gomega.Ω(len(newTxs)).To(gomega.Equal(1))
 
 			err := instances[0].vm.Network().GossipNewTxs(newTxs)
@@ -517,7 +508,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 
 		// since the block from previous test spec has not been replicated yet
 		ginkgo.By("send gossip from node 0 to 1 should fail on server-side since 1 doesn't have the block yet", func() {
-			newTxs := instances[0].vm.Mempool().NewTxs(genesis.TargetUnits)
+			newTxs := instances[0].vm.Mempool().NewTxs(genesis.TargetBlockSize)
 			gomega.Ω(len(newTxs)).To(gomega.Equal(1))
 
 			err := instances[0].vm.Network().GossipNewTxs(newTxs)
@@ -552,7 +543,10 @@ var _ = ginkgo.Describe("Tx Types", func() {
 					asyncBlockPush(instances[0], c)
 					close(d)
 				}()
-				path, err = tree.Upload(context.Background(), instances[0].cli, priv, space, originalFile, 64*units.KiB)
+				path, err = tree.Upload(
+					context.Background(), instances[0].cli, priv,
+					space, originalFile, int(genesis.MaxValueSize),
+				)
 				gomega.Ω(err).Should(gomega.BeNil())
 				close(c)
 				<-d
