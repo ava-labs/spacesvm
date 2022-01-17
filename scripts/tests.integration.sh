@@ -16,7 +16,6 @@ run \
 ./tests/integration \
 -- \
 --vms 3 \
---min-price 1 \
---min-block-cost 0
+--min-price 1
 
 echo "ALL SUCCESS!"
