@@ -51,7 +51,7 @@ type Genesis struct {
 	ClaimTier1Multiplier uint64 `serialize:"true" json:"claimTier1Multiplier"`
 
 	// Lifeline Params
-	PrefixRenewalDiscount uint64 `serialize:"true" json:"prefixRenewalDiscount"`
+	SpaceRenewalDiscount uint64 `serialize:"true" json:"prefixRenewalDiscount"`
 
 	// Reward Params
 	ClaimReward        uint64 `serialize:"true" json:"claimReward"`
@@ -91,11 +91,10 @@ func DefaultGenesis() *Genesis {
 		ClaimTier1Multiplier: 25,
 
 		// Lifeline Params
-		PrefixRenewalDiscount: 5,
+		SpaceRenewalDiscount: 10,
 
 		// Reward Params
-		ClaimReward:        60 * 60 * 24 * 15, // 15 Days
-		LifelineUnitReward: 60 * 60,           // 1 Hours Per Fee Unit
+		ClaimReward: 60 * 60 * 24 * 30, // 30 Days
 
 		// Lottery Reward (80% of tx.FeeUnits() * block.Price)
 		LotteryRewardMultipler: 80,
@@ -105,7 +104,7 @@ func DefaultGenesis() *Genesis {
 		BlockTarget:    1,         // 1 Block per Second
 		LookbackTarget: 1500 * 60, // 1500 Units Per Block (~768KB of SetTx)
 		MaxBlockSize:   2000,      // 2000 Units (~1MB)
-		MinPrice:       1,         // (50 for easiest claim)
+		MinPrice:       1,
 	}
 }
 
