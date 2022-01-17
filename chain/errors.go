@@ -8,6 +8,10 @@ import (
 )
 
 var (
+	// Genesis Correctness
+	ErrInvalidMagic     = errors.New("invalid magic")
+	ErrInvalidBlockRate = errors.New("invalid block rate")
+
 	// Block Correctness
 	ErrTimestampTooEarly      = errors.New("block timestamp too early")
 	ErrTimestampTooLate       = errors.New("block timestamp too late")
@@ -18,7 +22,6 @@ var (
 	ErrParentBlockNotVerified = errors.New("parent block not verified or accepted")
 
 	// Tx Correctness
-	ErrInvalidMagic        = errors.New("invalid magic")
 	ErrInvalidBlockID      = errors.New("invalid blockID")
 	ErrInvalidSignature    = errors.New("invalid signature")
 	ErrDuplicateTx         = errors.New("duplicate transaction")

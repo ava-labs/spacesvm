@@ -89,22 +89,24 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 	// compute new block cost
 	secondsSinceLast := currTime - lastBlock.Tmstmp
 	nextCost := lastBlock.Cost
-	if secondsSinceLast < g.BlockTarget {
-		nextCost += uint64(g.BlockTarget - secondsSinceLast)
-	} else {
-		possibleDiff := uint64(secondsSinceLast - g.BlockTarget)
-		if nextCost >= chain.MinBlockCost && possibleDiff < nextCost-chain.MinBlockCost {
-			nextCost -= possibleDiff
+	if g.BlockCostEnabled {
+		if secondsSinceLast < g.TargetBlockRate {
+			nextCost += uint64(g.TargetBlockRate - secondsSinceLast)
 		} else {
-			nextCost = chain.MinBlockCost
+			possibleDiff := uint64(secondsSinceLast - g.TargetBlockRate)
+			if nextCost >= chain.MinBlockCost && possibleDiff < nextCost-chain.MinBlockCost {
+				nextCost -= possibleDiff
+			} else {
+				nextCost = chain.MinBlockCost
+			}
 		}
 	}
 
 	// compute new min difficulty
 	nextPrice := lastBlock.Price
-	if recentUnits > g.TargetBlockSize() {
+	if recentUnits > vm.targetRangeUnits {
 		nextPrice++
-	} else if recentUnits < g.TargetBlockSize() {
+	} else if recentUnits < vm.targetRangeUnits {
 		elapsedWindows := uint64(secondsSinceLast/g.LookbackWindow) + 1 // account for current window being less
 		if nextPrice >= g.MinPrice && elapsedWindows < nextPrice-g.MinPrice {
 			nextPrice -= elapsedWindows

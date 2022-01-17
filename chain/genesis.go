@@ -24,6 +24,8 @@ const (
 	DefaultValueUnitSize     = 1 * units.KiB
 	DefaultFreeClaimUnits    = DefaultFreeClaimStorage / DefaultValueUnitSize
 	DefaultFreeClaimDuration = 60 * 60 * 24 * 30 // 30 Days
+
+	DefaultLookbackWindow = 60
 )
 
 type Airdrop struct {
@@ -62,11 +64,12 @@ type Genesis struct {
 	LotteryRewardMultipler uint64 `serialize:"true" json:"lotteryRewardMultipler"` // divided by 100
 
 	// Fee Mechanism Params
-	LookbackWindow int64  `serialize:"true" json:"lookbackWindow"`
-	BlockTarget    int64  `serialize:"true" json:"blockTarget"`
-	LookbackTarget uint64 `serialize:"true" json:"lookbackTarget"` // units
-	MaxBlockSize   uint64 `serialize:"true" json:"maxBlockSize"`   // units
-	MinPrice       uint64 `serialize:"true" json:"minPrice"`
+	MinPrice         uint64 `serialize:"true" json:"minPrice"`
+	LookbackWindow   int64  `serialize:"true" json:"lookbackWindow"`
+	TargetBlockRate  int64  `serialize:"true" json:"targetBlockRate"` // seconds
+	TargetBlockSize  uint64 `serialize:"true" json:"targetBlockSize"` // units
+	MaxBlockSize     uint64 `serialize:"true" json:"maxBlockSize"`    // units
+	BlockCostEnabled bool   `serialize:"true" json:"blockCostEnabled"`
 
 	// Allocations
 	CustomAllocation []*CustomAllocation `serialize:"true" json:"customAllocation"`
@@ -98,11 +101,12 @@ func DefaultGenesis() *Genesis {
 		LotteryRewardMultipler: 50,
 
 		// Fee Mechanism Params
-		LookbackWindow: 60,        // 60 Seconds
-		BlockTarget:    1,         // 1 Block per Second
-		LookbackTarget: 1500 * 60, // 1500 Units Per Block (~1.5MB of SetTx)
-		MaxBlockSize:   2000,      // 2000 Units (~2MB)
-		MinPrice:       1,
+		LookbackWindow:   DefaultLookbackWindow, // 60 Seconds
+		TargetBlockRate:  1,                     // 1 Block per Second
+		TargetBlockSize:  1500,                  // 1500 Units Per Block (~1.5MB of SetTx)
+		MaxBlockSize:     2000,                  // 2000 Units (~2MB)
+		MinPrice:         1,
+		BlockCostEnabled: true,
 	}
 }
 
@@ -116,6 +120,9 @@ func (g *Genesis) StatefulBlock() *StatefulBlock {
 func (g *Genesis) Verify() error {
 	if g.Magic == 0 {
 		return ErrInvalidMagic
+	}
+	if g.TargetBlockRate == 0 {
+		return ErrInvalidBlockRate
 	}
 	return nil
 }
@@ -160,9 +167,4 @@ func (g *Genesis) Load(db database.Database, airdropData []byte) error {
 
 	// Commit as a batch to improve speed
 	return vdb.Commit()
-}
-
-// TargetBlockSize is the ideal size of a block
-func (g *Genesis) TargetBlockSize() uint64 {
-	return g.LookbackTarget / uint64(g.LookbackWindow) / uint64(g.BlockTarget)
 }
