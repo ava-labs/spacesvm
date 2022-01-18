@@ -104,7 +104,7 @@ func DefaultGenesis() *Genesis {
 		LookbackWindow:   DefaultLookbackWindow, // 60 Seconds
 		TargetBlockRate:  1,                     // 1 Block per Second
 		TargetBlockSize:  225,                   // ~225KB
-		MaxBlockSize:     250,                   // ~250KB -> Limited to 256KB by AvalancheGo (as of v1.7.3)
+		MaxBlockSize:     246,                   // ~250KB -> Limited to 256KB by AvalancheGo (as of v1.7.3)
 		MinPrice:         1,
 		BlockCostEnabled: true,
 	}

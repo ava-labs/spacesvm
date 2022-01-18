@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -37,11 +38,11 @@ func Upload(
 	totalCost := uint64(0)
 	for !shouldExit {
 		read, err := f.Read(chunk)
-		if err != nil {
-			return "", err
-		}
-		if read == 0 {
+		if errors.Is(err, io.EOF) || read == 0 {
 			break
+		}
+		if err != nil {
+			return "", fmt.Errorf("%w: read error", err)
 		}
 		if read < chunkSize {
 			shouldExit = true
@@ -168,7 +169,12 @@ func Delete(ctx context.Context, cli client.Client, path string, priv *ecdsa.Pri
 	root := spl[1]
 	opts := []client.OpOption{client.WithPollTx()}
 	totalCost := uint64(0)
+	deleted := map[string]struct{}{}
 	for _, h := range r.Children {
+		if _, ok := deleted[h]; ok {
+			color.Yellow("already deleted k=%s, skipping", h)
+			continue
+		}
 		tx := &chain.DeleteTx{
 			BaseTx: &chain.BaseTx{},
 			Space:  space,
@@ -180,6 +186,7 @@ func Delete(ctx context.Context, cli client.Client, path string, priv *ecdsa.Pri
 		}
 		totalCost += cost
 		color.Yellow("deleted k=%s txID=%s cost=%d totalCost=%d", h, txID, cost, totalCost)
+		deleted[h] = struct{}{}
 	}
 	tx := &chain.DeleteTx{
 		BaseTx: &chain.BaseTx{},
