@@ -219,8 +219,8 @@ type InfoArgs struct {
 }
 
 type InfoReply struct {
-	Info   *chain.SpaceInfo  `serialize:"true" json:"info"`
-	Values []*chain.KeyValue `serialize:"true" json:"values"`
+	Info   *chain.SpaceInfo      `serialize:"true" json:"info"`
+	Values []*chain.KeyValueMeta `serialize:"true" json:"values"`
 }
 
 func (svc *PublicService) Info(_ *http.Request, args *InfoArgs, reply *InfoReply) error {
@@ -236,7 +236,7 @@ func (svc *PublicService) Info(_ *http.Request, args *InfoArgs, reply *InfoReply
 		return chain.ErrSpaceMissing
 	}
 
-	kvs, err := chain.GetAllValues(svc.vm.db, i.RawSpace)
+	kvs, err := chain.GetAllValueMetas(svc.vm.db, i.RawSpace)
 	if err != nil {
 		return err
 	}

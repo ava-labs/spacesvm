@@ -35,7 +35,7 @@ type Client interface {
 	// Returns if a space is already claimed
 	Claimed(space string) (bool, error)
 	// Returns the corresponding space information.
-	Info(space string) (*chain.SpaceInfo, []*chain.KeyValue, error)
+	Info(space string) (*chain.SpaceInfo, []*chain.KeyValueMeta, error)
 	// Balance returns the balance of an account
 	Balance(addr common.Address) (bal uint64, err error)
 	// Resolve returns the value associated with a path
@@ -111,7 +111,7 @@ func (cli *client) Claimed(space string) (bool, error) {
 	return resp.Claimed, nil
 }
 
-func (cli *client) Info(space string) (*chain.SpaceInfo, []*chain.KeyValue, error) {
+func (cli *client) Info(space string) (*chain.SpaceInfo, []*chain.KeyValueMeta, error) {
 	resp := new(vm.InfoReply)
 	if err := cli.req.SendRequest(
 		"info",
