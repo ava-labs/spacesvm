@@ -67,7 +67,7 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 	}
 
 	// Update value
-	newValue := &KeyValue{
+	nvmeta := &ValueMeta{
 		Size:    len(s.Value),
 		TxID:    t.TxID,
 		Updated: t.BlockTime,
@@ -79,13 +79,13 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
 	if exists {
 		i.Units -= valueUnits(g, v.Size)
-		newValue.Created = v.Created
+		nvmeta.Created = v.Created
 	} else {
-		newValue.Created = t.BlockTime
+		nvmeta.Created = t.BlockTime
 	}
 	i.Units += valueUnits(g, len(s.Value))
 
-	if err := PutSpaceKey(t.Database, []byte(s.Space), []byte(s.Key), newValue); err != nil {
+	if err := PutSpaceKey(t.Database, []byte(s.Space), []byte(s.Key), nvmeta); err != nil {
 		return err
 	}
 	return updateSpace(s.Space, t, timeRemaining, i)
