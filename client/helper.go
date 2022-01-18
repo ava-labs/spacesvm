@@ -54,12 +54,6 @@ func SignIssueTx(
 	if err != nil {
 		return ids.Empty, 0, err
 	}
-	// Log typed data
-	b, err := json.Marshal(td)
-	if err != nil {
-		return ids.Empty, 0, err
-	}
-	color.Cyan("typed data (cost=%d): %v", txCost, string(b))
 
 	dh, err := tdata.DigestHash(td)
 	if err != nil {
@@ -130,13 +124,6 @@ func SignIssueRawTx(
 	utx.SetBlockID(la)
 	utx.SetMagic(g.Magic)
 	utx.SetPrice(price + blockCost/utx.FeeUnits(g))
-
-	// Log typed data
-	b, err := json.Marshal(utx.TypedData())
-	if err != nil {
-		return ids.Empty, 0, err
-	}
-	color.Cyan("typed data: %v", string(b))
 
 	dh, err := chain.DigestHash(utx)
 	if err != nil {

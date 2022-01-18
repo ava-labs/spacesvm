@@ -122,8 +122,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		genesis.MinPrice = uint64(minPrice)
 	}
 	genesis.Magic = 5
-	genesis.BlockCostEnabled = false      // disable block throttling
-	genesis.MaxValueSize = 32 * units.KiB // stress tree uploads
+	genesis.BlockCostEnabled = false // disable block throttling
 	genesis.CustomAllocation = []*chain.CustomAllocation{
 		{
 			Address: sender,
@@ -529,7 +528,32 @@ var _ = ginkgo.Describe("Tx Types", func() {
 			expectBlkAccept(instances[0])
 		})
 
-		for _, file := range []string{"computer.gif", "small.txt"} {
+		files := []string{}
+		ginkgo.By("create 0-files", func() {
+			for _, size := range []int64{units.KiB, 278 * units.KiB, 400 * units.KiB /* right on boundary */, 5 * units.MiB} {
+				newFile, err := ioutil.TempFile("", "test")
+				gomega.Ω(err).Should(gomega.BeNil())
+				_, err = newFile.Seek(size-1, 0)
+				gomega.Ω(err).Should(gomega.BeNil())
+				_, err = newFile.Write([]byte{0})
+				gomega.Ω(err).Should(gomega.BeNil())
+				gomega.Ω(newFile.Close()).Should(gomega.BeNil())
+				files = append(files, newFile.Name())
+			}
+		})
+
+		ginkgo.By("create random files", func() {
+			for _, size := range []int{units.KiB, 400 * units.KiB, 3 * units.MiB} {
+				newFile, err := ioutil.TempFile("", "test")
+				gomega.Ω(err).Should(gomega.BeNil())
+				_, err = newFile.WriteString(RandStringRunes(size))
+				gomega.Ω(err).Should(gomega.BeNil())
+				gomega.Ω(newFile.Close()).Should(gomega.BeNil())
+				files = append(files, newFile.Name())
+			}
+		})
+
+		for _, file := range files {
 			var path string
 			var originalFile *os.File
 			var err error
