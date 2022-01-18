@@ -36,6 +36,7 @@ func Upload(
 	shouldExit := false
 	opts := []client.OpOption{client.WithPollTx()}
 	totalCost := uint64(0)
+	uploaded := map[string]struct{}{}
 	for !shouldExit {
 		read, err := f.Read(chunk)
 		if errors.Is(err, io.EOF) || read == 0 {
@@ -54,18 +55,23 @@ func Upload(
 			}
 		}
 		k := strings.ToLower(common.Bytes2Hex(crypto.Keccak256(chunk)))
-		tx := &chain.SetTx{
-			BaseTx: &chain.BaseTx{},
-			Space:  space,
-			Key:    k,
-			Value:  chunk,
+		if _, ok := uploaded[k]; ok {
+			color.Yellow("already uploaded k=%s, skipping", k)
+		} else {
+			tx := &chain.SetTx{
+				BaseTx: &chain.BaseTx{},
+				Space:  space,
+				Key:    k,
+				Value:  chunk,
+			}
+			txID, cost, err := client.SignIssueRawTx(ctx, cli, tx, priv, opts...)
+			if err != nil {
+				return "", err
+			}
+			totalCost += cost
+			color.Yellow("uploaded k=%s txID=%s cost=%d totalCost=%d", k, txID, cost, totalCost)
+			uploaded[k] = struct{}{}
 		}
-		txID, cost, err := client.SignIssueRawTx(ctx, cli, tx, priv, opts...)
-		if err != nil {
-			return "", err
-		}
-		totalCost += cost
-		color.Yellow("uploaded k=%s txID=%s cost=%d totalCost=%d", k, txID, cost, totalCost)
 		hashes = append(hashes, k)
 	}
 
