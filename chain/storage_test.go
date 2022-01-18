@@ -107,7 +107,7 @@ func TestPutSpaceInfoAndKey(t *testing.T) {
 	defer db.Close()
 
 	pfx := []byte("foo")
-	k, v := []byte("k"), []byte("v")
+	k, v := []byte("k"), &ValueMeta{}
 
 	// expect failures for non-existing prefixInfo
 	if ok, err := HasSpace(db, pfx); ok || err != nil {
@@ -162,7 +162,7 @@ func TestSpecificTimeKey(t *testing.T) {
 	}
 }
 
-func TestGetAllValues(t *testing.T) {
+func TestGetAllValueMetas(t *testing.T) {
 	t.Parallel()
 
 	priv, err := crypto.GenerateKey()
@@ -186,7 +186,7 @@ func TestGetAllValues(t *testing.T) {
 		space     string
 		blockTime int64
 		sender    common.Address
-		expected  []*KeyValue
+		expected  []*KeyValueMeta
 	}{
 		{ // successful claim
 			utx: &ClaimTx{
@@ -198,7 +198,7 @@ func TestGetAllValues(t *testing.T) {
 			space:     "foo",
 			blockTime: 1,
 			sender:    sender,
-			expected:  []*KeyValue{},
+			expected:  []*KeyValueMeta{},
 		},
 		{ // write
 			utx: &SetTx{
@@ -212,8 +212,15 @@ func TestGetAllValues(t *testing.T) {
 			space:     "foo",
 			blockTime: 1,
 			sender:    sender,
-			expected: []*KeyValue{
-				{Key: "bar", Value: []byte("value")},
+			expected: []*KeyValueMeta{
+				{
+					Key: "bar",
+					ValueMeta: &ValueMeta{
+						Size:    5,
+						Created: 1,
+						Updated: 1,
+					},
+				},
 			},
 		},
 		{ // successful claim
@@ -226,7 +233,7 @@ func TestGetAllValues(t *testing.T) {
 			space:     "foo2",
 			blockTime: 1,
 			sender:    sender2,
-			expected:  []*KeyValue{},
+			expected:  []*KeyValueMeta{},
 		},
 		{ // write
 			utx: &SetTx{
@@ -240,8 +247,15 @@ func TestGetAllValues(t *testing.T) {
 			space:     "foo2",
 			blockTime: 1,
 			sender:    sender2,
-			expected: []*KeyValue{
-				{Key: "bar", Value: []byte("value2")},
+			expected: []*KeyValueMeta{
+				{
+					Key: "bar",
+					ValueMeta: &ValueMeta{
+						Size:    6,
+						Created: 1,
+						Updated: 1,
+					},
+				},
 			},
 		},
 		{ // write again
@@ -254,10 +268,17 @@ func TestGetAllValues(t *testing.T) {
 				Value: []byte("value2"),
 			},
 			space:     "foo",
-			blockTime: 1,
+			blockTime: 2,
 			sender:    sender,
-			expected: []*KeyValue{
-				{Key: "bar", Value: []byte("value2")},
+			expected: []*KeyValueMeta{
+				{
+					Key: "bar",
+					ValueMeta: &ValueMeta{
+						Size:    6,
+						Created: 1,
+						Updated: 2,
+					},
+				},
 			},
 		},
 		{ // write new
@@ -270,11 +291,25 @@ func TestGetAllValues(t *testing.T) {
 				Value: []byte("value2"),
 			},
 			space:     "foo",
-			blockTime: 1,
+			blockTime: 2,
 			sender:    sender,
-			expected: []*KeyValue{
-				{Key: "bar", Value: []byte("value2")},
-				{Key: "bar2", Value: []byte("value2")},
+			expected: []*KeyValueMeta{
+				{
+					Key: "bar",
+					ValueMeta: &ValueMeta{
+						Size:    6,
+						Created: 1,
+						Updated: 2,
+					},
+				},
+				{
+					Key: "bar2",
+					ValueMeta: &ValueMeta{
+						Size:    6,
+						Created: 2,
+						Updated: 2,
+					},
+				},
 			},
 		},
 		{ // delete
@@ -288,8 +323,15 @@ func TestGetAllValues(t *testing.T) {
 			space:     "foo",
 			blockTime: 1,
 			sender:    sender,
-			expected: []*KeyValue{
-				{Key: "bar2", Value: []byte("value2")},
+			expected: []*KeyValueMeta{
+				{
+					Key: "bar2",
+					ValueMeta: &ValueMeta{
+						Size:    6,
+						Created: 2,
+						Updated: 2,
+					},
+				},
 			},
 		},
 	}
@@ -328,7 +370,7 @@ func TestGetAllValues(t *testing.T) {
 			t.Fatal("foo should exist")
 		}
 
-		kvs, err := GetAllValues(db, s.RawSpace)
+		kvs, err := GetAllValueMetas(db, s.RawSpace)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -250,7 +250,7 @@ type KeyValueMeta struct {
 	ValueMeta *ValueMeta `serialize:"true" json:"valueMeta"`
 }
 
-func GetAllValueMeta(db database.Database, rspace ids.ShortID) (kvs []*KeyValueMeta, err error) {
+func GetAllValueMetas(db database.Database, rspace ids.ShortID) (kvs []*KeyValueMeta, err error) {
 	baseKey := SpaceValueKey(rspace, nil)
 	cursor := db.NewIteratorWithStart(baseKey)
 	kvs = []*KeyValueMeta{}
@@ -529,7 +529,7 @@ func MoveSpaceInfo(db database.KeyValueReaderWriter, space []byte, i *SpaceInfo)
 }
 
 type ValueMeta struct {
-	Size int    `serialize:"true" json:"size"`
+	Size uint64 `serialize:"true" json:"size"`
 	TxID ids.ID `serailize:"true" json:"txId"`
 
 	Created uint64 `serialize:"true" json:"created"`
