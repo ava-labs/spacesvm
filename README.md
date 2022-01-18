@@ -178,7 +178,7 @@ transfer {type,to,units}
   },
   "id": 1
 }
->>> {"info":<chain.SpaceInfo>, "values":[{"key":<string>, "value":<base64 encoded>}]}
+>>> {"info":<chain.SpaceInfo>, "values":[<chain.KeyValueMeta>]}
 ```
 
 ### chain.SpaceInfo
@@ -186,10 +186,22 @@ transfer {type,to,units}
 {
   "owner":<hex encoded>,
   "created":<unix>,
-  "lastUpdated":<unix>,
+  "updated":<unix>,
   "expiry":<unix>,
   "units":<uint64>,
   "rawSpace":<ShortID>
+}
+```
+
+### chain.KeyValueMeta
+```
+{ "key":<string>,
+  "valueMeta":{
+    "created":<unix>,
+    "updated":<unix>,
+    "txId":<ID>, // where value was last set
+    "size":<uint64>
+  }
 }
 ```
 
@@ -204,7 +216,7 @@ transfer {type,to,units}
   },
   "id": 1
 }
->>> {"exists":<bool>, "value":<base64 encoded>}
+>>> {"exists":<bool>, "value":<base64 encoded>, "valueMeta":<chain.ValueMeta>}
 ```
 
 ## spacesvm.balance

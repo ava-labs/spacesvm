@@ -107,7 +107,7 @@ func Upload(
 
 // TODO: make multi-threaded
 func Download(cli client.Client, path string, f io.Writer) error {
-	exists, rb, err := cli.Resolve(path)
+	exists, rb, _, err := cli.Resolve(path)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func Download(cli client.Client, path string, f io.Writer) error {
 	amountDownloaded := 0
 	for _, h := range r.Children {
 		chunk := space + parser.Delimiter + h
-		exists, b, err := cli.Resolve(chunk)
+		exists, b, _, err := cli.Resolve(chunk)
 		if err != nil {
 			return err
 		}
@@ -158,7 +158,7 @@ func Download(cli client.Client, path string, f io.Writer) error {
 
 // Delete all hashes under a root
 func Delete(ctx context.Context, cli client.Client, path string, priv *ecdsa.PrivateKey) error {
-	exists, rb, err := cli.Resolve(path)
+	exists, rb, _, err := cli.Resolve(path)
 	if err != nil {
 		return err
 	}

@@ -378,14 +378,15 @@ var _ = ginkgo.Describe("Tx Types", func() {
 			_, kvs, err := instances[0].cli.Info(space)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
-			gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
+			gomega.Ω(kvs[0].ValueMeta.Size).To(gomega.Equal(uint64(5)))
 		})
 
 		ginkgo.By("read back from VM with resolve", func() {
-			exists, value, err := instances[0].cli.Resolve(space + "/" + k)
+			exists, value, valueMeta, err := instances[0].cli.Resolve(space + "/" + k)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(exists).To(gomega.BeTrue())
 			gomega.Ω(value).To(gomega.Equal(v))
+			gomega.Ω(valueMeta.Size).To(gomega.Equal(uint64(5)))
 		})
 
 		ginkgo.By("transfer funds to other sender", func() {

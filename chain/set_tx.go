@@ -67,16 +67,25 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 	}
 
 	// Update value
-	v, exists, err := GetValue(t.Database, []byte(s.Space), []byte(s.Key))
+	valueSize := uint64(len(s.Value))
+	nvmeta := &ValueMeta{
+		Size:    valueSize,
+		TxID:    t.TxID,
+		Updated: t.BlockTime,
+	}
+	v, exists, err := GetValueMeta(t.Database, []byte(s.Space), []byte(s.Key))
 	if err != nil {
 		return err
 	}
-	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
+	timeRemaining := (i.Expiry - i.Updated) * i.Units
 	if exists {
-		i.Units -= valueUnits(g, v)
+		i.Units -= valueUnits(g, v.Size)
+		nvmeta.Created = v.Created
+	} else {
+		nvmeta.Created = t.BlockTime
 	}
-	i.Units += valueUnits(g, s.Value)
-	if err := PutSpaceKey(t.Database, []byte(s.Space), []byte(s.Key), t.TxID[:]); err != nil {
+	i.Units += valueUnits(g, valueSize)
+	if err := PutSpaceKey(t.Database, []byte(s.Space), []byte(s.Key), nvmeta); err != nil {
 		return err
 	}
 	return updateSpace(s.Space, t, timeRemaining, i)
@@ -85,7 +94,7 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 func (s *SetTx) FeeUnits(g *Genesis) uint64 {
 	// We don't subtract by 1 here because we want to charge extra for any
 	// value-based interaction (even if it is small or a delete).
-	return s.BaseTx.FeeUnits(g) + valueUnits(g, s.Value)
+	return s.BaseTx.FeeUnits(g) + valueUnits(g, uint64(len(s.Value)))
 }
 
 func (s *SetTx) LoadUnits(g *Genesis) uint64 {

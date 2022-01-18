@@ -35,11 +35,11 @@ type Client interface {
 	// Returns if a space is already claimed
 	Claimed(space string) (bool, error)
 	// Returns the corresponding space information.
-	Info(space string) (*chain.SpaceInfo, []*chain.KeyValue, error)
+	Info(space string) (*chain.SpaceInfo, []*chain.KeyValueMeta, error)
 	// Balance returns the balance of an account
 	Balance(addr common.Address) (bal uint64, err error)
 	// Resolve returns the value associated with a path
-	Resolve(path string) (exists bool, value []byte, err error)
+	Resolve(path string) (exists bool, value []byte, valueMeta *chain.ValueMeta, err error)
 
 	// Requests the suggested price and cost from VM.
 	SuggestedRawFee() (uint64, uint64, error)
@@ -111,7 +111,7 @@ func (cli *client) Claimed(space string) (bool, error) {
 	return resp.Claimed, nil
 }
 
-func (cli *client) Info(space string) (*chain.SpaceInfo, []*chain.KeyValue, error) {
+func (cli *client) Info(space string) (*chain.SpaceInfo, []*chain.KeyValueMeta, error) {
 	resp := new(vm.InfoReply)
 	if err := cli.req.SendRequest(
 		"info",
@@ -218,7 +218,7 @@ done:
 	return false, ctx.Err()
 }
 
-func (cli *client) Resolve(path string) (exists bool, value []byte, err error) {
+func (cli *client) Resolve(path string) (exists bool, value []byte, valueMeta *chain.ValueMeta, err error) {
 	resp := new(vm.ResolveReply)
 	if err = cli.req.SendRequest(
 		"resolve",
@@ -227,11 +227,11 @@ func (cli *client) Resolve(path string) (exists bool, value []byte, err error) {
 		},
 		resp,
 	); err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
 
 	if !resp.Exists {
-		return false, nil, nil
+		return false, nil, nil, nil
 	}
 
 	// If we are here, path is valid
@@ -240,10 +240,10 @@ func (cli *client) Resolve(path string) (exists bool, value []byte, err error) {
 	// Ensure we are not served malicious chunks
 	if len(k) == chain.HashLen {
 		if k != strings.ToLower(common.Bytes2Hex(crypto.Keccak256(resp.Value))) {
-			return false, nil, ErrIntegrityFailure
+			return false, nil, nil, ErrIntegrityFailure
 		}
 	}
-	return true, resp.Value, nil
+	return true, resp.Value, resp.ValueMeta, nil
 }
 
 func (cli *client) IssueTxHR(d []byte, sig []byte) (ids.ID, error) {

@@ -214,7 +214,10 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				_, kvs, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
-				gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
+				gomega.Ω(kvs[0].ValueMeta.Size).To(gomega.Equal(uint64(len(v))))
+				_, rv, _, err := inst.cli.Resolve(space + "/" + kvs[0].Key)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(rv).To(gomega.Equal(v))
 			}
 		})
 
@@ -261,7 +264,10 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				_, kvs, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
-				gomega.Ω(kvs[0].Value).To(gomega.Equal(v2))
+				gomega.Ω(kvs[0].ValueMeta.Size).To(gomega.Equal(uint64(len(v2))))
+				_, rv, _, err := inst.cli.Resolve(space + "/" + kvs[0].Key)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(rv).To(gomega.Equal(v2))
 			}
 		})
 
@@ -389,7 +395,10 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				_, kvs, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
-				gomega.Ω(kvs[0].Value).To(gomega.Equal(v))
+				gomega.Ω(kvs[0].ValueMeta.Size).To(gomega.Equal(uint64(len(v))))
+				_, rv, _, err := inst.cli.Resolve(space + "/" + kvs[0].Key)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(rv).To(gomega.Equal(v))
 			}
 		})
 
@@ -434,7 +443,10 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				_, kvs, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
-				gomega.Ω(kvs[0].Value).To(gomega.Equal(v2))
+				gomega.Ω(kvs[0].ValueMeta.Size).To(gomega.Equal(uint64(len(v2))))
+				_, rv, _, err := inst.cli.Resolve(space + "/" + kvs[0].Key)
+				gomega.Ω(err).To(gomega.BeNil())
+				gomega.Ω(rv).To(gomega.Equal(v2))
 			}
 		})
 

@@ -189,6 +189,31 @@ func GetSpaceInfo(db database.KeyValueReader, space []byte) (*SpaceInfo, bool, e
 	return &i, true, err
 }
 
+func GetValueMeta(db database.KeyValueReader, space []byte, key []byte) (*ValueMeta, bool, error) {
+	spaceInfo, exists, err := GetSpaceInfo(db, space)
+	if err != nil {
+		return nil, false, err
+	}
+	if !exists {
+		return nil, false, nil
+	}
+
+	// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
+	k := SpaceValueKey(spaceInfo.RawSpace, key)
+	rvmeta, err := db.Get(k)
+	if errors.Is(err, database.ErrNotFound) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	vmeta := new(ValueMeta)
+	if _, err := Unmarshal(rvmeta, vmeta); err != nil {
+		return nil, false, err
+	}
+	return vmeta, true, nil
+}
+
 func GetValue(db database.KeyValueReader, space []byte, key []byte) ([]byte, bool, error) {
 	spaceInfo, exists, err := GetSpaceInfo(db, space)
 	if err != nil {
@@ -200,31 +225,35 @@ func GetValue(db database.KeyValueReader, space []byte, key []byte) ([]byte, boo
 
 	// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
 	k := SpaceValueKey(spaceInfo.RawSpace, key)
-	txID, err := db.Get(k)
+	rvmeta, err := db.Get(k)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, false, nil
 	}
 	if err != nil {
 		return nil, false, err
 	}
+	vmeta := new(ValueMeta)
+	if _, err := Unmarshal(rvmeta, vmeta); err != nil {
+		return nil, false, err
+	}
 
 	// Lookup stored value
-	v, err := getLinkedValue(db, txID)
+	v, err := getLinkedValue(db, vmeta.TxID[:])
 	if err != nil {
 		return nil, false, err
 	}
 	return v, true, err
 }
 
-type KeyValue struct {
-	Key   string `serialize:"true" json:"key"`
-	Value []byte `serialize:"true" json:"value"`
+type KeyValueMeta struct {
+	Key       string     `serialize:"true" json:"key"`
+	ValueMeta *ValueMeta `serialize:"true" json:"valueMeta"`
 }
 
-func GetAllValues(db database.Database, rspace ids.ShortID) (kvs []*KeyValue, err error) {
+func GetAllValueMetas(db database.Database, rspace ids.ShortID) (kvs []*KeyValueMeta, err error) {
 	baseKey := SpaceValueKey(rspace, nil)
 	cursor := db.NewIteratorWithStart(baseKey)
-	kvs = []*KeyValue{}
+	kvs = []*KeyValueMeta{}
 	for cursor.Next() {
 		curKey := cursor.Key()
 		if bytes.Compare(baseKey, curKey) < -1 { // startKey < curKey; continue search
@@ -234,16 +263,15 @@ func GetAllValues(db database.Database, rspace ids.ShortID) (kvs []*KeyValue, er
 			break
 		}
 
-		// Lookup stored value
-		v, err := getLinkedValue(db, cursor.Value())
-		if err != nil {
+		vmeta := new(ValueMeta)
+		if _, err := Unmarshal(cursor.Value(), vmeta); err != nil {
 			return nil, err
 		}
 
-		kvs = append(kvs, &KeyValue{
+		kvs = append(kvs, &KeyValueMeta{
 			// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
-			Key:   string(curKey[2+shortIDLen+1:]),
-			Value: v,
+			Key:       string(curKey[2+shortIDLen+1:]),
+			ValueMeta: vmeta,
 		})
 	}
 	return kvs, nil
@@ -500,7 +528,15 @@ func MoveSpaceInfo(db database.KeyValueReaderWriter, space []byte, i *SpaceInfo)
 	return db.Put(k, b)
 }
 
-func PutSpaceKey(db database.Database, space []byte, key []byte, value []byte) error {
+type ValueMeta struct {
+	Size uint64 `serialize:"true" json:"size"`
+	TxID ids.ID `serialize:"true" json:"txId"`
+
+	Created uint64 `serialize:"true" json:"created"`
+	Updated uint64 `serialize:"true" json:"updated"`
+}
+
+func PutSpaceKey(db database.Database, space []byte, key []byte, vmeta *ValueMeta) error {
 	spaceInfo, exists, err := GetSpaceInfo(db, space)
 	if err != nil {
 		return err
@@ -510,7 +546,11 @@ func PutSpaceKey(db database.Database, space []byte, key []byte, value []byte) e
 	}
 	// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
 	k := SpaceValueKey(spaceInfo.RawSpace, key)
-	return db.Put(k, value)
+	rvmeta, err := Marshal(vmeta)
+	if err != nil {
+		return err
+	}
+	return db.Put(k, rvmeta)
 }
 
 func DeleteSpaceKey(db database.Database, space []byte, key []byte) error {

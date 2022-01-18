@@ -9,11 +9,11 @@ import (
 )
 
 type SpaceInfo struct {
-	Owner       common.Address `serialize:"true" json:"owner"`
-	Created     uint64         `serialize:"true" json:"created"`
-	LastUpdated uint64         `serialize:"true" json:"lastUpdated"`
-	Expiry      uint64         `serialize:"true" json:"expiry"`
-	Units       uint64         `serialize:"true" json:"units"` // decays faster the more units you have
+	Owner   common.Address `serialize:"true" json:"owner"`
+	Created uint64         `serialize:"true" json:"created"`
+	Updated uint64         `serialize:"true" json:"updated"`
+	Expiry  uint64         `serialize:"true" json:"expiry"`
+	Units   uint64         `serialize:"true" json:"units"` // decays faster the more units you have
 
 	RawSpace ids.ShortID `serialize:"true" json:"rawSpace"`
 }
