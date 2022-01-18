@@ -195,7 +195,8 @@ transfer {type,to,units}
 
 ### chain.KeyValueMeta
 ```
-{ "key":<string>,
+{
+  "key":<string>,
   "valueMeta":{
     "created":<unix>,
     "updated":<unix>,
