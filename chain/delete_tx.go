@@ -48,7 +48,7 @@ func (d *DeleteTx) Execute(t *TransactionContext) error {
 	if !exists {
 		return ErrKeyMissing
 	}
-	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
+	timeRemaining := (i.Expiry - i.Updated) * i.Units
 	i.Units -= valueUnits(g, v.Size)
 	if err := DeleteSpaceKey(t.Database, []byte(d.Space), []byte(d.Key)); err != nil {
 		return err

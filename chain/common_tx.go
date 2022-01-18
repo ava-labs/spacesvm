@@ -42,7 +42,7 @@ func verifySpace(s string, t *TransactionContext) (*SpaceInfo, error) {
 
 func updateSpace(s string, t *TransactionContext, timeRemaining uint64, i *SpaceInfo) error {
 	newTimeRemaining := timeRemaining / i.Units
-	i.LastUpdated = t.BlockTime
+	i.Updated = t.BlockTime
 	lastExpiry := i.Expiry
 	i.Expiry = t.BlockTime + newTimeRemaining
 	return PutSpaceInfo(t.Database, []byte(s), i, lastExpiry)

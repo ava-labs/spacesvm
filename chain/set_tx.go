@@ -77,7 +77,7 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 	if err != nil {
 		return err
 	}
-	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
+	timeRemaining := (i.Expiry - i.Updated) * i.Units
 	if exists {
 		i.Units -= valueUnits(g, v.Size)
 		nvmeta.Created = v.Created

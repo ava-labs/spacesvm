@@ -51,11 +51,11 @@ func (c *ClaimTx) Execute(t *TransactionContext) error {
 
 	// Anything previously at the space was previously removed...
 	newInfo := &SpaceInfo{
-		Owner:       t.Sender,
-		Created:     t.BlockTime,
-		LastUpdated: t.BlockTime,
-		Expiry:      t.BlockTime + t.Genesis.ClaimReward,
-		Units:       1,
+		Owner:   t.Sender,
+		Created: t.BlockTime,
+		Updated: t.BlockTime,
+		Expiry:  t.BlockTime + t.Genesis.ClaimReward,
+		Units:   1,
 	}
 	if err := PutSpaceInfo(t.Database, []byte(c.Space), newInfo, 0); err != nil {
 		return err
