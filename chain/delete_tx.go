@@ -41,7 +41,7 @@ func (d *DeleteTx) Execute(t *TransactionContext) error {
 	}
 
 	// Delete value
-	v, exists, err := GetValue(t.Database, []byte(d.Space), []byte(d.Key))
+	v, exists, err := GetValueMeta(t.Database, []byte(d.Space), []byte(d.Key))
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (d *DeleteTx) Execute(t *TransactionContext) error {
 		return ErrKeyMissing
 	}
 	timeRemaining := (i.Expiry - i.LastUpdated) * i.Units
-	i.Units -= valueUnits(g, v)
+	i.Units -= valueUnits(g, v.Size)
 	if err := DeleteSpaceKey(t.Database, []byte(d.Space), []byte(d.Key)); err != nil {
 		return err
 	}

@@ -48,8 +48,8 @@ func updateSpace(s string, t *TransactionContext, timeRemaining uint64, i *Space
 	return PutSpaceInfo(t.Database, []byte(s), i, lastExpiry)
 }
 
-func valueUnits(g *Genesis, b []byte) uint64 {
-	return uint64(len(b))/g.ValueUnitSize + 1
+func valueUnits(g *Genesis, size int) uint64 {
+	return uint64(size)/g.ValueUnitSize + 1
 }
 
 func valueHash(v []byte) string {
