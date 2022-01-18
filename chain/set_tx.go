@@ -85,7 +85,6 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 		nvmeta.Created = t.BlockTime
 	}
 	i.Units += valueUnits(g, valueSize)
-
 	if err := PutSpaceKey(t.Database, []byte(s.Space), []byte(s.Key), nvmeta); err != nil {
 		return err
 	}

@@ -270,6 +270,19 @@ func TestSetTx(t *testing.T) {
 				t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(sender[:]))
 			}
 		case *SetTx:
+			vmeta, exists, err := GetValueMeta(db, []byte(tp.Space), []byte(tp.Key))
+			if err != nil {
+				t.Fatalf("#%d: failed to get meta info %v", i, err)
+			}
+			switch {
+			case !exists:
+				t.Fatalf("#%d: non-empty value should have been persisted but not found", i)
+			case exists:
+				if vmeta.TxID != id {
+					t.Fatalf("#%d: unexpected txID %q, expected %q", i, vmeta.TxID, id)
+				}
+			}
+
 			val, exists, err := GetValue(db, []byte(tp.Space), []byte(tp.Key))
 			if err != nil {
 				t.Fatalf("#%d: failed to get key info %v", i, err)

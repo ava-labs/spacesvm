@@ -225,7 +225,7 @@ func GetValue(db database.KeyValueReader, space []byte, key []byte) ([]byte, boo
 
 	// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
 	k := SpaceValueKey(spaceInfo.RawSpace, key)
-	rkv, err := db.Get(k)
+	rvmeta, err := db.Get(k)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, false, nil
 	}
@@ -233,7 +233,7 @@ func GetValue(db database.KeyValueReader, space []byte, key []byte) ([]byte, boo
 		return nil, false, err
 	}
 	vmeta := new(ValueMeta)
-	if _, err := Unmarshal(rkv, vmeta); err != nil {
+	if _, err := Unmarshal(rvmeta, vmeta); err != nil {
 		return nil, false, err
 	}
 
@@ -530,7 +530,7 @@ func MoveSpaceInfo(db database.KeyValueReaderWriter, space []byte, i *SpaceInfo)
 
 type ValueMeta struct {
 	Size uint64 `serialize:"true" json:"size"`
-	TxID ids.ID `serailize:"true" json:"txId"`
+	TxID ids.ID `serialize:"true" json:"txId"`
 
 	Created uint64 `serialize:"true" json:"created"`
 	Updated uint64 `serialize:"true" json:"updated"`
