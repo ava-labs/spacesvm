@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -26,11 +27,16 @@ func resolveFunc(cmd *cobra.Command, args []string) error {
 		os.Exit(128)
 	}
 	cli := client.New(uri, requestTimeout)
-	_, v, err := cli.Resolve(args[0])
+	_, v, vmeta, err := cli.Resolve(args[0])
 	if err != nil {
 		return err
 	}
 
 	color.Yellow("%s=>%q", args[0], v)
+	hr, err := json.Marshal(vmeta)
+	if err != nil {
+		return err
+	}
+	color.Yellow("Metadata: %s", string(hr))
 	return nil
 }

@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -33,7 +34,11 @@ func infoFunc(cmd *cobra.Command, args []string) error {
 
 	client.PPInfo(info)
 	for _, kv := range values {
-		color.Yellow("%s=>%q", kv.Key, kv.Value)
+		hr, err := json.Marshal(kv.ValueMeta)
+		if err != nil {
+			return err
+		}
+		color.Yellow("%s=>%s", kv.Key, string(hr))
 	}
 	return nil
 }
