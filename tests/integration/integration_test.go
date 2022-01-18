@@ -529,7 +529,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 
 		files := []string{}
-		ginkgo.By("create temporary files", func() {
+		ginkgo.By("create 0-files", func() {
 			for _, size := range []int64{units.KiB, 278 * units.KiB, 400 * units.KiB /* right on boundary */, 5 * units.MiB} {
 				newFile, err := ioutil.TempFile("", "test")
 				gomega.Ω(err).Should(gomega.BeNil())
@@ -541,7 +541,17 @@ var _ = ginkgo.Describe("Tx Types", func() {
 				files = append(files, newFile.Name())
 			}
 		})
-		// TODO: create files with random values to prevent duplicate chunks
+
+		ginkgo.By("create random files", func() {
+			for _, size := range []int{units.KiB, 400 * units.KiB, 3 * units.MiB} {
+				newFile, err := ioutil.TempFile("", "test")
+				gomega.Ω(err).Should(gomega.BeNil())
+				_, err = newFile.WriteString(RandStringRunes(size))
+				gomega.Ω(err).Should(gomega.BeNil())
+				gomega.Ω(newFile.Close()).Should(gomega.BeNil())
+				files = append(files, newFile.Name())
+			}
+		})
 
 		for _, file := range files {
 			var path string
