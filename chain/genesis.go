@@ -84,7 +84,7 @@ func DefaultGenesis() *Genesis {
 
 		// SetTx params
 		ValueUnitSize: DefaultValueUnitSize,
-		MaxValueSize:  256 * units.KiB,
+		MaxValueSize:  200 * units.KiB,
 
 		// Claim Params
 		ClaimLoadMultiplier:         5,
@@ -103,8 +103,8 @@ func DefaultGenesis() *Genesis {
 		// Fee Mechanism Params
 		LookbackWindow:   DefaultLookbackWindow, // 60 Seconds
 		TargetBlockRate:  1,                     // 1 Block per Second
-		TargetBlockSize:  1500,                  // 1500 Units Per Block (~1.5MB of SetTx)
-		MaxBlockSize:     2000,                  // 2000 Units (~2MB)
+		TargetBlockSize:  225,                   // ~225KB
+		MaxBlockSize:     250,                   // ~250KB -> Limited to 256KB by AvalancheGo (as of v1.7.3)
 		MinPrice:         1,
 		BlockCostEnabled: true,
 	}
