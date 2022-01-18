@@ -216,7 +216,7 @@ transfer {type,to,units}
   },
   "id": 1
 }
->>> {"exists":<bool>, "value":<base64 encoded>}
+>>> {"exists":<bool>, "value":<base64 encoded>, "valueMeta":<chain.ValueMeta>}
 ```
 
 ## spacesvm.balance

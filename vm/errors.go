@@ -12,4 +12,5 @@ var (
 	ErrTypedDataIsNil = errors.New("typed data is nil")
 	ErrInputIsNil     = errors.New("input is nil")
 	ErrInvalidEmptyTx = errors.New("invalid empty transaction")
+	ErrCorruption     = errors.New("corruption detected")
 )

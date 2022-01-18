@@ -250,8 +250,9 @@ type ResolveArgs struct {
 }
 
 type ResolveReply struct {
-	Exists bool   `serialize:"true" json:"exists"`
-	Value  []byte `serialize:"true" json:"value"`
+	Exists    bool             `serialize:"true" json:"exists"`
+	Value     []byte           `serialize:"true" json:"value"`
+	ValueMeta *chain.ValueMeta `serialize:"true" json:"valueMeta"`
 }
 
 func (svc *PublicService) Resolve(_ *http.Request, args *ResolveArgs, reply *ResolveReply) error {
@@ -260,10 +261,27 @@ func (svc *PublicService) Resolve(_ *http.Request, args *ResolveArgs, reply *Res
 		return err
 	}
 
+	vmeta, exists, err := chain.GetValueMeta(svc.vm.db, []byte(space), []byte(key))
+	if err != nil {
+		return err
+	}
+	if !exists {
+		// Avoid value lookup if doesn't exist
+		return nil
+	}
 	v, exists, err := chain.GetValue(svc.vm.db, []byte(space), []byte(key))
-	reply.Exists = exists
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return ErrCorruption
+	}
+
+	// Set values properly
+	reply.Exists = true
 	reply.Value = v
-	return err
+	reply.ValueMeta = vmeta
+	return nil
 }
 
 type BalanceArgs struct {
