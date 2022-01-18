@@ -6,7 +6,6 @@ package chain
 import (
 	"bytes"
 	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
@@ -375,8 +374,20 @@ func TestGetAllValueMetas(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if !reflect.DeepEqual(tv.expected, kvs) {
-			t.Fatalf("%d: values not equal expected=%+v observed=%+v", i, tv.expected, kvs)
+		for i, ex := range tv.expected {
+			corr := kvs[i]
+			if ex.Key != corr.Key {
+				t.Fatalf("%d: keys not equal expected=%+v observed=%+v", i, ex.Key, corr.Key)
+			}
+			if ex.ValueMeta.Created != corr.ValueMeta.Created {
+				t.Fatalf("%d: created not equal expected=%+v observed=%+v", i, ex.ValueMeta.Created, corr.ValueMeta.Created)
+			}
+			if ex.ValueMeta.Updated != corr.ValueMeta.Updated {
+				t.Fatalf("%d: updated not equal expected=%+v observed=%+v", i, ex.ValueMeta.Updated, corr.ValueMeta.Updated)
+			}
+			if ex.ValueMeta.Size != corr.ValueMeta.Size {
+				t.Fatalf("%d: size not equal expected=%+v observed=%+v", i, ex.ValueMeta.Size, corr.ValueMeta.Size)
+			}
 		}
 	}
 }
