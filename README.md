@@ -260,6 +260,17 @@ transfer {type,to,units}
 }
 ```
 
+#### Activity Types
+```
+claim    {timestamp,sender,txId,type,space}
+lifeline {timestamp,sender,txId,type,space,units}
+set      {timestamp,sender,txId,type,space,key,value}
+delete   {timestamp,sender,txId,type,space,key}
+move     {timestamp,sender,txId,type,space,to}
+transfer {timestamp,sender,txId,type,to,units}
+reward   {timestamp,txId,type,to,units}
+```
+
 # Advanced Public Endpoints (`/public`)
 
 ## spacesvm.suggestedRawFee
