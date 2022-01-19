@@ -59,7 +59,8 @@ type Genesis struct {
 	SpaceRenewalDiscount uint64 `serialize:"true" json:"spaceRenewalDiscount"`
 
 	// Reward Params
-	ClaimReward uint64 `serialize:"true" json:"claimReward"`
+	ClaimReward      uint64 `serialize:"true" json:"claimReward"`
+	ClaimExpiryUnits uint64 `serialize:"true" json:"claimExpiryUnits"`
 
 	// Mining Reward (% of min required fee)
 	LotteryRewardMultipler uint64 `serialize:"true" json:"lotteryRewardMultipler"` // divided by 100
@@ -90,6 +91,7 @@ func DefaultGenesis() *Genesis {
 
 		// Claim Params
 		ClaimLoadMultiplier:         5,
+		ClaimExpiryUnits:            100,
 		MinClaimFee:                 100,
 		SpaceDesirabilityMultiplier: 5,
 
