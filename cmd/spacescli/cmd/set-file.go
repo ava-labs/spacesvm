@@ -44,7 +44,7 @@ func setFileFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	color.Green("uploaded file %s", path)
+	color.Green("uploaded file %s from %s", path, f.Name())
 	return nil
 }
 

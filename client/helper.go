@@ -20,7 +20,7 @@ import (
 
 func PPInfo(info *chain.SpaceInfo) {
 	expiry := time.Unix(int64(info.Expiry), 0)
-	color.Blue(
+	color.Cyan(
 		"raw space %s: units=%d expiry=%v (%v remaining)",
 		info.RawSpace, info.Units, expiry, time.Until(expiry),
 	)
@@ -28,14 +28,14 @@ func PPInfo(info *chain.SpaceInfo) {
 
 func PPActivity(a []*chain.Activity) error {
 	if len(a) == 0 {
-		color.Blue("no recent activity")
+		color.Cyan("no recent activity")
 	}
 	for _, item := range a {
 		b, err := json.Marshal(item)
 		if err != nil {
 			return err
 		}
-		color.Blue(string(b))
+		color.Cyan(string(b))
 	}
 	return nil
 }
@@ -142,7 +142,7 @@ func handleConfirmation(
 	txID ids.ID, priv *ecdsa.PrivateKey,
 ) error {
 	if ret.pollTx {
-		color.Green("issued transaction %s (now polling)", txID)
+		color.Yellow("issued transaction %s (now polling)", txID)
 		confirmed, err := cli.PollTx(ctx, txID)
 		if err != nil {
 			return err

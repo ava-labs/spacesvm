@@ -23,20 +23,17 @@ var resolveFileCmd = &cobra.Command{
 
 func resolveFileFunc(cmd *cobra.Command, args []string) error {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 2 argument, got %d", len(args))
-		os.Exit(128)
+		return fmt.Errorf("expected exactly 2 argument, got %d", len(args))
 	}
 
 	filePath := args[1]
 	if _, err := os.Stat(filePath); !errors.Is(err, os.ErrNotExist) {
-		fmt.Fprintf(os.Stderr, "file already exists %v", err)
-		os.Exit(128)
+		return fmt.Errorf("file %s already exists", filePath)
 	}
 
 	f, err := os.Create(filePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create file %v", err)
-		os.Exit(128)
+		return fmt.Errorf("failed to create file %s", filePath)
 	}
 	defer f.Close()
 
@@ -45,6 +42,6 @@ func resolveFileFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	color.Green("resolved file %s", args[0])
+	color.Green("resolved file %s and stored at %s", args[0], filePath)
 	return nil
 }
