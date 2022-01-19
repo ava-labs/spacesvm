@@ -24,7 +24,7 @@ var (
 )
 
 func init() {
-	reg = regexp.MustCompile("^[a-z0-9.]{1,256}$")
+	reg = regexp.MustCompile("^[a-z0-9]{1,256}$")
 }
 
 // CheckContents returns an error if the identifier (space or key) format is invalid.
