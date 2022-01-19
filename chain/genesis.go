@@ -55,7 +55,7 @@ type Genesis struct {
 	SpaceDesirabilityMultiplier uint64 `serialize:"true" json:"spaceDesirabilityMultiplier"`
 
 	// Lifeline Params
-	SpaceRenewalDiscount uint64 `serialize:"true" json:"prefixRenewalDiscount"`
+	SpaceRenewalDiscount uint64 `serialize:"true" json:"spaceRenewalDiscount"`
 
 	// Reward Params
 	ClaimReward uint64 `serialize:"true" json:"claimReward"`
