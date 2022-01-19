@@ -6,7 +6,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -22,8 +21,7 @@ var resolveCmd = &cobra.Command{
 
 func resolveFunc(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
-		os.Exit(128)
+		return fmt.Errorf("expected exactly 1 argument, got %d", len(args))
 	}
 	cli := client.New(uri, requestTimeout)
 	_, v, vmeta, err := cli.Resolve(args[0])
@@ -37,6 +35,7 @@ func resolveFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	color.Yellow("Metadata: %s", string(hr))
+
 	color.Green("resolved %s", args[0])
 	return nil
 }
