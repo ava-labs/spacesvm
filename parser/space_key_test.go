@@ -37,6 +37,10 @@ func TestCheckContents(t *testing.T) {
 			err:        ErrInvalidContents,
 		},
 		{
+			identifier: "ab.1",
+			err:        ErrInvalidContents,
+		},
+		{
 			identifier: "a a",
 			err:        ErrInvalidContents,
 		},
