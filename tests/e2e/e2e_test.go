@@ -14,15 +14,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/spacesvm/chain"
-	"github.com/ava-labs/spacesvm/client"
-	"github.com/ava-labs/spacesvm/parser"
-	"github.com/ava-labs/spacesvm/tests"
+	"github.com/ava-labs/avalanchego/ids"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/client"
+	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tests"
 )
 
 func TestIntegration(t *testing.T) {
@@ -123,6 +125,21 @@ var _ = ginkgo.Describe("[Ping]", func() {
 	})
 })
 
+var _ = ginkgo.Describe("[Network]", func() {
+	ginkgo.It("can get network", func() {
+		sID, err := ids.FromString("24tZhrm8j8GCJRE9PomW8FaeqbgGS4UAQjJnqqn8pq5NwYSYV1")
+		gomega.Ω(err).Should(gomega.BeNil())
+		for _, inst := range instances {
+			cli := inst.cli
+			networkID, subnetID, chainID, err := cli.Network()
+			gomega.Ω(networkID).Should(gomega.Equal(uint32(1337)))
+			gomega.Ω(subnetID).Should(gomega.Equal(sID))
+			gomega.Ω(chainID).ShouldNot(gomega.Equal(ids.Empty))
+			gomega.Ω(err).Should(gomega.BeNil())
+		}
+	})
+})
+
 var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 	ginkgo.It("get currently accepted block ID", func() {
 		for _, inst := range instances {
@@ -203,7 +220,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				color.Blue("checking space on %q", inst.uri)
 				pf, _, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
-				gomega.Ω(pf.Units).To(gomega.Equal(uint64(101)))
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(100)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			}
 		})
@@ -253,7 +270,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				color.Blue("checking space on %q", inst.uri)
 				pf, _, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
-				gomega.Ω(pf.Units).To(gomega.Equal(uint64(121)))
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(102)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			}
 		})
@@ -384,7 +401,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				color.Blue("checking space on %q", inst.uri)
 				pf, _, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
-				gomega.Ω(pf.Units).To(gomega.Equal(uint64(101)))
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(100)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			}
 		})
@@ -432,7 +449,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				color.Blue("checking space on %q", inst.uri)
 				pf, _, err := inst.cli.Info(space)
 				gomega.Ω(err).To(gomega.BeNil())
-				gomega.Ω(pf.Units).To(gomega.Equal(uint64(121)))
+				gomega.Ω(pf.Units).To(gomega.Equal(uint64(102)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			}
 		})
