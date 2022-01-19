@@ -42,7 +42,7 @@ TODO: Insert image of signing using MM
 
 ### Fee Mechanisms
 Claim Desirability + Decay Rate
-FeeUnits vs Load Units
+FeeUnits vs Load Units vs Expiry Units (per action)
 Expiry Rate vs Units
 
 ### Space Rewards
