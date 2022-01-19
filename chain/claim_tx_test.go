@@ -118,6 +118,20 @@ func TestClaimTx(t *testing.T) {
 	}
 
 	// Cleanup DB after all txs submitted
+	senderSpaces, err := GetAllOwned(db, sender)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(senderSpaces) != 0 {
+		t.Fatalf("sender owned spaces should = 0, found %d", len(senderSpaces))
+	}
+	sender2Spaces, err := GetAllOwned(db, sender2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sender2Spaces) != 1 {
+		t.Fatalf("sender2 owned spaces should = 1, found %d", len(sender2Spaces))
+	}
 	if err := ExpireNext(db, 0, ClaimReward*10, true); err != nil {
 		t.Fatal(err)
 	}
@@ -134,5 +148,19 @@ func TestClaimTx(t *testing.T) {
 	}
 	if exists {
 		t.Fatal("space should not exist")
+	}
+	senderSpaces, err = GetAllOwned(db, sender)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(senderSpaces) != 0 {
+		t.Fatal("owned spaces should be empty")
+	}
+	sender2Spaces, err = GetAllOwned(db, sender2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sender2Spaces) != 0 {
+		t.Fatal("owned spaces should be empty")
 	}
 }
