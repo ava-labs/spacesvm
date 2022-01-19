@@ -110,13 +110,14 @@ spaces-cli resolve-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7
 spaces-cli delete-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
 ```
 
-### Golang SDK
-TODO: add link
+### [Golang SDK](https://github.com/ava-labs/spacesvm/blob/master/client/client.go)
 ```golang
 // Client defines spacesvm client operations.
 type Client interface {
 	// Pings the VM.
 	Ping() (bool, error)
+	// Network information about this instance of the VM
+	Network() (uint32, ids.ID, ids.ID, error)
 
 	// Returns the VM genesis.
 	Genesis() (*chain.Genesis, error)
