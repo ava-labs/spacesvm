@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -41,14 +40,17 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	space := getClaimOp(args)
-	cli := client.New(uri, requestTimeout)
+	space, err := getClaimOp(args)
+	if err != nil {
+		return err
+	}
 
 	utx := &chain.ClaimTx{
 		BaseTx: &chain.BaseTx{},
 		Space:  space,
 	}
 
+	cli := client.New(uri, requestTimeout)
 	opts := []client.OpOption{client.WithPollTx()}
 	if verbose {
 		opts = append(opts, client.WithInfo(space))
@@ -62,10 +64,9 @@ func claimFunc(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getClaimOp(args []string) (space string) {
+func getClaimOp(args []string) (space string, err error) {
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
-		os.Exit(128)
+		return "", fmt.Errorf("expected exactly 1 argument, got %d", len(args))
 	}
 
 	space = args[0]
@@ -74,9 +75,8 @@ func getClaimOp(args []string) (space string) {
 
 	// check here first before parsing in case "space" is empty
 	if err := parser.CheckContents(space); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to verify space %v", err)
-		os.Exit(128)
+		return "", fmt.Errorf("%w: failed to verify space", err)
 	}
 
-	return space
+	return space, nil
 }

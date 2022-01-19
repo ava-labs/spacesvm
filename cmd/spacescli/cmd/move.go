@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -30,8 +29,10 @@ func moveFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	to, space := getMoveOp(args)
-	cli := client.New(uri, requestTimeout)
+	to, space, err := getMoveOp(args)
+	if err != nil {
+		return err
+	}
 
 	utx := &chain.MoveTx{
 		BaseTx: &chain.BaseTx{},
@@ -39,6 +40,7 @@ func moveFunc(cmd *cobra.Command, args []string) error {
 		Space:  space,
 	}
 
+	cli := client.New(uri, requestTimeout)
 	opts := []client.OpOption{client.WithPollTx()}
 	if verbose {
 		opts = append(opts, client.WithInfo(space))
@@ -52,16 +54,14 @@ func moveFunc(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getMoveOp(args []string) (to common.Address, space string) {
+func getMoveOp(args []string) (to common.Address, space string, err error) {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 2 arguments, got %d", len(args))
-		os.Exit(128)
+		return common.Address{}, "", fmt.Errorf("expected exactly 2 arguments, got %d", len(args))
 	}
 
 	addr := common.HexToAddress(args[0])
 	if err := parser.CheckContents(args[1]); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse space %v", err)
-		os.Exit(128)
+		return common.Address{}, "", fmt.Errorf("%w: failed to parse space", err)
 	}
-	return addr, args[1]
+	return addr, args[1], nil
 }

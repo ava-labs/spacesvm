@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -30,8 +29,10 @@ func transferFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	to, units := getTransferOp(args)
-	cli := client.New(uri, requestTimeout)
+	to, units, err := getTransferOp(args)
+	if err != nil {
+		return err
+	}
 
 	utx := &chain.TransferTx{
 		BaseTx: &chain.BaseTx{},
@@ -39,6 +40,7 @@ func transferFunc(cmd *cobra.Command, args []string) error {
 		Units:  units,
 	}
 
+	cli := client.New(uri, requestTimeout)
 	opts := []client.OpOption{client.WithPollTx()}
 	if verbose {
 		opts = append(opts, client.WithBalance())
@@ -51,17 +53,15 @@ func transferFunc(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getTransferOp(args []string) (to common.Address, units uint64) {
+func getTransferOp(args []string) (to common.Address, units uint64, err error) {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 2 arguments, got %d", len(args))
-		os.Exit(128)
+		return common.Address{}, 0, fmt.Errorf("expected exactly 2 arguments, got %d", len(args))
 	}
 
 	addr := common.HexToAddress(args[0])
-	units, err := strconv.ParseUint(args[1], 10, 64)
+	units, err = strconv.ParseUint(args[1], 10, 64)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse units %v", err)
-		os.Exit(128)
+		return common.Address{}, 0, fmt.Errorf("%w: failed to parse units", err)
 	}
-	return addr, units
+	return addr, units, nil
 }

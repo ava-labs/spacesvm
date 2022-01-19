@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
@@ -29,8 +28,7 @@ func deleteFileFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
-		os.Exit(128)
+		return fmt.Errorf("expected exactly 1 argument, got %d", len(args))
 	}
 
 	cli := client.New(uri, requestTimeout)

@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -31,8 +30,10 @@ func lifelineFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	space, units := getLifelineOp(args)
-	cli := client.New(uri, requestTimeout)
+	space, units, err := getLifelineOp(args)
+	if err != nil {
+		return err
+	}
 
 	utx := &chain.LifelineTx{
 		BaseTx: &chain.BaseTx{},
@@ -40,6 +41,7 @@ func lifelineFunc(cmd *cobra.Command, args []string) error {
 		Units:  units,
 	}
 
+	cli := client.New(uri, requestTimeout)
 	opts := []client.OpOption{client.WithPollTx()}
 	if verbose {
 		opts = append(opts, client.WithInfo(space))
@@ -53,10 +55,9 @@ func lifelineFunc(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getLifelineOp(args []string) (space string, units uint64) {
+func getLifelineOp(args []string) (space string, units uint64, err error) {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
-		os.Exit(128)
+		return "", 0, fmt.Errorf("expected exactly 1 argument, got %d", len(args))
 	}
 
 	space = args[0]
@@ -65,15 +66,13 @@ func getLifelineOp(args []string) (space string, units uint64) {
 
 	// check here first before parsing in case "space" is empty
 	if err := parser.CheckContents(space); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to verify space %v", err)
-		os.Exit(128)
+		return "", 0, fmt.Errorf("%w: failed to verify space", err)
 	}
 
-	units, err := strconv.ParseUint(args[1], 10, 64)
+	units, err = strconv.ParseUint(args[1], 10, 64)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse units %v", err)
-		os.Exit(128)
+		return "", 0, fmt.Errorf("%w: failed to parse units", err)
 	}
 
-	return space, units
+	return space, units, nil
 }

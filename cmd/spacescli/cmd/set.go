@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
@@ -65,8 +64,10 @@ func setFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	space, key, val := getSetOp(args)
-	cli := client.New(uri, requestTimeout)
+	space, key, val, err := getSetOp(args)
+	if err != nil {
+		return err
+	}
 
 	utx := &chain.SetTx{
 		BaseTx: &chain.BaseTx{},
@@ -75,6 +76,7 @@ func setFunc(cmd *cobra.Command, args []string) error {
 		Value:  val,
 	}
 
+	cli := client.New(uri, requestTimeout)
 	opts := []client.OpOption{client.WithPollTx()}
 	if verbose {
 		opts = append(opts, client.WithInfo(space))
@@ -88,23 +90,19 @@ func setFunc(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getSetOp(args []string) (space string, key string, val []byte) {
+func getSetOp(args []string) (space string, key string, val []byte, err error) {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 2 arguments, got %d", len(args))
-		os.Exit(128)
+		return "", "", nil, fmt.Errorf("expected exactly 2 arguments, got %d", len(args))
 	}
 
 	// [space/key] == "foo/bar"
 	spaceKey := args[0]
 
-	var err error
 	space, key, err = parser.ResolvePath(spaceKey)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse space %v", err)
-		os.Exit(128)
+		return "", "", nil, fmt.Errorf("%w: failed to parse space", err)
 	}
 
 	val = []byte(args[1])
-
-	return space, key, val
+	return space, key, val, err
 }

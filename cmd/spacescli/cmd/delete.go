@@ -26,8 +26,10 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	space, key := getPathOp(args)
-	cli := client.New(uri, requestTimeout)
+	space, key, err := getPathOp(args)
+	if err != nil {
+		return err
+	}
 
 	utx := &chain.DeleteTx{
 		BaseTx: &chain.BaseTx{},
@@ -35,6 +37,7 @@ func deleteFunc(cmd *cobra.Command, args []string) error {
 		Key:    key,
 	}
 
+	cli := client.New(uri, requestTimeout)
 	opts := []client.OpOption{client.WithPollTx()}
 	if verbose {
 		opts = append(opts, client.WithInfo(space))

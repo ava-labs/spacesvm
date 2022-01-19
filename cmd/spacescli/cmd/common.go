@@ -5,26 +5,22 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/ava-labs/spacesvm/parser"
 )
 
-func getPathOp(args []string) (space string, key string) {
+func getPathOp(args []string) (space string, key string, err error) {
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
-		os.Exit(128)
+		return "", "", fmt.Errorf("expected exactly 1 argument, got %d", len(args))
 	}
 
 	// [space/key] == "foo/bar"
 	spaceKey := args[0]
 
-	var err error
 	space, key, err = parser.ResolvePath(spaceKey)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse space %v", err)
-		os.Exit(128)
+		return "", "", fmt.Errorf("%w: failed to parse space", err)
 	}
 
-	return space, key
+	return space, key, nil
 }
