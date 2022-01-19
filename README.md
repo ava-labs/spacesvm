@@ -22,7 +22,7 @@ You could build...
 * Twitter Feed-like
 
 ## How it Works
-### Flow
+### Action Types
 #### Claim
 
 ##### Community support
