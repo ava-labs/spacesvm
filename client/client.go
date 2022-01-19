@@ -61,6 +61,8 @@ type Client interface {
 
 	// Recent actions on the network (sorted from recent to oldest)
 	RecentActivity() ([]*chain.Activity, error)
+	// All spaces owned by a given address
+	Owned(owner common.Address) ([]string, error)
 }
 
 // New creates a new client object.
@@ -289,4 +291,18 @@ func (cli *client) RecentActivity() (activity []*chain.Activity, err error) {
 		return nil, err
 	}
 	return resp.Activity, nil
+}
+
+func (cli *client) Owned(addr common.Address) (spaces []string, err error) {
+	resp := new(vm.OwnedReply)
+	if err = cli.req.SendRequest(
+		"owned",
+		&vm.OwnedArgs{
+			Address: addr,
+		},
+		resp,
+	); err != nil {
+		return nil, err
+	}
+	return resp.Spaces, nil
 }
