@@ -163,7 +163,19 @@ type Client interface {
   "params":{},
   "id": 1
 }
->>> {"sucess":<bool>}
+>>> {"success":<bool>}
+```
+
+#### spacesvm.network
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.network",
+  "params":{},
+  "id": 1
+}
+>>> {"networkId":<uint32>, "subnetId":<ID>, "chainId":<ID>}
 ```
 
 #### spacesvm.genesis

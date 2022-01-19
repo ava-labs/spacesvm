@@ -31,6 +31,19 @@ func (svc *PublicService) Ping(_ *http.Request, _ *struct{}, reply *PingReply) (
 	return nil
 }
 
+type NetworkReply struct {
+	NetworkID uint32 `serialize:"true" json:"networkId"`
+	SubnetID  ids.ID `serialize:"true" json:"subnetId"`
+	ChainID   ids.ID `serialize:"true" json:"chainId"`
+}
+
+func (svc *PublicService) Network(_ *http.Request, _ *struct{}, reply *NetworkReply) (err error) {
+	reply.NetworkID = svc.vm.ctx.NetworkID
+	reply.SubnetID = svc.vm.ctx.SubnetID
+	reply.ChainID = svc.vm.ctx.ChainID
+	return nil
+}
+
 type GenesisReply struct {
 	Genesis *chain.Genesis `serialize:"true" json:"genesis"`
 }
