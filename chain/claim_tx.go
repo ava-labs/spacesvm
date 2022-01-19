@@ -54,8 +54,8 @@ func (c *ClaimTx) Execute(t *TransactionContext) error {
 		Owner:   t.Sender,
 		Created: t.BlockTime,
 		Updated: t.BlockTime,
-		Expiry:  t.BlockTime + t.Genesis.ClaimReward,
-		Units:   t.Genesis.MinClaimFee,
+		Expiry:  t.BlockTime + t.Genesis.ClaimReward/t.Genesis.ClaimExpiryUnits,
+		Units:   t.Genesis.ClaimExpiryUnits,
 	}
 	if err := PutSpaceInfo(t.Database, []byte(c.Space), newInfo, 0); err != nil {
 		return err

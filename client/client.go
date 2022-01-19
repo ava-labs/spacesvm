@@ -26,6 +26,8 @@ import (
 type Client interface {
 	// Pings the VM.
 	Ping() (bool, error)
+	// Network information about this instance of the VM
+	Network() (uint32, ids.ID, ids.ID, error)
 
 	// Returns the VM genesis.
 	Genesis() (*chain.Genesis, error)
@@ -87,6 +89,19 @@ func (cli *client) Ping() (bool, error) {
 		return false, err
 	}
 	return resp.Success, nil
+}
+
+func (cli *client) Network() (uint32, ids.ID, ids.ID, error) {
+	resp := new(vm.NetworkReply)
+	err := cli.req.SendRequest(
+		"network",
+		nil,
+		resp,
+	)
+	if err != nil {
+		return 0, ids.Empty, ids.Empty, err
+	}
+	return resp.NetworkID, resp.SubnetID, resp.ChainID, nil
 }
 
 func (cli *client) Genesis() (*chain.Genesis, error) {

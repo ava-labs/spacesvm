@@ -42,7 +42,7 @@ TODO: Insert image of signing using MM
 
 ### Fee Mechanisms
 Claim Desirability + Decay Rate
-FeeUnits vs Load Units
+FeeUnits vs Load Units vs Expiry Units (per action)
 Expiry Rate vs Units
 
 ### Space Rewards
@@ -87,6 +87,7 @@ Available Commands:
   info         Reads space info and all values at space
   lifeline     Extends the life of a given space
   move         Transfers a space to another address
+  network      View information about this instance of the SpacesVM
   resolve      Reads a value at space/key
   resolve-file Reads a file at space/key and saves it to disk
   set          Writes a key-value pair for the given space
@@ -163,7 +164,19 @@ type Client interface {
   "params":{},
   "id": 1
 }
->>> {"sucess":<bool>}
+>>> {"success":<bool>}
+```
+
+#### spacesvm.network
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.network",
+  "params":{},
+  "id": 1
+}
+>>> {"networkId":<uint32>, "subnetId":<ID>, "chainId":<ID>}
 ```
 
 #### spacesvm.genesis

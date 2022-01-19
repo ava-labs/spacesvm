@@ -46,8 +46,9 @@ type Genesis struct {
 	BaseTxUnits uint64 `serialize:"true" json:"baseTxUnits"`
 
 	// SetTx params
-	ValueUnitSize uint64 `serialize:"true" json:"valueUnitSize"`
-	MaxValueSize  uint64 `serialize:"true" json:"maxValueSize"`
+	ValueUnitSize       uint64 `serialize:"true" json:"valueUnitSize"`
+	MaxValueSize        uint64 `serialize:"true" json:"maxValueSize"`
+	ValueExpiryDiscount uint64 `serialize:"true" json:"valueExpiryDiscount"`
 
 	// Claim Params
 	ClaimLoadMultiplier         uint64 `serialize:"true" json:"claimLoadMultiplier"`
@@ -58,7 +59,8 @@ type Genesis struct {
 	SpaceRenewalDiscount uint64 `serialize:"true" json:"spaceRenewalDiscount"`
 
 	// Reward Params
-	ClaimReward uint64 `serialize:"true" json:"claimReward"`
+	ClaimReward      uint64 `serialize:"true" json:"claimReward"`
+	ClaimExpiryUnits uint64 `serialize:"true" json:"claimExpiryUnits"`
 
 	// Mining Reward (% of min required fee)
 	LotteryRewardMultipler uint64 `serialize:"true" json:"lotteryRewardMultipler"` // divided by 100
@@ -83,11 +85,13 @@ func DefaultGenesis() *Genesis {
 		BaseTxUnits: 1,
 
 		// SetTx params
-		ValueUnitSize: DefaultValueUnitSize,
-		MaxValueSize:  200 * units.KiB,
+		ValueUnitSize:       DefaultValueUnitSize,
+		MaxValueSize:        200 * units.KiB,
+		ValueExpiryDiscount: 10,
 
 		// Claim Params
 		ClaimLoadMultiplier:         5,
+		ClaimExpiryUnits:            100,
 		MinClaimFee:                 100,
 		SpaceDesirabilityMultiplier: 5,
 

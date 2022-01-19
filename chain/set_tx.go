@@ -79,12 +79,12 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 	}
 	timeRemaining := (i.Expiry - i.Updated) * i.Units
 	if exists {
-		i.Units -= valueUnits(g, v.Size)
+		i.Units -= valueUnits(g, v.Size) / g.ValueExpiryDiscount
 		nvmeta.Created = v.Created
 	} else {
 		nvmeta.Created = t.BlockTime
 	}
-	i.Units += valueUnits(g, valueSize)
+	i.Units += valueUnits(g, valueSize) / g.ValueExpiryDiscount
 	if err := PutSpaceKey(t.Database, []byte(s.Space), []byte(s.Key), nvmeta); err != nil {
 		return err
 	}
