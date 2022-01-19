@@ -223,6 +223,19 @@ var _ = ginkgo.Describe("[Ping]", func() {
 	})
 })
 
+var _ = ginkgo.Describe("[Network]", func() {
+	ginkgo.It("can get network", func() {
+		for _, inst := range instances {
+			cli := inst.cli
+			networkID, subnetID, chainID, err := cli.Network()
+			gomega.Ω(networkID).Should(gomega.Equal(uint32(1)))
+			gomega.Ω(subnetID).ShouldNot(gomega.Equal(ids.Empty))
+			gomega.Ω(chainID).ShouldNot(gomega.Equal(ids.Empty))
+			gomega.Ω(err).Should(gomega.BeNil())
+		}
+	})
+})
+
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")
 
 func RandStringRunes(n int) string {
