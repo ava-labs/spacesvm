@@ -421,16 +421,29 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 		// [space]
 		spc := cursor.Value()
 
+		// Update owned prefix
+		// TODO: could encode this with [cursor.Value()] to make faster
+		info, exists, err := GetSpaceInfo(db, spc)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return ErrSpaceMissing
+		}
+		if err := db.Delete(PrefixOwnedKey(info.Owner, spc)); err != nil {
+			return err
+		}
+
 		// [infoPrefix] + [delimiter] + [space]
 		k := SpaceInfoKey(spc)
 		if err := db.Delete(k); err != nil {
 			return err
 		}
+
 		expired, rspc, err := extractSpecificTimeKey(curKey)
 		if err != nil {
 			return err
 		}
-
 		if bootstrapped {
 			// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 			k = PrefixPruningKey(expired, rspc)
@@ -503,12 +516,18 @@ func HasSpaceKey(db database.KeyValueReader, space []byte, key []byte) (bool, er
 }
 
 func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastExpiry uint64) error {
+	// If [RawSpace] is empty, this is a new space.
 	if i.RawSpace == ids.ShortEmpty {
 		rspace, err := RawSpace(space, i.Created)
 		if err != nil {
 			return err
 		}
 		i.RawSpace = rspace
+
+		// Only store the owner on creation
+		if err := db.Put(PrefixOwnedKey(i.Owner, space), nil); err != nil {
+			return err
+		}
 	}
 	if lastExpiry > 0 {
 		// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
@@ -533,14 +552,24 @@ func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastEx
 
 // MoveSpaceInfo should only be used if the expiry isn't changing and
 // [SpaceInfo] is already in the database.
-func MoveSpaceInfo(db database.KeyValueReaderWriter, space []byte, i *SpaceInfo) error {
+func MoveSpaceInfo(
+	db database.KeyValueReaderWriter, oldOwner common.Address,
+	space []byte, i *SpaceInfo,
+) error {
 	// [infoPrefix] + [delimiter] + [space]
 	k := SpaceInfoKey(space)
 	b, err := Marshal(i)
 	if err != nil {
 		return err
 	}
-	return db.Put(k, b)
+	if err := db.Put(k, b); err != nil {
+		return err
+	}
+	// Updated owned prefix
+	if err := db.Delete(PrefixOwnedKey(oldOwner, space)); err != nil {
+		return err
+	}
+	return db.Put(PrefixOwnedKey(i.Owner, space), nil)
 }
 
 type ValueMeta struct {
