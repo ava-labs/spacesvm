@@ -188,7 +188,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 		})
 
-		k, v := "avax.kvm", []byte("hello")
+		k, v := "avaxkvm", []byte("hello")
 		ginkgo.By("mine and issue SetTx to a different node (if available)", func() {
 			setTx := &chain.SetTx{
 				BaseTx: &chain.BaseTx{},
@@ -371,7 +371,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			}
 		})
 
-		k, v := "avax.kvm", []byte("hello")
+		k, v := "avaxkvm", []byte("hello")
 		ginkgo.By("mine and issue SetTx to a different node (if available)", func() {
 			cli := instances[0].cli
 			if len(instances) > 1 {

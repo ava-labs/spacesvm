@@ -374,7 +374,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 			gomega.Ω(len(values)).To(gomega.Equal(0))
 		})
 
-		k, v := "avax.kvm", []byte("hello")
+		k, v := "avaxkvm", []byte("hello")
 		setTx := &chain.SetTx{
 			BaseTx: &chain.BaseTx{},
 			Space:  space,
