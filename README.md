@@ -89,6 +89,7 @@ Available Commands:
   lifeline     Extends the life of a given space
   move         Transfers a space to another address
   network      View information about this instance of the SpacesVM
+  owned        Fetches all owned spaces for the address associated with the private key
   resolve      Reads a value at space/key
   resolve-file Reads a file at space/key and saves it to disk
   set          Writes a key-value pair for the given space
@@ -398,6 +399,20 @@ delete   {timestamp,sender,txId,type,space,key}
 move     {timestamp,sender,txId,type,space,to}
 transfer {timestamp,sender,txId,type,to,units}
 reward   {timestamp,txId,type,to,units}
+```
+
+#### spacesvm.owned
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.owned",
+  "params":{
+    "address":<hex encoded>
+  },
+  "id": 1
+}
+>>> {"spaces":[<string>]}
 ```
 
 ### Advanced Public Endpoints (`/public`)
