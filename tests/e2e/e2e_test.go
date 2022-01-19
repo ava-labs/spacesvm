@@ -14,15 +14,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/spacesvm/chain"
-	"github.com/ava-labs/spacesvm/client"
-	"github.com/ava-labs/spacesvm/parser"
-	"github.com/ava-labs/spacesvm/tests"
+	"github.com/ava-labs/avalanchego/ids"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+
+	"github.com/ava-labs/spacesvm/chain"
+	"github.com/ava-labs/spacesvm/client"
+	"github.com/ava-labs/spacesvm/parser"
+	"github.com/ava-labs/spacesvm/tests"
 )
 
 func TestIntegration(t *testing.T) {
@@ -118,6 +120,19 @@ var _ = ginkgo.Describe("[Ping]", func() {
 			cli := inst.cli
 			ok, err := cli.Ping()
 			gomega.Ω(ok).Should(gomega.BeTrue())
+			gomega.Ω(err).Should(gomega.BeNil())
+		}
+	})
+})
+
+var _ = ginkgo.Describe("[Network]", func() {
+	ginkgo.It("can get network", func() {
+		for _, inst := range instances {
+			cli := inst.cli
+			networkID, subnetID, chainID, err := cli.Network()
+			gomega.Ω(networkID).Should(gomega.Equal(uint32(1)))
+			gomega.Ω(subnetID).ShouldNot(gomega.Equal(ids.Empty))
+			gomega.Ω(chainID).ShouldNot(gomega.Equal(ids.Empty))
 			gomega.Ω(err).Should(gomega.BeNil())
 		}
 	})
