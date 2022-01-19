@@ -19,18 +19,18 @@ func TestSpaceValueKey(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
-		rpfx     ids.ShortID
+		rspc     ids.ShortID
 		key      []byte
 		valueKey []byte
 	}{
 		{
-			rpfx:     ids.ShortID{0x1},
+			rspc:     ids.ShortID{0x1},
 			key:      []byte("hello"),
 			valueKey: append([]byte{keyPrefix}, []byte("/\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00/hello")...), //nolint:lll
 		},
 	}
 	for i, tv := range tt {
-		vv := SpaceValueKey(tv.rpfx, tv.key)
+		vv := SpaceValueKey(tv.rspc, tv.key)
 		if !bytes.Equal(tv.valueKey, vv) {
 			t.Fatalf("#%d: value expected %q, got %q", i, tv.valueKey, vv)
 		}
@@ -41,16 +41,16 @@ func TestSpaceInfoKey(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
-		pfx     []byte
+		spc     []byte
 		infoKey []byte
 	}{
 		{
-			pfx:     []byte("foo"),
+			spc:     []byte("foo"),
 			infoKey: append([]byte{infoPrefix}, []byte("/foo")...),
 		},
 	}
 	for i, tv := range tt {
-		vv := SpaceInfoKey(tv.pfx)
+		vv := SpaceInfoKey(tv.spc)
 		if !bytes.Equal(tv.infoKey, vv) {
 			t.Fatalf("#%d: value expected %q, got %q", i, tv.infoKey, vv)
 		}
@@ -105,23 +105,23 @@ func TestPutSpaceInfoAndKey(t *testing.T) {
 	db := memdb.New()
 	defer db.Close()
 
-	pfx := []byte("foo")
+	spc := []byte("foo")
 	k, v := []byte("k"), &ValueMeta{}
 
-	// expect failures for non-existing prefixInfo
-	if ok, err := HasSpace(db, pfx); ok || err != nil {
+	// expect failures for non-existing spaceInfo
+	if ok, err := HasSpace(db, spc); ok || err != nil {
 		t.Fatalf("unexpected ok %v, err %v", ok, err)
 	}
-	if ok, err := HasSpaceKey(db, pfx, k); ok || err != nil {
+	if ok, err := HasSpaceKey(db, spc, k); ok || err != nil {
 		t.Fatalf("unexpected ok %v, err %v", ok, err)
 	}
-	if err := PutSpaceKey(db, pfx, k, v); !errors.Is(err, ErrSpaceMissing) {
+	if err := PutSpaceKey(db, spc, k, v); !errors.Is(err, ErrSpaceMissing) {
 		t.Fatalf("unexpected error %v, expected %v", err, ErrSpaceMissing)
 	}
 
 	if err := PutSpaceInfo(
 		db,
-		pfx,
+		spc,
 		&SpaceInfo{
 			RawSpace: ids.ShortID{0x1},
 		},
@@ -129,31 +129,31 @@ func TestPutSpaceInfoAndKey(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	if err := PutSpaceKey(db, pfx, k, v); err != nil {
+	if err := PutSpaceKey(db, spc, k, v); err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
 
-	// expect success for existing prefixInfo
-	if ok, err := HasSpace(db, pfx); !ok || err != nil {
+	// expect success for existing spaceInfo
+	if ok, err := HasSpace(db, spc); !ok || err != nil {
 		t.Fatalf("unexpected ok %v, err %v", ok, err)
 	}
-	if ok, err := HasSpaceKey(db, pfx, k); !ok || err != nil {
+	if ok, err := HasSpaceKey(db, spc, k); !ok || err != nil {
 		t.Fatalf("unexpected ok %v, err %v", ok, err)
 	}
 }
 
 func TestSpecificTimeKey(t *testing.T) {
-	rpfx0 := ids.ShortID{'k'}
-	k := PrefixExpiryKey(100, rpfx0)
-	ts, rpfx, err := extractSpecificTimeKey(k)
+	rspc0 := ids.ShortID{'k'}
+	k := PrefixExpiryKey(100, rspc0)
+	ts, rspc, err := extractSpecificTimeKey(k)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if ts != 100 {
 		t.Fatalf("unexpected timestamp %d, expected 100", ts)
 	}
-	if rpfx != rpfx0 {
-		t.Fatalf("unexpected rawPrefix %v, expected %v", rpfx, rpfx0)
+	if rspc != rspc0 {
+		t.Fatalf("unexpected rawSpace %v, expected %v", rspc, rspc0)
 	}
 
 	if _, _, err = extractSpecificTimeKey(k[:10]); !errors.Is(err, ErrInvalidKeyFormat) {
@@ -336,7 +336,7 @@ func TestGetAllValueMetas(t *testing.T) {
 	}
 	for i, tv := range tt {
 		if i > 0 {
-			// Expire old prefixes between txs
+			// Expire old spaces between txs
 			if err := ExpireNext(db, tt[i-1].blockTime, tv.blockTime, true); err != nil {
 				t.Fatalf("#%d: ExpireNext errored %v", i, err)
 			}

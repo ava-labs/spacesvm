@@ -63,7 +63,7 @@ func getLifelineOp(args []string) (space string, units uint64) {
 	splits := strings.Split(space, "/")
 	space = splits[0]
 
-	// check here first before parsing in case "pfx" is empty
+	// check here first before parsing in case "space" is empty
 	if err := parser.CheckContents(space); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to verify space %v", err)
 		os.Exit(128)

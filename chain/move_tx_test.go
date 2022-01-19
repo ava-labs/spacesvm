@@ -55,14 +55,14 @@ func TestMoveTx(t *testing.T) {
 	}
 
 	// Items: transfer without balance, transfer with small balance, transfer some balance, transfer from
-	// account that now has balance, transfer prefix, transfer to self
+	// account that now has balance, transfer space, transfer to self
 	tt := []struct {
 		utx       UnsignedTransaction
 		blockTime uint64
 		sender    common.Address
 		err       error
 	}{
-		{ // invalid when prefix is not owned
+		{ // invalid when space is not owned
 			utx:       &MoveTx{BaseTx: &BaseTx{}, Space: "foo", To: sender3},
 			blockTime: 1,
 			sender:    sender,
@@ -80,13 +80,13 @@ func TestMoveTx(t *testing.T) {
 			sender:    sender,
 			err:       ErrNonActionable,
 		},
-		{ // successful prefix transfer
+		{ // successful space transfer
 			utx:       &MoveTx{BaseTx: &BaseTx{}, Space: "foo", To: sender3},
 			blockTime: 1,
 			sender:    sender,
 			err:       nil,
 		},
-		{ // prefix looking bad
+		{ // space looking bad
 			utx:       &MoveTx{BaseTx: &BaseTx{}, Space: "foo/", To: sender3},
 			blockTime: 1,
 			sender:    sender,

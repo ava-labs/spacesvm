@@ -21,7 +21,7 @@ import (
 func PPInfo(info *chain.SpaceInfo) {
 	expiry := time.Unix(int64(info.Expiry), 0)
 	color.Blue(
-		"raw prefix %s: units=%d expiry=%v (%v remaining)",
+		"raw space %s: units=%d expiry=%v (%v remaining)",
 		info.RawSpace, info.Units, expiry, time.Until(expiry),
 	)
 }
@@ -157,7 +157,7 @@ func handleConfirmation(
 	if len(ret.space) > 0 {
 		info, _, err := cli.Info(ret.space)
 		if err != nil {
-			color.Red("cannot get prefix info %v", err)
+			color.Red("cannot get space info %v", err)
 			return err
 		}
 		PPInfo(info)
