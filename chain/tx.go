@@ -129,6 +129,11 @@ func (t *Transaction) Execute(g *Genesis, db database.Database, blk *StatelessBl
 		return nil
 	}
 	rewardAmount := t.FeeUnits(g) * blk.Price * g.LotteryRewardMultipler / LotteryRewardDivisor
+	if rewardAmount == 0 {
+		// For transactions (like transfers) where the [FeeUnits] are equal to the [BaseTxFee], it
+		// is possible that the reward could be 0.
+		return nil
+	}
 	recipient, distributed, err := ApplyReward(db, blk.ID(), t.ID(), t.sender, rewardAmount)
 	if err != nil {
 		return err
