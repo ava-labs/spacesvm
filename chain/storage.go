@@ -36,6 +36,10 @@ import (
 //   -> [raw space]
 // 0x6/ (space pruning queue)
 //   -> [raw space]
+// 0x7/ (balance)
+//   -> [owner]=> balance
+// 0x8/ (owned spaces)
+//   -> [owner]/[space]=> nil
 
 const (
 	blockPrefix   = 0x0
@@ -45,7 +49,8 @@ const (
 	keyPrefix     = 0x4
 	expiryPrefix  = 0x5
 	pruningPrefix = 0x6
-	balancePrefx  = 0x7
+	balancePrefix = 0x7
+	ownedPrefix   = 0x8
 
 	shortIDLen = 20
 
@@ -142,9 +147,20 @@ func PrefixPruningKey(expired uint64, rspace ids.ShortID) (k []byte) {
 // [balancePrefix] + [delimiter] + [address]
 func PrefixBalanceKey(address common.Address) (k []byte) {
 	k = make([]byte, 2+common.AddressLength)
-	k[0] = balancePrefx
+	k[0] = balancePrefix
 	k[1] = parser.ByteDelimiter
 	copy(k[2:], address[:])
+	return
+}
+
+// [ownedPrefix] + [delimiter] + [address] + [delimiter] + [space]
+func PrefixOwnedKey(address common.Address, space []byte) (k []byte) {
+	k = make([]byte, 2+common.AddressLength+1+len(space))
+	k[0] = ownedPrefix
+	k[1] = parser.ByteDelimiter
+	copy(k[2:], address[:])
+	k[2+common.AddressLength] = parser.ByteDelimiter
+	copy(k[2+common.AddressLength+1:], space)
 	return
 }
 
@@ -675,4 +691,25 @@ func ApplyReward(
 	// No reward applied
 	log.Debug("skipping reward: no valid space")
 	return common.Address{}, false, nil
+}
+
+func GetAllOwned(db database.Database, owner common.Address) (spaces []string, err error) {
+	baseKey := PrefixOwnedKey(owner, nil)
+	cursor := db.NewIteratorWithStart(baseKey)
+	spaces = []string{}
+	for cursor.Next() {
+		curKey := cursor.Key()
+		if bytes.Compare(baseKey, curKey) < -1 { // startKey < curKey; continue search
+			continue
+		}
+		if !bytes.Contains(curKey, baseKey) { // curKey does not contain base key; end search
+			break
+		}
+
+		spaces = append(spaces,
+			// [ownedPrefix] + [delimiter] + [address] + [delimiter] + [space]
+			string(curKey[2+common.AddressLength+1:]),
+		)
+	}
+	return spaces, nil
 }
