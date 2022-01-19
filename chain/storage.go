@@ -22,7 +22,6 @@ import (
 	"github.com/ava-labs/spacesvm/parser"
 )
 
-// TODO: cleanup mapping diagram
 // 0x0/ (block hashes)
 // 0x1/ (tx hashes)
 //   -> [tx hash]=>nil
@@ -404,32 +403,32 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 		}
 
 		// [space]
-		pfx := cursor.Value()
+		spc := cursor.Value()
 
 		// [infoPrefix] + [delimiter] + [space]
-		k := SpaceInfoKey(pfx)
+		k := SpaceInfoKey(spc)
 		if err := db.Delete(k); err != nil {
 			return err
 		}
-		expired, rpfx, err := extractSpecificTimeKey(curKey)
+		expired, rspc, err := extractSpecificTimeKey(curKey)
 		if err != nil {
 			return err
 		}
 
 		if bootstrapped {
 			// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
-			k = PrefixPruningKey(expired, rpfx)
+			k = PrefixPruningKey(expired, rspc)
 			if err := db.Put(k, nil); err != nil {
 				return err
 			}
 		} else {
 			// If we are not yet bootstrapped, we should delete the dangling value keys
 			// immediately instead of clearing async.
-			if err := database.ClearPrefix(db, db, SpaceValueKey(rpfx, nil)); err != nil {
+			if err := database.ClearPrefix(db, db, SpaceValueKey(rspc, nil)); err != nil {
 				return err
 			}
 		}
-		log.Debug("space expired", "space", string(pfx))
+		log.Debug("space expired", "space", string(spc))
 	}
 	return nil
 }
@@ -449,7 +448,7 @@ func PruneNext(db database.Database, limit int) (removals int, err error) {
 		if bytes.Compare(curKey, endKey) > 0 { // curKey > endKey; end search
 			break
 		}
-		_, rpfx, err := extractSpecificTimeKey(curKey)
+		_, rspc, err := extractSpecificTimeKey(curKey)
 		if err != nil {
 			return removals, err
 		}
@@ -457,10 +456,10 @@ func PruneNext(db database.Database, limit int) (removals int, err error) {
 			return removals, err
 		}
 		// [keyPrefix] + [delimiter] + [rawSpace] + [delimiter] + [key]
-		if err := database.ClearPrefix(db, db, SpaceValueKey(rpfx, nil)); err != nil {
+		if err := database.ClearPrefix(db, db, SpaceValueKey(rspc, nil)); err != nil {
 			return removals, err
 		}
-		log.Debug("rspace pruned", "rspace", rpfx.Hex())
+		log.Debug("rspace pruned", "rspace", rspc.Hex())
 		removals++
 	}
 	return removals, nil

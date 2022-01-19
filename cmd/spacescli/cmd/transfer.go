@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -24,15 +23,16 @@ var transferCmd = &cobra.Command{
 	RunE:  transferFunc,
 }
 
-// TODO: move all this to a separate client code
 func transferFunc(cmd *cobra.Command, args []string) error {
 	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
 		return err
 	}
 
-	to, units := getTransferOp(args)
-	cli := client.New(uri, requestTimeout)
+	to, units, err := getTransferOp(args)
+	if err != nil {
+		return err
+	}
 
 	utx := &chain.TransferTx{
 		BaseTx: &chain.BaseTx{},
@@ -40,33 +40,28 @@ func transferFunc(cmd *cobra.Command, args []string) error {
 		Units:  units,
 	}
 
+	cli := client.New(uri, requestTimeout)
 	opts := []client.OpOption{client.WithPollTx()}
-	_, cost, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
-	if err != nil {
+	if verbose {
+		opts = append(opts, client.WithBalance())
+	}
+	if _, _, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...); err != nil {
 		return err
 	}
 
-	// TODO: move to opt
-	addr := crypto.PubkeyToAddress(priv.PublicKey)
-	b, err := cli.Balance(addr)
-	if err != nil {
-		return err
-	}
-	color.Cyan("Address=%s Balance=%d Cost=%d", addr, b, cost)
+	color.Green("transferred %d to %s", units, to.Hex())
 	return nil
 }
 
-func getTransferOp(args []string) (to common.Address, units uint64) {
+func getTransferOp(args []string) (to common.Address, units uint64, err error) {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 2 arguments, got %d", len(args))
-		os.Exit(128)
+		return common.Address{}, 0, fmt.Errorf("expected exactly 2 arguments, got %d", len(args))
 	}
 
 	addr := common.HexToAddress(args[0])
-	units, err := strconv.ParseUint(args[1], 10, 64)
+	units, err = strconv.ParseUint(args[1], 10, 64)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse units %v", err)
-		os.Exit(128)
+		return common.Address{}, 0, fmt.Errorf("%w: failed to parse units", err)
 	}
-	return addr, units
+	return addr, units, nil
 }

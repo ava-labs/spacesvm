@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
@@ -18,30 +17,30 @@ import (
 )
 
 var setCmd = &cobra.Command{
-	Use:   "set [options] <prefix/key> <value>",
-	Short: "Writes a key-value pair for the given prefix",
+	Use:   "set [options] <space/key> <value>",
+	Short: "Writes a key-value pair for the given space",
 	Long: `
 Issues "SetTx" to write a key-value pair.
 
-The prefix is automatically parsed with the delimiter "/".
+The space is automatically parsed with the delimiter "/".
 When given a key "foo/hello", the "set" creates the transaction
-with "foo" as prefix and "hello" as key. The prefix/key cannot
+with "foo" as space and "hello" as key. The space/key cannot
 have more than one delimiter (e.g., "foo/hello/world" is invalid)
 in order to maintain the flat key space.
 
-It assumes the prefix is already claimed via "spaces-cli claim".
+It assumes the space is already claimed via "spaces-cli claim".
 Otherwise, the set transaction will fail.
 
-# claims the prefix "hello.avax"
-# "hello.avax" is the prefix (or namespace)
+# claims the space "hello.avax"
+# "hello.avax" is the space (or namespace)
 $ spaces-cli claim hello.avax
 <<COMMENT
 success
 COMMENT
 
-# writes a key-value pair for the given namespace (prefix)
-# by issuing "SetTx" preceded by "IssueTx" on the prefix:
-# "hello.avax" is the prefix (or namespace)
+# writes a key-value pair for the given namespace (space)
+# by issuing "SetTx" preceded by "IssueTx" on the space:
+# "hello.avax" is the space (or namespace)
 # "foo" is the key
 # "hello world" is the value
 $ spaces-cli set hello.avax/foo "hello world"
@@ -50,34 +49,25 @@ success
 COMMENT
 
 # The existing key-value cannot be overwritten by a different owner.
-# The prefix must be claimed before it allows key-value writes.
+# The space must be claimed before it allows key-value writes.
 $ spaces-cli set hello.avax/foo "hello world" --private-key-file=.different-key
 <<COMMENT
 error
 COMMENT
-
-# The prefix can be claimed if and only if
-# the previous prefix (owner) info has not been expired.
-# Even if the prefix is claimed by the same owner,
-# all underlying key-values are deleted.
-$ spaces-cli claim hello.avax
-<<COMMENT
-success
-COMMENT
-
 `,
 	RunE: setFunc,
 }
 
-// TODO: move all this to a separate client code
 func setFunc(cmd *cobra.Command, args []string) error {
 	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
 		return err
 	}
 
-	space, key, val := getSetOp(args)
-	cli := client.New(uri, requestTimeout)
+	space, key, val, err := getSetOp(args)
+	if err != nil {
+		return err
+	}
 
 	utx := &chain.SetTx{
 		BaseTx: &chain.BaseTx{},
@@ -86,38 +76,33 @@ func setFunc(cmd *cobra.Command, args []string) error {
 		Value:  val,
 	}
 
-	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
-	_, cost, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
-	if err != nil {
+	cli := client.New(uri, requestTimeout)
+	opts := []client.OpOption{client.WithPollTx()}
+	if verbose {
+		opts = append(opts, client.WithInfo(space))
+		opts = append(opts, client.WithBalance())
+	}
+	if _, _, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...); err != nil {
 		return err
 	}
 
-	addr := crypto.PubkeyToAddress(priv.PublicKey)
-	b, err := cli.Balance(addr)
-	if err != nil {
-		return err
-	}
-	color.Cyan("Address=%s Balance=%d Cost=%d", addr, b, cost)
+	color.Green("set %s in %s", key, space)
 	return nil
 }
 
-func getSetOp(args []string) (space string, key string, val []byte) {
+func getSetOp(args []string) (space string, key string, val []byte, err error) {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 2 arguments, got %d", len(args))
-		os.Exit(128)
+		return "", "", nil, fmt.Errorf("expected exactly 2 arguments, got %d", len(args))
 	}
 
 	// [space/key] == "foo/bar"
 	spaceKey := args[0]
 
-	var err error
 	space, key, err = parser.ResolvePath(spaceKey)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
-		os.Exit(128)
+		return "", "", nil, fmt.Errorf("%w: failed to parse space", err)
 	}
 
 	val = []byte(args[1])
-
-	return space, key, val
+	return space, key, val, err
 }

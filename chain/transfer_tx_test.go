@@ -54,7 +54,7 @@ func TestTransferTx(t *testing.T) {
 	}
 
 	// Items: transfer without balance, transfer with small balance, transfer some balance, transfer from
-	// account that now has balance, transfer prefix, transfer to self
+	// account that now has balance, transfer space, transfer to self
 	tt := []struct {
 		utx       UnsignedTransaction
 		blockTime uint64

@@ -35,7 +35,7 @@ func (c *ClaimTx) Execute(t *TransactionContext) error {
 		return err
 	}
 
-	// Restrict address prefix to be owned by address
+	// Restrict address space to be owned by address
 	if len(c.Space) == hexAddressLen && strings.ToLower(t.Sender.Hex()) != c.Space {
 		return ErrAddressMismatch
 	}
@@ -55,7 +55,7 @@ func (c *ClaimTx) Execute(t *TransactionContext) error {
 		Created: t.BlockTime,
 		Updated: t.BlockTime,
 		Expiry:  t.BlockTime + t.Genesis.ClaimReward,
-		Units:   1,
+		Units:   t.Genesis.MinClaimFee,
 	}
 	if err := PutSpaceInfo(t.Database, []byte(c.Space), newInfo, 0); err != nil {
 		return err

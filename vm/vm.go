@@ -384,7 +384,7 @@ func (vm *VM) Submit(txs ...*chain.Transaction) (errs []error) {
 	}
 	vdb := versiondb.New(vm.db)
 
-	// Expire outdated prefixes before checking submission validity
+	// Expire outdated spaces before checking submission validity
 	if err := chain.ExpireNext(vdb, blk.Tmstmp, now, true); err != nil {
 		return []error{err}
 	}

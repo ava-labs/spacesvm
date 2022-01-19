@@ -6,9 +6,9 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/spacesvm/client"
@@ -21,7 +21,6 @@ var deleteFileCmd = &cobra.Command{
 	RunE:  deleteFileFunc,
 }
 
-// TODO: move all this to a separate client code
 func deleteFileFunc(cmd *cobra.Command, args []string) error {
 	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
@@ -29,10 +28,14 @@ func deleteFileFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
-		os.Exit(128)
+		return fmt.Errorf("expected exactly 1 argument, got %d", len(args))
 	}
 
 	cli := client.New(uri, requestTimeout)
-	return tree.Delete(context.Background(), cli, args[0], priv)
+	if err := tree.Delete(context.Background(), cli, args[0], priv); err != nil {
+		return err
+	}
+
+	color.Green("deleted file %s", args[0])
+	return nil
 }

@@ -19,6 +19,7 @@ const (
 var (
 	privateKeyFile string
 	uri            string
+	verbose        bool
 	workDir        string
 
 	rootCmd = &cobra.Command{
@@ -63,7 +64,13 @@ func init() {
 		&uri,
 		"endpoint",
 		"https://api.tryspaces.xyz",
-		"RPC Endpoint for VM",
+		"RPC endpoint for VM",
+	)
+	rootCmd.PersistentFlags().BoolVar(
+		&verbose,
+		"verbose",
+		false,
+		"Print verbose information about operations",
 	)
 }
 

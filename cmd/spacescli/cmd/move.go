@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -24,15 +23,16 @@ var moveCmd = &cobra.Command{
 	RunE:  moveFunc,
 }
 
-// TODO: move all this to a separate client code
 func moveFunc(cmd *cobra.Command, args []string) error {
 	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
 		return err
 	}
 
-	to, space := getMoveOp(args)
-	cli := client.New(uri, requestTimeout)
+	to, space, err := getMoveOp(args)
+	if err != nil {
+		return err
+	}
 
 	utx := &chain.MoveTx{
 		BaseTx: &chain.BaseTx{},
@@ -40,31 +40,28 @@ func moveFunc(cmd *cobra.Command, args []string) error {
 		Space:  space,
 	}
 
+	cli := client.New(uri, requestTimeout)
 	opts := []client.OpOption{client.WithPollTx()}
-	_, cost, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
-	if err != nil {
+	if verbose {
+		opts = append(opts, client.WithInfo(space))
+		opts = append(opts, client.WithBalance())
+	}
+	if _, _, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...); err != nil {
 		return err
 	}
 
-	addr := crypto.PubkeyToAddress(priv.PublicKey)
-	b, err := cli.Balance(addr)
-	if err != nil {
-		return err
-	}
-	color.Cyan("Address=%s Balance=%d Cost=%d", addr, b, cost)
+	color.Green("moved %s to %s", space, to.Hex())
 	return nil
 }
 
-func getMoveOp(args []string) (to common.Address, space string) {
+func getMoveOp(args []string) (to common.Address, space string, err error) {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 2 arguments, got %d", len(args))
-		os.Exit(128)
+		return common.Address{}, "", fmt.Errorf("expected exactly 2 arguments, got %d", len(args))
 	}
 
 	addr := common.HexToAddress(args[0])
 	if err := parser.CheckContents(args[1]); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse space %v", err)
-		os.Exit(128)
+		return common.Address{}, "", fmt.Errorf("%w: failed to parse space", err)
 	}
-	return addr, args[1]
+	return addr, args[1], nil
 }

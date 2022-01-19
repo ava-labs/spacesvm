@@ -103,7 +103,7 @@ func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) 
 		nextCost = lastBlock.Cost
 	}
 
-	// compute new min difficulty
+	// compute new min price
 	nextPrice := lastBlock.Price
 	if recentUnits > vm.targetRangeUnits {
 		nextPrice++

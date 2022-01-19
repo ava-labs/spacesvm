@@ -40,7 +40,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 	}
 	vdb := versiondb.New(parentDB)
 
-	// Remove all expired prefixes
+	// Remove all expired spaces
 	if err := ExpireNext(vdb, parent.Tmstmp, b.Tmstmp, true); err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func BuildBlock(vm VM, preferred ids.ID) (snowman.Block, error) {
 		if err := tvdb.Commit(); err != nil {
 			return nil, err
 		}
-		// Wait to add prefix until after verification
+		// Wait to add spaces until after verification
 		b.Txs = append(b.Txs, next)
 		units += nextLoad
 	}

@@ -15,15 +15,15 @@ var _ UnsignedTransaction = &LifelineTx{}
 type LifelineTx struct {
 	*BaseTx `serialize:"true" json:"baseTx"`
 
-	// Space is the namespace for the "PrefixInfo"
+	// Space is the namespace for the "SpaceInfo"
 	// whose owner can write and read value for the
 	// specific key space.
+	//
 	// The space must be ^[a-z0-9]{1,256}$.
 	Space string `serialize:"true" json:"space"`
 
-	// Units is the additional fee the sender pays to extend the life of their
-	// space. The added expiry time is a function of:
-	// [Units] * [LifelineInterval].
+	// Units is the number of [ClaimReward] to extend
+	// the life of the [Space].
 	Units uint64 `serialize:"true" json:"units"`
 }
 

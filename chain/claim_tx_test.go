@@ -41,13 +41,13 @@ func TestClaimTx(t *testing.T) {
 		sender    common.Address
 		err       error
 	}{
-		{ // invalid claim, [42]byte prefix is reserved for pubkey
+		{ // invalid claim, [42]byte space is reserved for pubkey
 			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: strings.Repeat("a", hexAddressLen)},
 			blockTime: 1,
 			sender:    sender,
 			err:       ErrAddressMismatch,
 		},
-		{ // valid claim, [42]byte prefix is reserved for pubkey
+		{ // valid claim, [42]byte space is reserved for pubkey
 			tx:        &ClaimTx{BaseTx: &BaseTx{}, Space: strings.ToLower(sender.Hex())},
 			blockTime: 1,
 			sender:    sender,
@@ -86,7 +86,7 @@ func TestClaimTx(t *testing.T) {
 	}
 	for i, tv := range tt {
 		if i > 0 {
-			// Expire old prefixes between txs
+			// Expire old spaces between txs
 			if err := ExpireNext(db, tt[i-1].blockTime, tv.blockTime, true); err != nil {
 				t.Fatalf("#%d: ExpireNext errored %v", i, err)
 			}
@@ -107,10 +107,10 @@ func TestClaimTx(t *testing.T) {
 		}
 		info, exists, err := GetSpaceInfo(db, []byte(tv.tx.Space))
 		if err != nil {
-			t.Fatalf("#%d: failed to get prefix info %v", i, err)
+			t.Fatalf("#%d: failed to get space info %v", i, err)
 		}
 		if !exists {
-			t.Fatalf("#%d: failed to find prefix info", i)
+			t.Fatalf("#%d: failed to find space info", i)
 		}
 		if !bytes.Equal(info.Owner[:], tv.sender[:]) {
 			t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(sender[:]))
@@ -130,9 +130,9 @@ func TestClaimTx(t *testing.T) {
 	}
 	_, exists, err := GetSpaceInfo(db, []byte("foo"))
 	if err != nil {
-		t.Fatalf("failed to get prefix info %v", err)
+		t.Fatalf("failed to get space info %v", err)
 	}
 	if exists {
-		t.Fatal("prefix should not exist")
+		t.Fatal("space should not exist")
 	}
 }

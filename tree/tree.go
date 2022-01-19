@@ -101,7 +101,7 @@ func Upload(
 		return "", err
 	}
 	totalCost += cost
-	color.Green("uploaded root=%s txID=%s cost=%d totalCost=%d", rk, txID, cost, totalCost)
+	color.Yellow("uploaded root=%s txID=%s cost=%d totalCost=%d", rk, txID, cost, totalCost)
 	return space + parser.Delimiter + rk, nil
 }
 
@@ -124,7 +124,7 @@ func Download(cli client.Client, path string, f io.Writer) error {
 		if _, err := f.Write(r.Contents); err != nil {
 			return err
 		}
-		color.Green("downloaded path=%s size=%fKB", path, float64(contentLen)/units.KiB)
+		color.Yellow("downloaded path=%s size=%fKB", path, float64(contentLen)/units.KiB)
 		return nil
 	}
 
@@ -152,7 +152,7 @@ func Download(cli client.Client, path string, f io.Writer) error {
 		color.Yellow("downloaded chunk=%s size=%fKB", chunk, float64(size)/units.KiB)
 		amountDownloaded += size
 	}
-	color.Green("download path=%s size=%fMB", path, float64(amountDownloaded)/units.MiB)
+	color.Yellow("download path=%s size=%fMB", path, float64(amountDownloaded)/units.MiB)
 	return nil
 }
 
@@ -204,6 +204,6 @@ func Delete(ctx context.Context, cli client.Client, path string, priv *ecdsa.Pri
 		return err
 	}
 	totalCost += cost
-	color.Green("deleted root=%s txID=%s cost=%d totalCost=%d", path, txID, cost, totalCost)
+	color.Yellow("deleted root=%s txID=%s cost=%d totalCost=%d", path, txID, cost, totalCost)
 	return nil
 }

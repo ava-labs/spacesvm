@@ -44,7 +44,7 @@ func init() {
 		&claimReward,
 		"claim-reward",
 		-1,
-		"seconds until a prefix will expire after being claimed",
+		"seconds until a spaces will expire after being claimed",
 	)
 	genesisCmd.PersistentFlags().StringVar(
 		&airdropHash,

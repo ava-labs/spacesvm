@@ -18,7 +18,7 @@ var (
 	ErrNoTxs                  = errors.New("no transactions")
 	ErrInvalidCost            = errors.New("invalid block cost")
 	ErrInvalidPrice           = errors.New("invalid price")
-	ErrInsufficientSurplus    = errors.New("insufficient surplus difficulty")
+	ErrInsufficientSurplus    = errors.New("insufficient surplus fee")
 	ErrParentBlockNotVerified = errors.New("parent block not verified or accepted")
 
 	// Tx Correctness

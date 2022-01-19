@@ -5,15 +5,16 @@
 package main
 
 import (
-	"fmt"
 	"os"
+
+	"github.com/fatih/color"
 
 	"github.com/ava-labs/spacesvm/cmd/spacescli/cmd"
 )
 
 func main() {
 	if err := cmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "spaces-cli failed %v\n", err)
+		color.Red("spaces-cli failed: %v", err)
 		os.Exit(1)
 	}
 	os.Exit(0)

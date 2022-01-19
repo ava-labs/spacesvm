@@ -227,7 +227,7 @@ func TestSetTx(t *testing.T) {
 	}
 	for i, tv := range tt {
 		if i > 0 {
-			// Expire old prefixes between txs
+			// Expire old spaces between txs
 			if err := ExpireNext(db, tt[i-1].blockTime, tv.blockTime, true); err != nil {
 				t.Fatalf("#%d: ExpireNext errored %v", i, err)
 			}
@@ -261,10 +261,10 @@ func TestSetTx(t *testing.T) {
 		case *ClaimTx: // "ClaimTx.Execute" must persist "SpaceInfo"
 			info, exists, err := GetSpaceInfo(db, []byte(tp.Space))
 			if err != nil {
-				t.Fatalf("#%d: failed to get prefix info %v", i, err)
+				t.Fatalf("#%d: failed to get space info %v", i, err)
 			}
 			if !exists {
-				t.Fatalf("#%d: failed to find prefix info", i)
+				t.Fatalf("#%d: failed to find space info", i)
 			}
 			if !bytes.Equal(info.Owner[:], tv.sender[:]) {
 				t.Fatalf("#%d: unexpected owner found (expected pub key %q)", i, string(sender[:]))

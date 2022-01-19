@@ -23,14 +23,16 @@ var setFileCmd = &cobra.Command{
 	RunE:  setFileFunc,
 }
 
-// TODO: move all this to a separate client code
 func setFileFunc(cmd *cobra.Command, args []string) error {
 	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
 		return err
 	}
 
-	space, f := getSetFileOp(args)
+	space, f, err := getSetFileOp(args)
+	if err != nil {
+		return err
+	}
 	defer f.Close()
 
 	cli := client.New(uri, requestTimeout)
@@ -40,42 +42,34 @@ func setFileFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	// TODO: protect against overflow
-	if _, err := tree.Upload(context.Background(), cli, priv, space, f, int(g.MaxValueSize)); err != nil {
-		return err
-	}
-
-	addr := crypto.PubkeyToAddress(priv.PublicKey)
-	b, err := cli.Balance(addr)
+	path, err := tree.Upload(context.Background(), cli, priv, space, f, int(g.MaxValueSize))
 	if err != nil {
 		return err
 	}
-	color.Cyan("Address=%s Balance=%d", addr, b)
+
+	color.Green("uploaded file %s from %s", path, f.Name())
 	return nil
 }
 
-func getSetFileOp(args []string) (space string, f *os.File) {
+func getSetFileOp(args []string) (space string, f *os.File, err error) {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 2 arguments, got %d", len(args))
-		os.Exit(128)
+		return "", nil, fmt.Errorf("expected exactly 2 arguments, got %d", len(args))
 	}
 
 	spaceKey := args[0]
 	if err := parser.CheckContents(spaceKey); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse space %v", err)
-		os.Exit(128)
+		return "", nil, fmt.Errorf("%w: failed to parse space", err)
 	}
 
 	filePath := args[1]
 	if _, err := os.Stat(filePath); err != nil {
-		fmt.Fprintf(os.Stderr, "file is not accessible %v", err)
-		os.Exit(128)
+		return "", nil, fmt.Errorf("%w: file is not accessible", err)
 	}
 
-	f, err := os.Open(filePath)
+	f, err = os.Open(filePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to open file %v", err)
-		os.Exit(128)
+		return "", nil, fmt.Errorf("%w: failed to open file", err)
 	}
 
-	return spaceKey, f
+	return spaceKey, f, nil
 }

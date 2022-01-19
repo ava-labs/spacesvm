@@ -6,7 +6,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -20,11 +19,9 @@ var infoCmd = &cobra.Command{
 	RunE:  infoFunc,
 }
 
-// TODO: move all this to a separate client code
 func infoFunc(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
-		os.Exit(128)
+		return fmt.Errorf("expected exactly 1 argument, got %d", len(args))
 	}
 	cli := client.New(uri, requestTimeout)
 	info, values, err := cli.Info(args[0])

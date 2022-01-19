@@ -45,11 +45,11 @@ func TestMempool(t *testing.T) {
 			t.Fatalf("tx %s was not added", tx.ID())
 		}
 	}
-	if _, diff := txm.PeekMax(); diff != 250 {
-		t.Fatalf("price expected 250, got %d", diff)
+	if _, price := txm.PeekMax(); price != 250 {
+		t.Fatalf("price expected 250, got %d", price)
 	}
-	if _, diff := txm.PeekMin(); diff != 200 {
-		t.Fatalf("price expected 200, got %d", diff)
+	if _, price := txm.PeekMin(); price != 200 {
+		t.Fatalf("price expected 200, got %d", price)
 	}
 	if length := txm.Len(); length != 3 {
 		t.Fatalf("length expected 3, got %d", length)

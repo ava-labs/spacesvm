@@ -181,7 +181,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 	}
 	onAcceptDB := versiondb.New(parentState)
 
-	// Remove all expired prefixes
+	// Remove all expired spaces
 	if err := ExpireNext(onAcceptDB, parent.Tmstmp, b.Tmstmp, b.vm.IsBootstrapped()); err != nil {
 		return nil, nil, err
 	}

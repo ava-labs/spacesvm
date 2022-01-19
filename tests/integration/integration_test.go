@@ -352,11 +352,11 @@ var _ = ginkgo.Describe("Tx Types", func() {
 			expectBlkAccept(instances[0])
 		})
 
-		ginkgo.By("check prefix after ClaimTx has been accepted", func() {
+		ginkgo.By("check space after ClaimTx has been accepted", func() {
 			pf, values, err := instances[0].cli.Info(space)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(pf).NotTo(gomega.BeNil())
-			gomega.Ω(pf.Units).To(gomega.Equal(uint64(1)))
+			gomega.Ω(pf.Units).To(gomega.Equal(uint64(100)))
 			gomega.Ω(pf.Owner).To(gomega.Equal(sender))
 			gomega.Ω(len(values)).To(gomega.Equal(0))
 		})

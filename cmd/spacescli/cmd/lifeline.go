@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -20,20 +19,21 @@ import (
 )
 
 var lifelineCmd = &cobra.Command{
-	Use:   "lifeline [options] <prefix> <units>",
-	Short: "Extends the life of a given prefix",
+	Use:   "lifeline [options] <space> <units>",
+	Short: "Extends the life of a given space",
 	RunE:  lifelineFunc,
 }
 
-// TODO: move all this to a separate client code
 func lifelineFunc(cmd *cobra.Command, args []string) error {
 	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
 		return err
 	}
 
-	space, units := getLifelineOp(args)
-	cli := client.New(uri, requestTimeout)
+	space, units, err := getLifelineOp(args)
+	if err != nil {
+		return err
+	}
 
 	utx := &chain.LifelineTx{
 		BaseTx: &chain.BaseTx{},
@@ -41,42 +41,38 @@ func lifelineFunc(cmd *cobra.Command, args []string) error {
 		Units:  units,
 	}
 
-	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
-	_, cost, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
-	if err != nil {
+	cli := client.New(uri, requestTimeout)
+	opts := []client.OpOption{client.WithPollTx()}
+	if verbose {
+		opts = append(opts, client.WithInfo(space))
+		opts = append(opts, client.WithBalance())
+	}
+	if _, _, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...); err != nil {
 		return err
 	}
 
-	addr := crypto.PubkeyToAddress(priv.PublicKey)
-	b, err := cli.Balance(addr)
-	if err != nil {
-		return err
-	}
-	color.Cyan("Address=%s Balance=%d Cost=%d", addr, b, cost)
+	color.Green("extended life of %s by %d units", space, units)
 	return nil
 }
 
-func getLifelineOp(args []string) (space string, units uint64) {
+func getLifelineOp(args []string) (space string, units uint64, err error) {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))
-		os.Exit(128)
+		return "", 0, fmt.Errorf("expected exactly 1 argument, got %d", len(args))
 	}
 
 	space = args[0]
 	splits := strings.Split(space, "/")
 	space = splits[0]
 
-	// check here first before parsing in case "pfx" is empty
+	// check here first before parsing in case "space" is empty
 	if err := parser.CheckContents(space); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to verify prefix %v", err)
-		os.Exit(128)
+		return "", 0, fmt.Errorf("%w: failed to verify space", err)
 	}
 
-	units, err := strconv.ParseUint(args[1], 10, 64)
+	units, err = strconv.ParseUint(args[1], 10, 64)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse units %v", err)
-		os.Exit(128)
+		return "", 0, fmt.Errorf("%w: failed to parse units", err)
 	}
 
-	return space, units
+	return space, units, nil
 }
