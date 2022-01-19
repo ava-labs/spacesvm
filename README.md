@@ -421,6 +421,8 @@ To build the VM, run `VM=true ./scripts/build.sh`.
 Put spacesvm binary in plugins dir
 Add subnet-id to whitelisted-subnets
 
+TODO: set bootstrap nodes
+
 Here is an example config file:
 --network-id=fuji
 
