@@ -20,6 +20,7 @@ You could build...
 * Link Service
 * dApp Metadata Backend
 * Twitter Feed-like
+* NFT Storage (value hashing)
 
 ## How it Works
 ### Action Types
