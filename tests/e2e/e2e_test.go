@@ -127,11 +127,13 @@ var _ = ginkgo.Describe("[Ping]", func() {
 
 var _ = ginkgo.Describe("[Network]", func() {
 	ginkgo.It("can get network", func() {
+		sID, err := ids.FromString("24tZhrm8j8GCJRE9PomW8FaeqbgGS4UAQjJnqqn8pq5NwYSYV1")
+		gomega.Ω(err).Should(gomega.BeNil())
 		for _, inst := range instances {
 			cli := inst.cli
 			networkID, subnetID, chainID, err := cli.Network()
 			gomega.Ω(networkID).Should(gomega.Equal(uint32(1337)))
-			gomega.Ω(subnetID).ShouldNot(gomega.Equal(ids.Empty))
+			gomega.Ω(subnetID).Should(gomega.Equal(sID))
 			gomega.Ω(chainID).ShouldNot(gomega.Equal(ids.Empty))
 			gomega.Ω(err).Should(gomega.BeNil())
 		}
