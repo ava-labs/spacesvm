@@ -21,33 +21,31 @@ You could build...
 * dApp Metadata Backend
 * Twitter Feed-like
 
-##
-More complex example than timestampvm but simpler than subnet-evm
-
 ## How it Works
-### Claim
+### Flow
+#### Claim
 
-#### Community support
+##### Community support
 
-### Set/Delete
+#### Set/Delete
 
-#### Arbitrary Size File Support (using CLI)
+##### Arbitrary Size File Support (using CLI)
 
-### Resolve
+#### Resolve
 
-### Transfer
+#### Transfer
 
-### Move
+#### Move
 
-## Wallet Support: `eth_typedSignedData`
+### Wallet Support: `eth_typedSignedData`
 TODO: Insert image of signing using MM
 
-## Fee Mechanisms
+### Fee Mechanisms
 Claim Desirability + Decay Rate
 FeeUnits vs Load Units
 Expiry Rate vs Units
 
-## Space Rewards
+### Space Rewards
 Lottery allocation X% of fee
 
 ### Genesis Allocation
@@ -58,10 +56,14 @@ twice.
 _If you are interested in running the VM, not using it. Jump to [Running the
 VM](#running-the-vm)._
 
-### Public Beta
+Public Beta...
+
+### tryspaces.xyz
 What better way to understand how this works than to see it in action?
 
 TODO: insert try spaces image + link
+
+Hooked up to public beta
 
 ### spaces-cli
 _To build the CLI, run `./scripts/build.sh`. It will be placed in `./build/spaces-cli` and
@@ -75,26 +77,27 @@ Usage:
 
 Available Commands:
   activity     View recent activity on the network
-  claim        Claims the given prefix
+  claim        Claims the given space
   completion   generate the autocompletion script for the specified shell
   create       Creates a new key in the default location
-  delete       Deletes a key-value pair for the given prefix
+  delete       Deletes a key-value pair for the given space
   delete-file  Deletes all hashes reachable from root file identifier
   genesis      Creates a new genesis in the default location
   help         Help about any command
   info         Reads space info and all values at space
-  lifeline     Extends the life of a given prefix
+  lifeline     Extends the life of a given space
   move         Transfers a space to another address
   resolve      Reads a value at space/key
   resolve-file Reads a file at space/key and saves it to disk
-  set          Writes a key-value pair for the given prefix
+  set          Writes a key-value pair for the given space
   set-file     Writes a file to the given space
   transfer     Transfers units to another address
 
 Flags:
-      --endpoint string           RPC Endpoint for VM (default "https://memeshowdown.com")
+      --endpoint string           RPC endpoint for VM (default "https://api.tryspaces.xyz")
   -h, --help                      help for spaces-cli
       --private-key-file string   private key file path (default ".spaces-cli-pk")
+      --verbose                   Print verbose information about operations
 
 Use "spaces-cli [command] --help" for more information about a command.
 ```
