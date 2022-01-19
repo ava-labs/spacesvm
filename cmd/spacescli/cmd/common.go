@@ -22,7 +22,7 @@ func getPathOp(args []string) (space string, key string) {
 	var err error
 	space, key, err = parser.ResolvePath(spaceKey)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse prefix %v", err)
+		fmt.Fprintf(os.Stderr, "failed to parse space %v", err)
 		os.Exit(128)
 	}
 

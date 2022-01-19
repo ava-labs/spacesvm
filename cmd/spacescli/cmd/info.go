@@ -20,7 +20,6 @@ var infoCmd = &cobra.Command{
 	RunE:  infoFunc,
 }
 
-// TODO: move all this to a separate client code
 func infoFunc(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		fmt.Fprintf(os.Stderr, "expected exactly 1 argument, got %d", len(args))

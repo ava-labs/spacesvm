@@ -22,7 +22,6 @@ import (
 	"github.com/ava-labs/spacesvm/parser"
 )
 
-// TODO: cleanup mapping diagram
 // 0x0/ (block hashes)
 // 0x1/ (tx hashes)
 //   -> [tx hash]=>nil

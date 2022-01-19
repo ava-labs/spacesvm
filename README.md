@@ -27,6 +27,8 @@ More complex example than timestampvm but simpler than subnet-evm
 ## How it Works
 ### Claim
 
+#### Community support
+
 ### Set/Delete
 
 #### Arbitrary Size File Support (using CLI)
@@ -102,6 +104,49 @@ Use "spaces-cli [command] --help" for more information about a command.
 spaces-cli set-file patrick ~/Downloads/computer.gif -> patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
 spaces-cli resolve-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8 computer_copy.gif
 spaces-cli delete-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
+```
+
+### Golang SDK
+TODO: add link
+```golang
+// Client defines spacesvm client operations.
+type Client interface {
+	// Pings the VM.
+	Ping() (bool, error)
+
+	// Returns the VM genesis.
+	Genesis() (*chain.Genesis, error)
+	// Accepted fetches the ID of the last accepted block.
+	Accepted() (ids.ID, error)
+
+	// Returns if a space is already claimed
+	Claimed(space string) (bool, error)
+	// Returns the corresponding space information.
+	Info(space string) (*chain.SpaceInfo, []*chain.KeyValueMeta, error)
+	// Balance returns the balance of an account
+	Balance(addr common.Address) (bal uint64, err error)
+	// Resolve returns the value associated with a path
+	Resolve(path string) (exists bool, value []byte, valueMeta *chain.ValueMeta, err error)
+
+	// Requests the suggested price and cost from VM.
+	SuggestedRawFee() (uint64, uint64, error)
+	// Issues the transaction and returns the transaction ID.
+	IssueRawTx(d []byte) (ids.ID, error)
+
+	// Requests the suggested price and cost from VM, returns the input as
+	// TypedData.
+	SuggestedFee(i *chain.Input) (*tdata.TypedData, uint64, error)
+	// Issues a human-readable transaction and returns the transaction ID.
+	IssueTx(td *tdata.TypedData, sig []byte) (ids.ID, error)
+
+	// Checks the status of the transaction, and returns "true" if confirmed.
+	HasTx(id ids.ID) (bool, error)
+	// Polls the transactions until its status is confirmed.
+	PollTx(ctx context.Context, txID ids.ID) (confirmed bool, err error)
+
+	// Recent actions on the network (sorted from recent to oldest)
+	RecentActivity() ([]*chain.Activity, error)
+}
 ```
 
 ### Public Endpoints (`/public`)

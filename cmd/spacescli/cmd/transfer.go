@@ -24,7 +24,6 @@ var transferCmd = &cobra.Command{
 	RunE:  transferFunc,
 }
 
-// TODO: move all this to a separate client code
 func transferFunc(cmd *cobra.Command, args []string) error {
 	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
@@ -41,18 +40,14 @@ func transferFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := []client.OpOption{client.WithPollTx()}
-	_, cost, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
-	if err != nil {
+	if verbose {
+		opts = append(opts, client.WithBalance())
+	}
+	if _, _, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...); err != nil {
 		return err
 	}
 
-	// TODO: move to opt
-	addr := crypto.PubkeyToAddress(priv.PublicKey)
-	b, err := cli.Balance(addr)
-	if err != nil {
-		return err
-	}
-	color.Cyan("Address=%s Balance=%d Cost=%d", addr, b, cost)
+	color.Green("transferred %d to %s", units, to.Hex())
 	return nil
 }
 

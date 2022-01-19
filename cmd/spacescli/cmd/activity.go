@@ -18,7 +18,6 @@ var activityCmd = &cobra.Command{
 	RunE:  activityFunc,
 }
 
-// TODO: move all this to a separate client code
 func activityFunc(cmd *cobra.Command, args []string) error {
 	if len(args) != 0 {
 		fmt.Fprintf(os.Stderr, "expected exactly 0 arguments, got %d", len(args))

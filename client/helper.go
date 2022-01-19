@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 
 	"github.com/ava-labs/spacesvm/chain"
@@ -70,28 +71,9 @@ func SignIssueTx(
 		return ids.Empty, 0, err
 	}
 
-	if ret.pollTx {
-		color.Green("issued transaction %s (now polling)", txID)
-		confirmed, err := cli.PollTx(ctx, txID)
-		if err != nil {
-			return ids.Empty, 0, err
-		}
-		if !confirmed {
-			color.Yellow("transaction %s not confirmed", txID)
-		} else {
-			color.Green("transaction %s confirmed", txID)
-		}
+	if err := handleConfirmation(ctx, ret, cli, txID, priv); err != nil {
+		return ids.Empty, 0, err
 	}
-
-	if len(ret.space) > 0 {
-		info, _, err := cli.Info(ret.space)
-		if err != nil {
-			color.Red("cannot get prefix info %v", err)
-			return ids.Empty, 0, err
-		}
-		PPInfo(info)
-	}
-
 	return txID, txCost, nil
 }
 
@@ -149,16 +131,26 @@ func SignIssueRawTx(
 		return ids.Empty, 0, err
 	}
 
+	if err := handleConfirmation(ctx, ret, cli, txID, priv); err != nil {
+		return ids.Empty, 0, err
+	}
+	return txID, utx.GetPrice() * utx.FeeUnits(g), nil
+}
+
+func handleConfirmation(
+	ctx context.Context, ret *Op, cli Client,
+	txID ids.ID, priv *ecdsa.PrivateKey,
+) error {
 	if ret.pollTx {
 		color.Green("issued transaction %s (now polling)", txID)
 		confirmed, err := cli.PollTx(ctx, txID)
 		if err != nil {
-			return ids.Empty, 0, err
+			return err
 		}
 		if !confirmed {
 			color.Yellow("transaction %s not confirmed", txID)
 		} else {
-			color.Green("transaction %s confirmed", txID)
+			color.Yellow("transaction %s confirmed", txID)
 		}
 	}
 
@@ -166,17 +158,27 @@ func SignIssueRawTx(
 		info, _, err := cli.Info(ret.space)
 		if err != nil {
 			color.Red("cannot get prefix info %v", err)
-			return ids.Empty, 0, err
+			return err
 		}
 		PPInfo(info)
 	}
 
-	return txID, utx.GetPrice() * utx.FeeUnits(g), nil
+	if ret.balance {
+		addr := crypto.PubkeyToAddress(priv.PublicKey)
+		b, err := cli.Balance(addr)
+		if err != nil {
+			return err
+		}
+		color.Cyan("Address=%s Balance=%d", addr, b)
+	}
+
+	return nil
 }
 
 type Op struct {
-	pollTx bool
-	space  string
+	pollTx  bool
+	space   string
+	balance bool
 }
 
 type OpOption func(*Op)
@@ -195,4 +197,8 @@ func WithPollTx() OpOption {
 // Non-empty to print out space information.
 func WithInfo(space string) OpOption {
 	return func(op *Op) { op.space = space }
+}
+
+func WithBalance() OpOption {
+	return func(op *Op) { op.balance = true }
 }

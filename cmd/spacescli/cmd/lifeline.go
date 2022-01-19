@@ -20,12 +20,11 @@ import (
 )
 
 var lifelineCmd = &cobra.Command{
-	Use:   "lifeline [options] <prefix> <units>",
-	Short: "Extends the life of a given prefix",
+	Use:   "lifeline [options] <space> <units>",
+	Short: "Extends the life of a given space",
 	RunE:  lifelineFunc,
 }
 
-// TODO: move all this to a separate client code
 func lifelineFunc(cmd *cobra.Command, args []string) error {
 	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
@@ -41,18 +40,16 @@ func lifelineFunc(cmd *cobra.Command, args []string) error {
 		Units:  units,
 	}
 
-	opts := []client.OpOption{client.WithPollTx(), client.WithInfo(space)}
-	_, cost, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...)
-	if err != nil {
+	opts := []client.OpOption{client.WithPollTx()}
+	if verbose {
+		opts = append(opts, client.WithInfo(space))
+		opts = append(opts, client.WithBalance())
+	}
+	if _, _, err := client.SignIssueRawTx(context.Background(), cli, utx, priv, opts...); err != nil {
 		return err
 	}
 
-	addr := crypto.PubkeyToAddress(priv.PublicKey)
-	b, err := cli.Balance(addr)
-	if err != nil {
-		return err
-	}
-	color.Cyan("Address=%s Balance=%d Cost=%d", addr, b, cost)
+	color.Green("extended life of %s by %d units", space, units)
 	return nil
 }
 
@@ -68,7 +65,7 @@ func getLifelineOp(args []string) (space string, units uint64) {
 
 	// check here first before parsing in case "pfx" is empty
 	if err := parser.CheckContents(space); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to verify prefix %v", err)
+		fmt.Fprintf(os.Stderr, "failed to verify space %v", err)
 		os.Exit(128)
 	}
 

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/spacesvm/client"
@@ -20,7 +21,6 @@ var resolveFileCmd = &cobra.Command{
 	RunE:  resolveFileFunc,
 }
 
-// TODO: move all this to a separate client code
 func resolveFileFunc(cmd *cobra.Command, args []string) error {
 	if len(args) != 2 {
 		fmt.Fprintf(os.Stderr, "expected exactly 2 argument, got %d", len(args))
@@ -41,5 +41,10 @@ func resolveFileFunc(cmd *cobra.Command, args []string) error {
 	defer f.Close()
 
 	cli := client.New(uri, requestTimeout)
-	return tree.Download(cli, args[0], f)
+	if err := tree.Download(cli, args[0], f); err != nil {
+		return err
+	}
+
+	color.Green("resolved file %s", args[0])
+	return nil
 }

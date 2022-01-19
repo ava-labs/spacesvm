@@ -23,7 +23,6 @@ var setFileCmd = &cobra.Command{
 	RunE:  setFileFunc,
 }
 
-// TODO: move all this to a separate client code
 func setFileFunc(cmd *cobra.Command, args []string) error {
 	priv, err := crypto.LoadECDSA(privateKeyFile)
 	if err != nil {
@@ -40,16 +39,12 @@ func setFileFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	// TODO: protect against overflow
-	if _, err := tree.Upload(context.Background(), cli, priv, space, f, int(g.MaxValueSize)); err != nil {
-		return err
-	}
-
-	addr := crypto.PubkeyToAddress(priv.PublicKey)
-	b, err := cli.Balance(addr)
+	path, err := tree.Upload(context.Background(), cli, priv, space, f, int(g.MaxValueSize))
 	if err != nil {
 		return err
 	}
-	color.Cyan("Address=%s Balance=%d", addr, b)
+
+	color.Green("uploaded file %s", path)
 	return nil
 }
 
