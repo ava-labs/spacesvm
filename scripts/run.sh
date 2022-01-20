@@ -63,7 +63,7 @@ go build \
 find /tmp/avalanchego-v${VERSION}
 
 echo "building spaces-cli"
-go build -v -o /tmp/spaces-cli ./cmd/spacescli
+go build -v -o /tmp/spaces-cli ./cmd/spaces-cli
 
 echo "creating allocations file"
 cat <<EOF > /tmp/allocations.json

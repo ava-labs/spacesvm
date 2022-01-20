@@ -1,7 +1,7 @@
 # ref. https://goreleaser.com/customization/build/
 builds:
   - id: spaces-cli
-    main: ./cmd/spacescli
+    main: ./cmd/spaces-cli
     binary: spaces-cli
     flags:
       - -v

@@ -32,4 +32,4 @@ echo "Building spacesvm in $binary_directory/$name"
 go build -o "$binary_directory/$name" ./cmd/spacesvm
 
 mkdir -p ./build
-go build -o ./build/spaces-cli ./cmd/spacescli
+go build -o ./build/spaces-cli ./cmd/spaces-cli
