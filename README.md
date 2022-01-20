@@ -38,7 +38,13 @@ the > 100s of MBs range (as long as you have the `SPC` to pay for it).
 ![wallet_signing](./imgs/wallet_signing.png)
 
 The canonical digest of a SpacesVM transaction is EIP-712 compliant, so any
-Web3 wallet that can sign typed data can be used to interact with SpacesVM.
+Web3 wallet that can sign typed data can interact with SpacesVM.
+
+However, that's where things start to get interesting. **Although SpacesVM can
+parse messages signed by Web3 wallets, it itself is not an EVM nor an
+EVM derivative.** SpacesVM was written from scratch to optimize for spaces interactions,
+supporting only the `eth_signTypedData` interface to lower the barrier
+for newcomers to interact with the VM (who wants to download another wallet?).
 
 ## [Demo: tryspaces.xyz](https://tryspaces.xyz)
 What better way to understand how the the SpacesVM works than to see it in action?
