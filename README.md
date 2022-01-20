@@ -40,8 +40,18 @@ the > 100s of MBs range (as long as you have the `SPC` to pay for it).
 The canonical digest of a SpacesVM transaction is EIP-712 compliant, so any
 Web3 wallet that can sign typed data can be used to interact with SpacesVM.
 
-## [Public Beta](https://tryspaces.xyz)
+## [Demo: https://tryspaces.xyz](https://tryspaces.xyz)
+What better way to understand how the the SpacesVM works than to see it in action?
+Well anon, you are in luck!
 
+You can try out the SpacesVM at [https://tryspaces.xyz)](https://tryspaces.xyz). All you need
+is a EIP-712 Compatible Web3 Wallet (like MetaMask) and some `SPC` (all 973k of
+you that interacted with the C-Chain more than 2 times got 10k `SPC` to get you
+started).
+
+This demo is running as an Avalanche Subnet on Fuji. It is **ALPHA LEVEL CODE** and may be
+restarted/have a few bugs in it. It exists for demonstration purposes **ONLY**
+but could be extended to run as a production-level Subnet on Avalanche Mainnet.
 
 ## How it Works
 ### Action Types
@@ -85,15 +95,6 @@ twice.
 ## Usage
 _If you are interested in running the VM, not using it. Jump to [Running the
 VM](#running-the-vm)._
-
-Public Beta...
-
-### tryspaces.xyz
-What better way to understand how this works than to see it in action?
-
-TODO: insert try spaces image + link
-
-Hooked up to public beta
 
 ### spaces-cli
 #### Install
