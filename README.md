@@ -1,26 +1,47 @@
-# SpacesVM
+# Spaces Virtual Machine (SpacesVM)
 
-Avalanche is a network composed of multiple blockchains. Each blockchain is an instance
-of a [Virtual Machine (VM)](https://docs.avax.network/learn/platform-overview#virtual-machines),
+_Authenticated, Hierarchical Key-Value Store w/EIP-712 Compatibility,
+Programmatic Expiry, and Async Pruning_
+
+## Avalanche Subnets and Custom VMs
+Avalanche is a network composed of multiple sub-networks (called subnets) that each contain
+any number of blockchains. Each blockchain is an instance of a
+[Virtual Machine (VM)](https://docs.avax.network/learn/platform-overview#virtual-machines),
 much like an object in an object-oriented language is an instance of a class. That is,
-the VM defines the behavior of the blockchain where it is instantiated. The use of
-[Coreth (EVM)](https://github.com/ava-labs/coreth) on the [Avalanche C-Chain](https://docs.avax.network/learn/platform-overview)
-is a canonical use case of a virtual machine (EVM) and its instantiation (C-Chain) on the Primary Subnet (Avalanche Mainnet). One
-could deploy their own instance of the EVM as their own blockchain (to take
-this to its logical conclusion.
+the VM defines the behavior of the blockchain where it is instantiated. For example,
+[Coreth (EVM)](https://github.com/ava-labs/coreth) is a VM that is instantiated by the
+[Avalanche C-Chain](https://docs.avax.network/learn/platform-overview). Likewise, one
+could deploy another instance of the EVM as their own blockchain (to take
+this to its logical conclusion).
 
+## Introduction
 Just as Coreth powers the C-Chain, SpacesVM can be used to power its own
-blockchain. However, instead of providing a place to execute smart contracts on
-decentralized applications, SpacesVM enables anyone to store arbitrary data for
-fast retrieval, like a Key-Value Database where a single party controls an
-entire hierarchy of keys, you can claim your own hierarchy. (TODO).
+blockchain in an Avalanche Subnet. Instead of providing a place to execute Solidity
+smart contracts, however, SpacesVM enables authenticated, hierarchical storage of arbitrary
+keys/values using any [EIP-712](https://eips.ethereum.org/EIPS/eip-712) compatible wallet.
 
-You could build...
-* Name Service
-* Link Service
-* dApp Metadata Backend
-* Twitter Feed-like
-* NFT Storage (value hashing)
+### Authenticated
+All modifications of storage require the signature of the owner
+of a "space"
+
+### Hierarchical
+Owners can modify any key in their "space" (ex: `owner/*`), however, no one
+else can
+
+### Arbitrary Key/Value Storage
+As long as a key is `^[a-z0-9]{1,256}$`, it can be used as an identifier in
+SpacesVM. The max length of values is defined in genesis but typically ranges
+between 64-200KB. Any number of values can be linked together to store files in
+the > 100s of MBs range (as long as you have the `SPC` to pay for it).
+
+### EIP-712 Compatible
+![wallet-signing](./imgs/wallet-signing.png)
+
+The canonical digest of a SpacesVM transaction is EIP-712 compliant, so any
+Web3 wallet that can sign typed data can be used to interact with SpacesVM.
+
+## [Public Beta](https://tryspaces.xyz)
+
 
 ## How it Works
 ### Action Types
