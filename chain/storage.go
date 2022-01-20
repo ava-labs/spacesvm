@@ -418,24 +418,18 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 			return err
 		}
 
-		// [space]
-		spc := cursor.Value()
+		// [owner] + [space]
+		expiryValue := cursor.Value()
+		owner := common.BytesToAddress(expiryValue[:common.AddressLength])
+		space := expiryValue[common.AddressLength:]
 
 		// Update owned prefix
-		// TODO: could encode this with [cursor.Value()] to make faster
-		info, exists, err := GetSpaceInfo(db, spc)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return ErrSpaceMissing
-		}
-		if err := db.Delete(PrefixOwnedKey(info.Owner, spc)); err != nil {
+		if err := db.Delete(PrefixOwnedKey(owner, space)); err != nil {
 			return err
 		}
 
 		// [infoPrefix] + [delimiter] + [space]
-		k := SpaceInfoKey(spc)
+		k := SpaceInfoKey(space)
 		if err := db.Delete(k); err != nil {
 			return err
 		}
@@ -457,7 +451,7 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 				return err
 			}
 		}
-		log.Debug("space expired", "space", string(spc))
+		log.Debug("space expired", "space", string(space))
 	}
 	return nil
 }
@@ -515,6 +509,13 @@ func HasSpaceKey(db database.KeyValueReader, space []byte, key []byte) (bool, er
 	return db.Has(k)
 }
 
+func ExpiryDataValue(address common.Address, space []byte) (v []byte) {
+	v = make([]byte, common.AddressLength+len(space))
+	copy(v, address[:])
+	copy(v[common.AddressLength:], space)
+	return v
+}
+
 func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastExpiry uint64) error {
 	// If [RawSpace] is empty, this is a new space.
 	if i.RawSpace == ids.ShortEmpty {
@@ -538,7 +539,7 @@ func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastEx
 	}
 	// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 	k := PrefixExpiryKey(i.Expiry, i.RawSpace)
-	if err := db.Put(k, space); err != nil {
+	if err := db.Put(k, ExpiryDataValue(i.Owner, space)); err != nil {
 		return err
 	}
 	// [infoPrefix] + [delimiter] + [space]
@@ -569,7 +570,11 @@ func MoveSpaceInfo(
 	if err := db.Delete(PrefixOwnedKey(oldOwner, space)); err != nil {
 		return err
 	}
-	return db.Put(PrefixOwnedKey(i.Owner, space), nil)
+	if err := db.Put(PrefixOwnedKey(i.Owner, space), nil); err != nil {
+		return err
+	}
+	k = PrefixExpiryKey(i.Expiry, i.RawSpace)
+	return db.Put(k, ExpiryDataValue(i.Owner, space))
 }
 
 type ValueMeta struct {
