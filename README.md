@@ -4,21 +4,21 @@ _Authenticated, Hierarchical Key-Value Store w/EIP-712 Compatibility,
 State Expiry, and Fee-Based Metering_
 
 ## Avalanche Subnets and Custom VMs
-Avalanche is a network composed of multiple sub-networks (called subnets) that each contain
+Avalanche is a network composed of multiple sub-networks (called [subnets][Subnet]) that each contain
 any number of blockchains. Each blockchain is an instance of a
 [Virtual Machine (VM)](https://docs.avax.network/learn/platform-overview#virtual-machines),
 much like an object in an object-oriented language is an instance of a class. That is,
 the VM defines the behavior of the blockchain where it is instantiated. For example,
-[Coreth (EVM)](https://github.com/ava-labs/coreth) is a VM that is instantiated by the
-[Avalanche C-Chain](https://docs.avax.network/learn/platform-overview). Likewise, one
+[Coreth (EVM)][Coreth] is a VM that is instantiated by the
+[C-Chain]. Likewise, one
 could deploy another instance of the EVM as their own blockchain (to take
 this to its logical conclusion).
 
 ## Introduction
-Just as Coreth powers the C-Chain, SpacesVM can be used to power its own
-blockchain in an Avalanche Subnet. Instead of providing a place to execute Solidity
+Just as [Coreth] powers the [C-Chain], SpacesVM can be used to power its own
+blockchain in an Avalanche [Subnet]. Instead of providing a place to execute Solidity
 smart contracts, however, SpacesVM enables authenticated, hierarchical storage of arbitrary
-keys/values using any [EIP-712](https://eips.ethereum.org/EIPS/eip-712) compatible wallet.
+keys/values using any [EIP-712] compatible wallet.
 
 ### Authenticated
 All modifications of storage require the signature of the owner
@@ -34,28 +34,28 @@ SpacesVM. The max length of values is defined in genesis but typically ranges
 between 64-200KB. Any number of values can be linked together to store files in
 the > 100s of MBs range (as long as you have the `SPC` to pay for it).
 
-### EIP-712 Compatible
+### [EIP-712] Compatible
 ![wallet_signing](./imgs/wallet_signing.png)
 
-The canonical digest of a SpacesVM transaction is EIP-712 compliant, so any
+The canonical digest of a SpacesVM transaction is [EIP-712] compliant, so any
 Web3 wallet that can sign typed data can interact with SpacesVM.
 
-**EIP-712 compliance in this case, however, does not mean that SpacesVM
+**[EIP-712] compliance in this case, however, does not mean that SpacesVM
 is an EVM or even an EVM derivative.** SpacesVM is a new Avalanche-native VM written
 from scratch to optimize for storage-related operations.
 
-## [Demo: tryspaces.xyz](https://tryspaces.xyz)
+## Demo: [tryspaces.xyz]
 What better way to understand how the the SpacesVM works than to see it in action?
 Well anon, you are in luck!
 
-You can try out the SpacesVM at [tryspaces.xyz)](https://tryspaces.xyz). All you need
-is a EIP-712 Compatible Web3 Wallet (like MetaMask) and some `SPC` (all 973k of
-you that interacted with the C-Chain more than 2 times got 10k `SPC` to get you
+You can try out the SpacesVM at [tryspaces.xyz]. All you need
+is a [EIP-712] Compatible Web3 Wallet (like [MetaMask](https://metamask.io)) and some `SPC` (all 973k of
+you that interacted with the [C-Chain] more than 2 times got 10k `SPC` to get you
 started).
 
-This demo is running as an Avalanche Subnet on Fuji. It is **ALPHA LEVEL CODE** and may be
+This demo is running as an Avalanche [Subnet] on Fuji. It is **ALPHA LEVEL CODE** and may be
 restarted/have a few bugs in it. It exists for demonstration purposes **ONLY**
-but could be extended to run as a production-level Subnet on Avalanche Mainnet.
+but could be extended to run as a production-level [Subnet] on Avalanche Mainnet.
 
 ## How it Works
 ### Claim
@@ -106,7 +106,7 @@ it to any EVM-style address.
 50% of the fees spent on each transaction are sent to a random space owner (as
 long as the randomly selected recipient is not the creator of the transaction).
 
-One could the SpacesVM to instead send rewards to a beneficiary chosen by
+One could modify the SpacesVM to instead send rewards to a beneficiary chosen by
 whoever produces a block.
 
 ### Fees
@@ -120,9 +120,9 @@ Nearly all fee-related params can be tuned by the SpacesVM deployer.
 _If you are interested in running the VM, not using it. Jump to [Running the
 VM](#running-the-vm)._
 
-### [tryspaces.xyz](https://tryspaces.xyz)
+### [tryspaces.xyz]
 The easiest way to try out SpacesVM is to visit the demo website
-[trysapces.xyz](https://tryspaces.xyz).
+[tryspaces.xyz].
 
 ### spaces-cli
 #### Install
@@ -520,7 +520,7 @@ indicating you've done this successfully.
 You can find the genesis used for the Spaces Demo in `networks/42`.
 
 ### Running a local network
-[`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego), sets up a local network,
+[`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego], sets up a local network,
 and creates a `spacesvm` genesis file. To build and run E2E tests, you need to set the variable `E2E` before it: `E2E=true ./scripts/run.sh 1.7.4`
 
 _See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made._
@@ -587,6 +587,14 @@ Anyone can deploy their own instance of the SpacesVM as a subnet on Avalanche.
 All you need to do is compile it, create a genesis, and send a few txs to the
 P-Chain.
 
-You can do this by following [the tutorial
-online](https://docs.avax.network/build/tutorials/platform/subnets/create-a-subnet/)
-or by using the [subnet-cli](https://github.com/ava-labs/subnet-cli).
+You can do this by following [subnet tutorial]
+or by using the [subnet-cli].
+
+[EIP-712]: https://eips.ethereum.org/EIPS/eip-712
+[tryspaces.xyz]: https://tryspaces.xyz
+[avalanchego]: https://github.com/ava-labs/avalanchego
+[subnet tutorial]: https://docs.avax.network/build/tutorials/platform/subnets/create-a-subnet
+[subnet-cli]: https://github.com/ava-labs/subnet-cli
+[Coreth]: https://github.com/ava-labs/coreth
+[C-Chain]: https://docs.avax.network/learn/platform-overview/#contract-chain-c-chain
+[Subnet]: https://docs.avax.network/learn/platform-overview/#subnets
