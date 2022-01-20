@@ -1,78 +1,124 @@
-# SpacesVM
+# Spaces Virtual Machine (SpacesVM)
 
-Avalanche is a network composed of multiple blockchains. Each blockchain is an instance
-of a [Virtual Machine (VM)](https://docs.avax.network/learn/platform-overview#virtual-machines),
+_Authenticated, Hierarchical Key-Value Store w/EIP-712 Compatibility,
+Programmatic Expiry, Async Pruning, and Fee-Based Metering_
+
+## Avalanche Subnets and Custom VMs
+Avalanche is a network composed of multiple sub-networks (called subnets) that each contain
+any number of blockchains. Each blockchain is an instance of a
+[Virtual Machine (VM)](https://docs.avax.network/learn/platform-overview#virtual-machines),
 much like an object in an object-oriented language is an instance of a class. That is,
-the VM defines the behavior of the blockchain where it is instantiated. The use of
-[Coreth (EVM)](https://github.com/ava-labs/coreth) on the [Avalanche C-Chain](https://docs.avax.network/learn/platform-overview)
-is a canonical use case of a virtual machine (EVM) and its instantiation (C-Chain) on the Primary Subnet (Avalanche Mainnet). One
-could deploy their own instance of the EVM as their own blockchain (to take
-this to its logical conclusion.
+the VM defines the behavior of the blockchain where it is instantiated. For example,
+[Coreth (EVM)](https://github.com/ava-labs/coreth) is a VM that is instantiated by the
+[Avalanche C-Chain](https://docs.avax.network/learn/platform-overview). Likewise, one
+could deploy another instance of the EVM as their own blockchain (to take
+this to its logical conclusion).
 
+## Introduction
 Just as Coreth powers the C-Chain, SpacesVM can be used to power its own
-blockchain. However, instead of providing a place to execute smart contracts on
-decentralized applications, SpacesVM enables anyone to store arbitrary data for
-fast retrieval, like a Key-Value Database where a single party controls an
-entire hierarchy of keys, you can claim your own hierarchy. (TODO).
+blockchain in an Avalanche Subnet. Instead of providing a place to execute Solidity
+smart contracts, however, SpacesVM enables authenticated, hierarchical storage of arbitrary
+keys/values using any [EIP-712](https://eips.ethereum.org/EIPS/eip-712) compatible wallet.
 
-You could build...
-* Name Service
-* Link Service
-* dApp Metadata Backend
-* Twitter Feed-like
-* NFT Storage (value hashing)
+### Authenticated
+All modifications of storage require the signature of the owner
+of a "space"
+
+### Hierarchical
+Owners can modify any key in their "space" (ex: `owner/*`), however, no one
+else can
+
+### Arbitrary Key/Value Storage
+As long as a key is `^[a-z0-9]{1,256}$`, it can be used as an identifier in
+SpacesVM. The max length of values is defined in genesis but typically ranges
+between 64-200KB. Any number of values can be linked together to store files in
+the > 100s of MBs range (as long as you have the `SPC` to pay for it).
+
+### EIP-712 Compatible
+![wallet-signing](./imgs/wallet-signing.png)
+
+The canonical digest of a SpacesVM transaction is EIP-712 compliant, so any
+Web3 wallet that can sign typed data can be used to interact with SpacesVM.
+
+## [Demo: https://tryspaces.xyz](https://tryspaces.xyz)
+What better way to understand how the the SpacesVM works than to see it in action?
+Well anon, you are in luck!
+
+You can try out the SpacesVM at [https://tryspaces.xyz)](https://tryspaces.xyz). All you need
+is a EIP-712 Compatible Web3 Wallet (like MetaMask) and some `SPC` (all 973k of
+you that interacted with the C-Chain more than 2 times got 10k `SPC` to get you
+started).
+
+This demo is running as an Avalanche Subnet on Fuji. It is **ALPHA LEVEL CODE** and may be
+restarted/have a few bugs in it. It exists for demonstration purposes **ONLY**
+but could be extended to run as a production-level Subnet on Avalanche Mainnet.
 
 ## How it Works
-### Action Types
-#### Claim
+### Claim
+Interacting with the SpacesVM starts with a `ClaimTx`. This reserves your own
+"space" and associates your address with it (so that only you can make changes
+to it and/or the keys in it).
 
-##### Community support
+#### Reserved Spaces
+Spaces of length 66 (`0x + hex-encoded EVM-style address`) are reserved for
+address holders. Only the person who can produce a valid signature for a given
+address can claim these types of spaces.
 
-#### Set/Delete
+### Set/Delete
+Once you have a space, you can then use `SetTx` and `DeleteTx` actions to
+add/modify/delete keys in it. The more storage your space uses, the faster it
+will expire.
 
-##### Arbitrary Size File Support (using CLI)
+#### Content-Addressable Keys
+To support common blockchain use cases (like NFT storage), the SpacesVM
+supports the storage of arbitrary size files using content-addressable keys.
+You can try this out using `spaces-cli set-file <space> <filename>`.
 
-#### Resolve
+### Lifeline
+When your space uses a lot of storage and/or you've had it for a while, you may
+need to extend its life using a `LifelineTx`. If you don't, your space will
+eventually become inaccessible and all data stored within it will be deleted by
+the SpacesVM.
 
-#### Transfer
+#### Community Space Support
+It is not required that you own a space to submit a `LifelineTx` that extends
+its life. This enables the community to support useful spaces with their `SPC`.
 
-#### Move
+### Resolve
+When you want to view data stored in SpacesVM, you call `Resolve` on the value
+path: `<space>/<key>`. If you stored a file at a particular path, use this
+command to retrieve it: `spaces-cli resolve-file <path> <destination
+filepath>`.
 
-### Wallet Support: `eth_typedSignedData`
-TODO: Insert image of signing using MM
+### Transfer
+If you want to share some of your `SPC` with your friends, you can use
+a `TransferTx` to send to any EVM-style address.
 
-### Reserved Spaces
-address space is reserved
-
-### Content Addressing
-SpacesVM verifies that values associated with keys that are length 66 (0x + hex-encoded keccak256 hash) are valid hashes.
-
-### Fee Mechanisms
-Claim Desirability + Decay Rate
-FeeUnits vs Load Units vs Expiry Units (per action)
+### Move
+If you want to share a space with a friend, you can use a `MoveTx` to transfer
+it to any EVM-style address.
 
 ### Space Rewards
-Lottery allocation X% of fee
+50% of the fees spent on each transaction are sent to a random space owner (as
+long as the randomly selected recipient is not the creator of the transaction).
 
-One could easily modify this repository to instead send rewards to
-beneficiaries chosen by whoever produces a block.
+One could the SpacesVM to instead send rewards to a beneficiary chosen by
+whoever produces a block.
 
-### Genesis Allocation -> public beta only
-Airdrop `10,000 SPC` for anyone who has interacted with C-Chain more than
-twice.
+### Fees
+All interactions with the SpacesVM require the payment of fees (denominated in
+`SPC`). The VM Genesis includes support for allocating one-off `SPC` to
+different EVM-style addresses and to allocating `SPC` to an airdrop list.
+
+Nearly all fee-related params can be tuned by the SpacesVM deployer.
 
 ## Usage
 _If you are interested in running the VM, not using it. Jump to [Running the
 VM](#running-the-vm)._
 
-Public Beta...
-
-### tryspaces.xyz
-What better way to understand how this works than to see it in action?
-
-TODO: insert try spaces image + link
-
-Hooked up to public beta
+### [tryspaces.xyz](https://tryspaces.xyz)
+The easiest way to try out SpacesVM is to visit the demo website
+[trysapces.xyz](https://tryspaces.xyz).
 
 ### spaces-cli
 #### Install
@@ -120,9 +166,9 @@ Use "spaces-cli [command] --help" for more information about a command.
 
 ##### Uploading Files
 ```
-spaces-cli set-file patrick ~/Downloads/computer.gif -> patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
-spaces-cli resolve-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8 computer_copy.gif
-spaces-cli delete-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
+spaces-cli set-file spaceslover ~/Downloads/computer.gif -> patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
+spaces-cli resolve-file spaceslover/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8 computer_copy.gif
+spaces-cli delete-file spaceslover/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
 ```
 
 ### [Golang SDK](https://github.com/ava-labs/spacesvm/blob/master/client/client.go)
@@ -460,29 +506,18 @@ _Can use this to get the current fee rate._
 ```
 
 ## Running the VM
-To build the VM, run `./scripts/build.sh`.
+To build the VM (and `spaces-cli`), run `./scripts/build.sh`.
 
 ### Joining the public beta
-Put spacesvm binary in plugins dir
-Add subnet-id to whitelisted-subnets
-
-TODO: set bootstrap nodes
-
-Here is an example config file:
---network-id=fuji
-
-Make sure to add these commands when running the node:
---config-file
-
-If you'd like to become a validator, reach out to @\_patrickogrady on Twitter
+If you'd like to become a validator on the demo, reach out to @\_patrickogrady on Twitter
 after you've joined the network and synced to tip. Please send a screenshot
 indicating you've done this successfully.
 
 ### Running a local network
-[`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego) to set up a local network
+[`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego), sets up a local network,
 and creates a `spacesvm` genesis file. To build and run E2E tests, you need to set the variable `E2E` before it: `E2E=true ./scripts/run.sh 1.7.4`
 
-See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made:
+_See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made._
 
 ```bash
 # to startup a local cluster (good for development)
@@ -540,3 +575,12 @@ COMMENT
 # to terminate the cluster
 kill 12811
 ```
+
+### Deploying Your Own Network
+Anyone can deploy their own instance of the SpacesVM as a subnet on Avalanche.
+All you need to do is compile it, create a genesis, and send a few txs to the
+P-Chain.
+
+You can do this by following [the tutorial
+online](https://docs.avax.network/build/tutorials/platform/subnets/create-a-subnet/)
+or by using the [subnet-cli](https://github.com/ava-labs/subnet-cli).
