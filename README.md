@@ -105,6 +105,13 @@ long as the randomly selected recipient is not the creator of the transaction).
 One could the SpacesVM to instead send rewards to a beneficiary chosen by
 whoever produces a block.
 
+### Fees
+All interactions with the SpacesVM require the payment of fees (denominated in
+`SPC`). The VM Genesis includes support for allocating one-off `SPC` to
+different EVM-style addresses and to allocating `SPC` to an airdrop list.
+
+Nearly all fee-related params can be tuned by the SpacesVM deployer.
+
 ## Usage
 _If you are interested in running the VM, not using it. Jump to [Running the
 VM](#running-the-vm)._
@@ -568,3 +575,12 @@ COMMENT
 # to terminate the cluster
 kill 12811
 ```
+
+### Deploying Your Own Network
+Anyone can deploy their own instance of the SpacesVM as a subnet on Avalanche.
+All you need to do is compile it, create a genesis, and send a few txs to the
+P-Chain.
+
+You can do this by following [the tutorial
+online](https://docs.avax.network/build/tutorials/platform/subnets/create-a-subnet/)
+or by using the [subnet-cli](https://github.com/ava-labs/subnet-cli).
