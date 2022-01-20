@@ -340,17 +340,25 @@ func (vm *VM) GetStatelessBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
 // implements "snowmanblock.ChainVM.commom.VM.Parser"
 // replaces "core.SnowmanVM.ParseBlock"
 func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
-	blk, err := chain.ParseBlock(
+	newBlk, err := chain.ParseBlock(
 		source,
 		choices.Processing,
 		vm,
 	)
 	if err != nil {
 		log.Error("could not parse block", "err", err)
+		return nil, err
 	} else {
-		log.Debug("parsed block", "id", blk.ID())
+		log.Debug("parsed block", "id", newBlk.ID())
 	}
-	return blk, err
+
+	// If we have seen this block before, return it with the most
+	// up-to-date info
+	if oldBlk, err := vm.GetBlock(newBlk.ID()); err == nil {
+		return oldBlk, nil
+	}
+
+	return newBlk, nil
 }
 
 // implements "snowmanblock.ChainVM"
