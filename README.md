@@ -22,11 +22,11 @@ keys/values using any [EIP-712](https://eips.ethereum.org/EIPS/eip-712) compatib
 
 ### Authenticated
 All modifications of storage require the signature of the owner
-of a "space"
+of a "space".
 
 ### Hierarchical
 Owners can modify any key in their "space" (ex: `owner/*`), however, no one
-else can
+else can.
 
 ### Arbitrary Key/Value Storage
 As long as a key is `^[a-z0-9]{1,256}$`, it can be used as an identifier in
