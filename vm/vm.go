@@ -354,6 +354,7 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 	// If we have seen this block before, return it with the most
 	// up-to-date info
 	if oldBlk, err := vm.GetBlock(newBlk.ID()); err == nil {
+		log.Debug("returning previously parsed block", "id", oldBlk.ID())
 		return oldBlk, nil
 	}
 
