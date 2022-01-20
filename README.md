@@ -75,9 +75,14 @@ TODO: insert try spaces image + link
 Hooked up to public beta
 
 ### spaces-cli
-_To build the CLI, run `./scripts/build.sh`. It will be placed in `./build/spaces-cli` and
-`$GOBIN/spaces-cli`._
+#### Install
+```bash
+git clone https://github.com/ava-labs/spacesvm.git;
+cd spacesvm;
+go install -v ./cmd/spaces-cli;
+```
 
+#### Usage
 ```
 SpacesVM CLI
 
@@ -113,7 +118,7 @@ Flags:
 Use "spaces-cli [command] --help" for more information about a command.
 ```
 
-#### Uploading Files
+##### Uploading Files
 ```
 spaces-cli set-file patrick ~/Downloads/computer.gif -> patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
 spaces-cli resolve-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8 computer_copy.gif

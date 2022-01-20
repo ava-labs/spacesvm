@@ -50,7 +50,7 @@ var (
 	outputPath         string
 )
 
-const defaultVMID = "tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH"
+const defaultVMID = "sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm"
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(
