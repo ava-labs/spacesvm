@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	vOffset      = 64
 	legacySigAdj = 27
 )
 
@@ -18,7 +19,7 @@ func Sign(dh []byte, priv *ecdsa.PrivateKey) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	sig[64] += legacySigAdj
+	sig[vOffset] += legacySigAdj
 	return sig, nil
 }
 
@@ -30,9 +31,9 @@ func DeriveSender(dh []byte, sig []byte) (*ecdsa.PublicKey, error) {
 	sigcpy := make([]byte, crypto.SignatureLength)
 	copy(sigcpy, sig)
 
-	// Support clients that don't apply offset too (ex: ledger)
-	if sigcpy[64] > legacySigAdj {
-		sigcpy[64] -= legacySigAdj
+	// Support signers that don't apply offset (ex: ledger)
+	if sigcpy[vOffset] >= legacySigAdj {
+		sigcpy[vOffset] -= legacySigAdj
 	}
 	return crypto.SigToPub(dh, sigcpy)
 }
