@@ -1,7 +1,7 @@
 # Spaces Virtual Machine (SpacesVM)
 
 _Authenticated, Hierarchical Key-Value Store w/EIP-712 Compatibility,
-Programmatic Expiry, Async Pruning, and Fee-Based Metering_
+State Expiry, and Fee-Based Metering_
 
 ## Avalanche Subnets and Custom VMs
 Avalanche is a network composed of multiple sub-networks (called subnets) that each contain
