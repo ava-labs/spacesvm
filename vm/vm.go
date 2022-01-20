@@ -348,9 +348,8 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 	if err != nil {
 		log.Error("could not parse block", "err", err)
 		return nil, err
-	} else {
-		log.Debug("parsed block", "id", newBlk.ID())
 	}
+	log.Debug("parsed block", "id", newBlk.ID())
 
 	// If we have seen this block before, return it with the most
 	// up-to-date info
