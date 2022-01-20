@@ -587,7 +587,7 @@ Anyone can deploy their own instance of the SpacesVM as a subnet on Avalanche.
 All you need to do is compile it, create a genesis, and send a few txs to the
 P-Chain.
 
-You can do this by following [subnet tutorial]
+You can do this by following the [subnet tutorial]
 or by using the [subnet-cli].
 
 [EIP-712]: https://eips.ethereum.org/EIPS/eip-712
