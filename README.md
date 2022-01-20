@@ -1,7 +1,7 @@
 # Spaces Virtual Machine (SpacesVM)
 
 _Authenticated, Hierarchical Key-Value Store w/EIP-712 Compatibility,
-Programmatic Expiry, and Async Pruning_
+Programmatic Expiry, Async Pruning, and Fee-Based Metering_
 
 ## Avalanche Subnets and Custom VMs
 Avalanche is a network composed of multiple sub-networks (called subnets) that each contain
@@ -54,47 +54,64 @@ restarted/have a few bugs in it. It exists for demonstration purposes **ONLY**
 but could be extended to run as a production-level Subnet on Avalanche Mainnet.
 
 ## How it Works
-### Action Types
-#### Claim
+### Claim
+Interacting with the SpacesVM starts with a `ClaimTx`. This reserves your own
+"space" and associates your address with it (so that only you can make changes
+to it and/or the keys in it).
 
-##### Community support
+#### Reserved Spaces
+Spaces of length 66 (`0x + hex-encoded EVM-style address`) are reserved for
+address holders. Only the person who can produce a valid signature for a given
+address can claim these types of spaces.
 
-#### Set/Delete
+### Set/Delete
+Once you have a space, you can then use `SetTx` and `DeleteTx` actions to
+add/modify/delete keys in it. The more storage your space uses, the faster it
+will expire.
 
-##### Arbitrary Size File Support (using CLI)
+#### Content-Addressable Keys
+To support common blockchain use cases (like NFT storage), the SpacesVM
+supports the storage of arbitrary size files using content-addressable keys.
+You can try this out using `spaces-cli set-file <space> <filename>`.
 
-#### Resolve
+### Lifeline
+When your space uses a lot of storage and/or you've had it for a while, you may
+need to extend its life using a `LifelineTx`. If you don't, your space will
+eventually become inaccessible and all data stored within it will be deleted by
+the SpacesVM.
 
-#### Transfer
+#### Community Space Support
+It is not required that you own a space to submit a `LifelineTx` that extends
+its life. This enables the community to support useful spaces with their `SPC`.
 
-#### Move
+### Resolve
+When you want to view data stored in SpacesVM, you call `Resolve` on the value
+path: `<space>/<key>`. If you stored a file at a particular path, use this
+command to retrieve it: `spaces-cli resolve-file <path> <destination
+filepath>`.
 
-### Wallet Support: `eth_typedSignedData`
-TODO: Insert image of signing using MM
+### Transfer
+If you want to share some of your `SPC` with your friends, you can use
+a `TransferTx` to send to any EVM-style address.
 
-### Reserved Spaces
-address space is reserved
-
-### Content Addressing
-SpacesVM verifies that values associated with keys that are length 66 (0x + hex-encoded keccak256 hash) are valid hashes.
-
-### Fee Mechanisms
-Claim Desirability + Decay Rate
-FeeUnits vs Load Units vs Expiry Units (per action)
+### Move
+If you want to share a space with a friend, you can use a `MoveTx` to transfer
+it to any EVM-style address.
 
 ### Space Rewards
-Lottery allocation X% of fee
+50% of the fees spent on each transaction are sent to a random space owner (as
+long as the randomly selected recipient is not the creator of the transaction).
 
-One could easily modify this repository to instead send rewards to
-beneficiaries chosen by whoever produces a block.
-
-### Genesis Allocation -> public beta only
-Airdrop `10,000 SPC` for anyone who has interacted with C-Chain more than
-twice.
+One could the SpacesVM to instead send rewards to a beneficiary chosen by
+whoever produces a block.
 
 ## Usage
 _If you are interested in running the VM, not using it. Jump to [Running the
 VM](#running-the-vm)._
+
+### [tryspaces.xyz](https://tryspaces.xyz)
+The easiest way to try out SpacesVM is to visit the demo website
+[trysapces.xyz](https://tryspaces.xyz).
 
 ### spaces-cli
 #### Install
@@ -142,9 +159,9 @@ Use "spaces-cli [command] --help" for more information about a command.
 
 ##### Uploading Files
 ```
-spaces-cli set-file patrick ~/Downloads/computer.gif -> patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
-spaces-cli resolve-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8 computer_copy.gif
-spaces-cli delete-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
+spaces-cli set-file spaceslover ~/Downloads/computer.gif -> patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
+spaces-cli resolve-file spaceslover/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8 computer_copy.gif
+spaces-cli delete-file spaceslover/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
 ```
 
 ### [Golang SDK](https://github.com/ava-labs/spacesvm/blob/master/client/client.go)
@@ -482,29 +499,18 @@ _Can use this to get the current fee rate._
 ```
 
 ## Running the VM
-To build the VM, run `./scripts/build.sh`.
+To build the VM (and `spaces-cli`), run `./scripts/build.sh`.
 
 ### Joining the public beta
-Put spacesvm binary in plugins dir
-Add subnet-id to whitelisted-subnets
-
-TODO: set bootstrap nodes
-
-Here is an example config file:
---network-id=fuji
-
-Make sure to add these commands when running the node:
---config-file
-
-If you'd like to become a validator, reach out to @\_patrickogrady on Twitter
+If you'd like to become a validator on the demo, reach out to @\_patrickogrady on Twitter
 after you've joined the network and synced to tip. Please send a screenshot
 indicating you've done this successfully.
 
 ### Running a local network
-[`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego) to set up a local network
+[`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego), sets up a local network,
 and creates a `spacesvm` genesis file. To build and run E2E tests, you need to set the variable `E2E` before it: `E2E=true ./scripts/run.sh 1.7.4`
 
-See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made:
+_See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made._
 
 ```bash
 # to startup a local cluster (good for development)
