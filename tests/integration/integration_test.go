@@ -383,7 +383,10 @@ var _ = ginkgo.Describe("Tx Types", func() {
 			spaces, err := instances[0].cli.Owned(sender)
 			gomega.Ω(err).To(gomega.BeNil())
 
-			gomega.Ω(spaces).To(gomega.ContainElements(strings.Repeat("a", parser.MaxIdentifierSize), strings.Repeat("b", parser.MaxIdentifierSize)))
+			gomega.Ω(spaces).To(gomega.ContainElements(
+				strings.Repeat("a", parser.MaxIdentifierSize),
+				strings.Repeat("b", parser.MaxIdentifierSize),
+			))
 		})
 
 		ginkgo.By("check space after ClaimTx has been accepted", func() {

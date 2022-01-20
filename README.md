@@ -41,15 +41,23 @@ You could build...
 ### Wallet Support: `eth_typedSignedData`
 TODO: Insert image of signing using MM
 
+### Reserved Spaces
+address space is reserved
+
+### Content Addressing
+SpacesVM verifies that values associated with keys that are length 66 (0x + hex-encoded keccak256 hash) are valid hashes.
+
 ### Fee Mechanisms
 Claim Desirability + Decay Rate
 FeeUnits vs Load Units vs Expiry Units (per action)
-Expiry Rate vs Units
 
 ### Space Rewards
 Lottery allocation X% of fee
 
-### Genesis Allocation
+One could easily modify this repository to instead send rewards to
+beneficiaries chosen by whoever produces a block.
+
+### Genesis Allocation -> public beta only
 Airdrop `10,000 SPC` for anyone who has interacted with C-Chain more than
 twice.
 
@@ -153,6 +161,8 @@ type Client interface {
 
 	// Recent actions on the network (sorted from recent to oldest)
 	RecentActivity() ([]*chain.Activity, error)
+	// All spaces owned by a given address
+	Owned(owner common.Address) ([]string, error)
 }
 ```
 
