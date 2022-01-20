@@ -460,7 +460,7 @@ _Can use this to get the current fee rate._
 ```
 
 ## Running the VM
-To build the VM, run `VM=true ./scripts/build.sh`.
+To build the VM, run `./scripts/build.sh`.
 
 ### Joining the public beta
 Put spacesvm binary in plugins dir
@@ -485,7 +485,7 @@ and creates a `spacesvm` genesis file. To build and run E2E tests, you need to s
 See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made:
 
 ```bash
-# to startup a cluster
+# to startup a local cluster (good for development)
 cd ${HOME}/go/src/github.com/ava-labs/spacesvm
 ./scripts/run.sh 1.7.4
 
