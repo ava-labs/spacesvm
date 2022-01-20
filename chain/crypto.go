@@ -29,6 +29,10 @@ func DeriveSender(dh []byte, sig []byte) (*ecdsa.PublicKey, error) {
 	// Avoid modifying the signature in place in case it is used elsewhere
 	sigcpy := make([]byte, crypto.SignatureLength)
 	copy(sigcpy, sig)
-	sigcpy[64] -= legacySigAdj
+
+	// Support clients that don't apply offset too (ex: ledger)
+	if sigcpy[64] > legacySigAdj {
+		sigcpy[64] -= legacySigAdj
+	}
 	return crypto.SigToPub(dh, sigcpy)
 }
