@@ -554,7 +554,7 @@ func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastEx
 // MoveSpaceInfo should only be used if the expiry isn't changing and
 // [SpaceInfo] is already in the database.
 func MoveSpaceInfo(
-	db database.KeyValueReaderWriter, oldOwner common.Address,
+	db database.KeyValueWriter, oldOwner common.Address,
 	space []byte, i *SpaceInfo,
 ) error {
 	// [infoPrefix] + [delimiter] + [space]
