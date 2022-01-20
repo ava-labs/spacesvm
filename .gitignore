@@ -54,4 +54,3 @@ genesis.json
 *.test
 
 dist/
-networks/
