@@ -53,6 +53,7 @@ func init() {
 		resolveFileCmd,
 		deleteFileCmd,
 		networkCmd,
+		ownedCmd,
 	)
 
 	rootCmd.PersistentFlags().StringVar(

@@ -41,15 +41,23 @@ You could build...
 ### Wallet Support: `eth_typedSignedData`
 TODO: Insert image of signing using MM
 
+### Reserved Spaces
+address space is reserved
+
+### Content Addressing
+SpacesVM verifies that values associated with keys that are length 66 (0x + hex-encoded keccak256 hash) are valid hashes.
+
 ### Fee Mechanisms
 Claim Desirability + Decay Rate
 FeeUnits vs Load Units vs Expiry Units (per action)
-Expiry Rate vs Units
 
 ### Space Rewards
 Lottery allocation X% of fee
 
-### Genesis Allocation
+One could easily modify this repository to instead send rewards to
+beneficiaries chosen by whoever produces a block.
+
+### Genesis Allocation -> public beta only
 Airdrop `10,000 SPC` for anyone who has interacted with C-Chain more than
 twice.
 
@@ -67,9 +75,14 @@ TODO: insert try spaces image + link
 Hooked up to public beta
 
 ### spaces-cli
-_To build the CLI, run `./scripts/build.sh`. It will be placed in `./build/spaces-cli` and
-`$GOBIN/spaces-cli`._
+#### Install
+```bash
+git clone https://github.com/ava-labs/spacesvm.git;
+cd spacesvm;
+go install -v ./cmd/spaces-cli;
+```
 
+#### Usage
 ```
 SpacesVM CLI
 
@@ -89,6 +102,7 @@ Available Commands:
   lifeline     Extends the life of a given space
   move         Transfers a space to another address
   network      View information about this instance of the SpacesVM
+  owned        Fetches all owned spaces for the address associated with the private key
   resolve      Reads a value at space/key
   resolve-file Reads a file at space/key and saves it to disk
   set          Writes a key-value pair for the given space
@@ -104,7 +118,7 @@ Flags:
 Use "spaces-cli [command] --help" for more information about a command.
 ```
 
-#### Uploading Files
+##### Uploading Files
 ```
 spaces-cli set-file patrick ~/Downloads/computer.gif -> patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8
 spaces-cli resolve-file patrick/6fe5a52f52b34fb1e07ba90bad47811c645176d0d49ef0c7a7b4b22013f676c8 computer_copy.gif
@@ -152,6 +166,8 @@ type Client interface {
 
 	// Recent actions on the network (sorted from recent to oldest)
 	RecentActivity() ([]*chain.Activity, error)
+	// All spaces owned by a given address
+	Owned(owner common.Address) ([]string, error)
 }
 ```
 
@@ -400,6 +416,20 @@ transfer {timestamp,sender,txId,type,to,units}
 reward   {timestamp,txId,type,to,units}
 ```
 
+#### spacesvm.owned
+```
+<<< POST
+{
+  "jsonrpc": "2.0",
+  "method": "spacesvm.owned",
+  "params":{
+    "address":<hex encoded>
+  },
+  "id": 1
+}
+>>> {"spaces":[<string>]}
+```
+
 ### Advanced Public Endpoints (`/public`)
 
 #### spacesvm.suggestedRawFee
@@ -430,7 +460,7 @@ _Can use this to get the current fee rate._
 ```
 
 ## Running the VM
-To build the VM, run `VM=true ./scripts/build.sh`.
+To build the VM, run `./scripts/build.sh`.
 
 ### Joining the public beta
 Put spacesvm binary in plugins dir
@@ -455,7 +485,7 @@ and creates a `spacesvm` genesis file. To build and run E2E tests, you need to s
 See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made:
 
 ```bash
-# to startup a cluster
+# to startup a local cluster (good for development)
 cd ${HOME}/go/src/github.com/ava-labs/spacesvm
 ./scripts/run.sh 1.7.4
 

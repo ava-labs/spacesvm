@@ -339,3 +339,20 @@ func (svc *PublicService) RecentActivity(_ *http.Request, _ *struct{}, reply *Re
 	reply.Activity = activity
 	return nil
 }
+
+type OwnedArgs struct {
+	Address common.Address `serialize:"true" json:"address"`
+}
+
+type OwnedReply struct {
+	Spaces []string `serialize:"true" json:"spaces"`
+}
+
+func (svc *PublicService) Owned(_ *http.Request, args *OwnedArgs, reply *OwnedReply) error {
+	spaces, err := chain.GetAllOwned(svc.vm.db, args.Address)
+	if err != nil {
+		return err
+	}
+	reply.Spaces = spaces
+	return nil
+}

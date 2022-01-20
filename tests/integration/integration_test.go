@@ -254,6 +254,13 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		gomega.Ω(len(activity)).To(gomega.Equal(0))
 	})
 
+	ginkgo.It("ensure nothing owned yet", func() {
+		spaces, err := instances[0].cli.Owned(sender)
+		gomega.Ω(err).To(gomega.BeNil())
+
+		gomega.Ω(len(spaces)).To(gomega.Equal(0))
+	})
+
 	ginkgo.It("get currently accepted block ID", func() {
 		for _, inst := range instances {
 			cli := inst.cli
@@ -305,6 +312,13 @@ var _ = ginkgo.Describe("Tx Types", func() {
 			lastAccepted, err := instances[1].vm.LastAccepted()
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
+		})
+
+		ginkgo.By("ensure something owned", func() {
+			spaces, err := instances[1].cli.Owned(sender)
+			gomega.Ω(err).To(gomega.BeNil())
+
+			gomega.Ω(spaces).To(gomega.Equal([]string{space}))
 		})
 
 		ginkgo.By("extend time with lifeline", func() {
@@ -363,6 +377,16 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		ginkgo.By("mine and accept block with the first ClaimTx", func() {
 			createIssueRawTx(instances[0], claimTx, priv)
 			expectBlkAccept(instances[0])
+		})
+
+		ginkgo.By("ensure everything owned", func() {
+			spaces, err := instances[0].cli.Owned(sender)
+			gomega.Ω(err).To(gomega.BeNil())
+
+			gomega.Ω(spaces).To(gomega.ContainElements(
+				strings.Repeat("a", parser.MaxIdentifierSize),
+				strings.Repeat("b", parser.MaxIdentifierSize),
+			))
 		})
 
 		ginkgo.By("check space after ClaimTx has been accepted", func() {

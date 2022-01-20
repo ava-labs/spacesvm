@@ -9,7 +9,7 @@ import (
 
 	"github.com/fatih/color"
 
-	"github.com/ava-labs/spacesvm/cmd/spacescli/cmd"
+	"github.com/ava-labs/spacesvm/cmd/spaces-cli/cmd"
 )
 
 func main() {

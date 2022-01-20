@@ -58,12 +58,12 @@ find /tmp/avalanchego-v${VERSION}
 
 echo "building spacesvm"
 go build \
--o /tmp/avalanchego-v${VERSION}/plugins/tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH \
+-o /tmp/avalanchego-v${VERSION}/plugins/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm \
 ./cmd/spacesvm
 find /tmp/avalanchego-v${VERSION}
 
 echo "building spaces-cli"
-go build -v -o /tmp/spaces-cli ./cmd/spacescli
+go build -v -o /tmp/spaces-cli ./cmd/spaces-cli
 
 echo "creating allocations file"
 cat <<EOF > /tmp/allocations.json
@@ -101,7 +101,7 @@ fi
 echo "launch local test cluster in the background"
 /tmp/runner \
 --avalanchego-path=/tmp/avalanchego-v${VERSION}/avalanchego \
---vm-id=tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH \
+--vm-id=sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm \
 --vm-genesis-path=/tmp/spacesvm.genesis \
 --output-path=/tmp/avalanchego-v${VERSION}/output.yaml 2> /dev/null &
 PID=${!}

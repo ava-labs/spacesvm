@@ -51,7 +51,7 @@ func (m *MoveTx) Execute(c *TransactionContext) error {
 	i.Owner = m.To
 
 	// Update space
-	if err := MoveSpaceInfo(c.Database, []byte(m.Space), i); err != nil {
+	if err := MoveSpaceInfo(c.Database, c.Sender, []byte(m.Space), i); err != nil {
 		return err
 	}
 	return nil
