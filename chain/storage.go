@@ -63,7 +63,7 @@ const (
 
 var (
 	lastAccepted = []byte("last_accepted")
-	big1         = big.NewInt(1)
+	Big1         = big.NewInt(1)
 
 	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
 )
@@ -466,6 +466,11 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 				return err
 			}
 		}
+
+		// Increment spaces expired counter
+		if _, err := IncrementCount(db, CountExpiredSpaces, common.Big1); err != nil {
+			return err
+		}
 		log.Debug("space expired", "space", string(space))
 	}
 	return nil
@@ -531,7 +536,7 @@ func ExpiryDataValue(address common.Address, space []byte) (v []byte) {
 	return v
 }
 
-func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastExpiry uint64) error {
+func PutSpaceInfo(db database.KeyValueReaderWriter, space []byte, i *SpaceInfo, lastExpiry uint64) error {
 	// If [RawSpace] is empty, this is a new space.
 	if i.RawSpace == ids.ShortEmpty {
 		rspace, err := RawSpace(space, i.Created)
@@ -542,6 +547,11 @@ func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastEx
 
 		// Only store the owner on creation
 		if err := db.Put(PrefixOwnedKey(i.Owner, space), nil); err != nil {
+			return err
+		}
+
+		// Increment spaces created counter
+		if _, err := IncrementCount(db, CountCreatedSpaces, common.Big1); err != nil {
 			return err
 		}
 	}
@@ -780,12 +790,12 @@ func SetCount(db database.KeyValueWriter, count []byte, value *big.Int) error {
 	return db.Put(k, value.Bytes())
 }
 
-func IncrementCount(db database.KeyValueReaderWriter, count []byte) (newValue *big.Int, err error) {
+func IncrementCount(db database.KeyValueReaderWriter, count []byte, amount *big.Int) (newValue *big.Int, err error) {
 	c, err := GetCount(db, count)
 	if err != nil {
 		return nil, err
 	}
-	c.Add(c, big1)
+	c.Add(c, amount)
 	return c, SetCount(db, count, c)
 
 }
