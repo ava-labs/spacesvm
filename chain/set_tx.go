@@ -5,10 +5,12 @@ package chain
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
@@ -77,14 +79,40 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 	if err != nil {
 		return err
 	}
+	keys := new(big.Int).SetBytes(i.Keys)
+	size := new(big.Int).SetBytes(i.ValueSize)
 	timeRemaining := (i.Expiry - i.Updated) * i.Units
 	if exists {
 		i.Units -= valueUnits(g, v.Size) / g.ValueExpiryDiscount
 		nvmeta.Created = v.Created
+		size.Sub(size, new(big.Int).SetUint64(v.Size))
+		if _, err := IncrementCount(t.Database, CountActiveValueSize, new(big.Int).Neg(new(big.Int).SetUint64(v.Size))); err != nil {
+			return err
+		}
+		if _, err := IncrementCount(t.Database, CountPathModified, common.Big1); err != nil {
+			return err
+		}
 	} else {
 		nvmeta.Created = t.BlockTime
+		keys.Add(keys, common.Big1)
+		if _, err := IncrementCount(t.Database, CountActivePaths, common.Big1); err != nil {
+			return err
+		}
+		if _, err := IncrementCount(t.Database, CountPathCreated, common.Big1); err != nil {
+			return err
+		}
+	}
+	bigSize := new(big.Int).SetUint64(valueSize)
+	size.Add(size, bigSize)
+	if _, err := IncrementCount(t.Database, CountPathUploadValueSize, bigSize); err != nil {
+		return err
+	}
+	if _, err := IncrementCount(t.Database, CountActiveValueSize, bigSize); err != nil {
+		return err
 	}
 	i.Units += valueUnits(g, valueSize) / g.ValueExpiryDiscount
+	i.Keys = keys.Bytes()
+	i.ValueSize = size.Bytes()
 	if err := PutSpaceKey(t.Database, []byte(s.Space), []byte(s.Key), nvmeta); err != nil {
 		return err
 	}

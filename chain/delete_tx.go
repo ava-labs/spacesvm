@@ -4,10 +4,12 @@
 package chain
 
 import (
+	"math/big"
 	"strconv"
 
 	"github.com/ava-labs/spacesvm/parser"
 	"github.com/ava-labs/spacesvm/tdata"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 var _ UnsignedTransaction = &DeleteTx{}
@@ -47,6 +49,18 @@ func (d *DeleteTx) Execute(t *TransactionContext) error {
 	}
 	if !exists {
 		return ErrKeyMissing
+	}
+	keys := new(big.Int).SetBytes(i.Keys)
+	keys.Sub(keys, common.Big1)
+	i.Keys = keys.Bytes()
+	size := new(big.Int).SetBytes(i.ValueSize)
+	size.Sub(size, new(big.Int).SetUint64(v.Size))
+	i.ValueSize = size.Bytes()
+	if _, err := IncrementCount(t.Database, CountActiveValueSize, new(big.Int).Neg(new(big.Int).SetUint64(v.Size))); err != nil {
+		return err
+	}
+	if _, err := IncrementCount(t.Database, CountActivePaths, new(big.Int).Neg(common.Big1)); err != nil {
+		return err
 	}
 	timeRemaining := (i.Expiry - i.Updated) * i.Units
 	i.Units -= valueUnits(g, v.Size) / g.ValueExpiryDiscount

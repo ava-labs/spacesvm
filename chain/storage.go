@@ -443,6 +443,14 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 			return err
 		}
 
+		i, exists, err := GetSpaceInfo(db, space)
+		if !exists {
+			return ErrSpaceMissing
+		}
+		if err != nil {
+			return err
+		}
+
 		// [infoPrefix] + [delimiter] + [space]
 		k := SpaceInfoKey(space)
 		if err := db.Delete(k); err != nil {
@@ -469,6 +477,12 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 
 		// Increment spaces expired counter
 		if _, err := IncrementCount(db, CountExpiredSpaces, common.Big1); err != nil {
+			return err
+		}
+		if _, err := IncrementCount(db, CountActiveValueSize, new(big.Int).Neg(new(big.Int).SetBytes(i.ValueSize))); err != nil {
+			return err
+		}
+		if _, err := IncrementCount(db, CountActivePaths, new(big.Int).Neg(new(big.Int).SetBytes(i.Keys))); err != nil {
 			return err
 		}
 		log.Debug("space expired", "space", string(space))

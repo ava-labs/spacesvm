@@ -18,27 +18,27 @@ type SpaceInfo struct {
 	Expiry  uint64         `serialize:"true" json:"expiry"`
 	Units   uint64         `serialize:"true" json:"units"` // decays faster the more units you have
 
-	RawSpace ids.ShortID `serialize:"true" json:"rawSpace"`
-	Keys     []byte      `serialize:"true" json:"keys"` // big.Int encoded bytes
-	Size     []byte      `serialize:"true" json:"size"` // big.Int encoded bytes
+	RawSpace  ids.ShortID `serialize:"true" json:"rawSpace"`
+	Keys      []byte      `serialize:"true" json:"keys"`      // big.Int encoded bytes
+	ValueSize []byte      `serialize:"true" json:"valueSize"` // big.Int encoded bytes
 }
 
 func (i *SpaceInfo) MarshalJSON() ([]byte, error) {
 	type Alias SpaceInfo
 	return json.Marshal(struct {
-		Keys string `json:"keys"`
-		Size string `json:"size"`
+		Keys      string `json:"keys"`
+		ValueSize string `json:"valueSize"`
 	}{
-		Keys: new(big.Int).SetBytes(i.Keys).String(),
-		Size: new(big.Int).SetBytes(i.Size).String(),
+		Keys:      new(big.Int).SetBytes(i.Keys).String(),
+		ValueSize: new(big.Int).SetBytes(i.ValueSize).String(),
 	})
 }
 
 func (i *SpaceInfo) UnmarshalJSON(b []byte) error {
 	type Alias SpaceInfo
 	r := struct {
-		Keys string `json:"keys"`
-		Size string `json:"size"`
+		Keys      string `json:"keys"`
+		ValueSize string `json:"valueSize"`
 		*Alias
 	}{
 		Alias: (*Alias)(i),
@@ -51,10 +51,10 @@ func (i *SpaceInfo) UnmarshalJSON(b []byte) error {
 		return ErrNotANumber
 	}
 	i.Keys = k.Bytes()
-	s, ok := new(big.Int).SetString(r.Size, 10)
+	s, ok := new(big.Int).SetString(r.ValueSize, 10)
 	if !ok {
 		return ErrNotANumber
 	}
-	i.Size = s.Bytes()
+	i.ValueSize = s.Bytes()
 	return nil
 }

@@ -10,12 +10,11 @@ var (
 	CountLifelineUnitsSpent = []byte("lifelineUnitsSpent")
 
 	// Key/Value Usage
-	CountSetKeys      = []byte("setKeys")      // includes new sets + modifications
-	CountSetValueSize = []byte("setValueSize") // includes set + modified values
-	CountDeletedKeys  = []byte("deletedKeys")
+	CountPathCreated         = []byte("pathCreated")
+	CountPathModified        = []byte("pathModified")
+	CountPathUploadValueSize = []byte("pathUploadValueSize") // includes set + modified values
 
 	// Active State Usage
 	CountActivePaths     = []byte("activePaths")
 	CountActiveValueSize = []byte("activeValueSize")
-	CountActiveUnits     = []byte("activeUnits")
 )
