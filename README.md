@@ -122,7 +122,7 @@ VM](#running-the-vm)._
 
 ### [tryspaces.xyz](https://tryspaces.xyz)
 The easiest way to try out SpacesVM is to visit the demo website
-[trysapces.xyz](https://tryspaces.xyz).
+[tryspaces.xyz](https://tryspaces.xyz).
 
 ### spaces-cli
 #### Install
