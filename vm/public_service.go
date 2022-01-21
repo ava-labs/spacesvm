@@ -356,3 +356,16 @@ func (svc *PublicService) Owned(_ *http.Request, args *OwnedArgs, reply *OwnedRe
 	reply.Spaces = spaces
 	return nil
 }
+
+type StatsReply struct {
+	Counts map[string]string `serialize:"true" json:"counts"`
+}
+
+func (svc *PublicService) Stats(_ *http.Request, _ *struct{}, reply *StatsReply) error {
+	counts, err := chain.GetAllCounts(svc.vm.db)
+	if err != nil {
+		return err
+	}
+	reply.Counts = counts
+	return nil
+}
