@@ -800,15 +800,10 @@ func IncrementCount(db database.KeyValueReaderWriter, count []byte, amount *big.
 
 }
 
-type Count struct {
-	Name  string `serialize:"true" json:"name"`
-	Value string `serialize:"true" json:"value"` // string value because can be quite large
-}
-
-func GetAllCounts(db database.Database) (counts []*Count, err error) {
+func GetAllCounts(db database.Database) (counts map[string]string, err error) {
 	baseKey := PrefixCountKey(nil)
 	cursor := db.NewIteratorWithStart(baseKey)
-	counts = []*Count{}
+	counts = map[string]string{}
 	for cursor.Next() {
 		curKey := cursor.Key()
 		if bytes.Compare(baseKey, curKey) < -1 { // startKey < curKey; continue search
@@ -818,10 +813,8 @@ func GetAllCounts(db database.Database) (counts []*Count, err error) {
 			break
 		}
 
-		counts = append(counts, &Count{
-			Name:  string(curKey[2:]),
-			Value: new(big.Int).SetBytes(cursor.Value()).String(),
-		})
+		// We use a string for value here because the size can be quite large
+		counts[string(curKey[2:])] = new(big.Int).SetBytes(cursor.Value()).String()
 	}
 	return counts, nil
 }
