@@ -6,6 +6,7 @@ package chain
 import (
 	"bytes"
 	"errors"
+	"math/big"
 	"strings"
 	"testing"
 
@@ -132,6 +133,20 @@ func TestClaimTx(t *testing.T) {
 	if len(sender2Spaces) != 1 {
 		t.Fatalf("sender2 owned spaces should = 1, found %d", len(sender2Spaces))
 	}
+	createdSpaces, err := GetCount(db, CountCreatedSpaces)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if createdSpaces.Cmp(big.NewInt(4)) != 0 {
+		t.Fatalf("created spaces should = 4, found %d", createdSpaces)
+	}
+	expiredSpaces, err := GetCount(db, CountExpiredSpaces)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if expiredSpaces.Cmp(big.NewInt(3)) != 0 {
+		t.Fatalf("expired spaces should = 3, found %d", expiredSpaces)
+	}
 	if err := ExpireNext(db, 0, ClaimReward*10, true); err != nil {
 		t.Fatal(err)
 	}
@@ -162,5 +177,19 @@ func TestClaimTx(t *testing.T) {
 	}
 	if len(sender2Spaces) != 0 {
 		t.Fatal("owned spaces should be empty")
+	}
+	createdSpaces, err = GetCount(db, CountCreatedSpaces)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if createdSpaces.Cmp(big.NewInt(4)) != 0 {
+		t.Fatalf("created spaces should = 4, found %d", createdSpaces)
+	}
+	expiredSpaces, err = GetCount(db, CountExpiredSpaces)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if expiredSpaces.Cmp(big.NewInt(4)) != 0 {
+		t.Fatalf("expired spaces should = 4, found %d", expiredSpaces)
 	}
 }
