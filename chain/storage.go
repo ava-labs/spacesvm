@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
@@ -61,7 +62,9 @@ const (
 )
 
 var (
-	lastAccepted  = []byte("last_accepted")
+	lastAccepted = []byte("last_accepted")
+	big1         = big.NewInt(1)
+
 	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
 )
 
@@ -760,44 +763,36 @@ func GetAllOwned(db database.Database, owner common.Address) (spaces []string, e
 	return spaces, nil
 }
 
-func GetCount(db database.KeyValueReader, count []byte) (uint64, error) {
+func GetCount(db database.KeyValueReader, count []byte) (*big.Int, error) {
 	k := PrefixCountKey(count)
 	v, err := db.Get(k)
 	if errors.Is(err, database.ErrNotFound) {
-		return 0, nil
+		return big.NewInt(0), nil
 	}
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return binary.BigEndian.Uint64(v), nil
+	return new(big.Int).SetBytes(v), nil
 }
 
-func SetCount(db database.KeyValueWriter, count []byte, value uint64) error {
+func SetCount(db database.KeyValueWriter, count []byte, value *big.Int) error {
 	k := PrefixCountKey(count)
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, value)
-	return db.Put(k, b)
+	return db.Put(k, value.Bytes())
 }
 
-// TODO: use big.Int to support value
-func IncrementCount(db database.KeyValueReaderWriter, count []byte) (newValue uint64, err error) {
+func IncrementCount(db database.KeyValueReaderWriter, count []byte) (newValue *big.Int, err error) {
 	c, err := GetCount(db, count)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-
-	n, overflow := smath.SafeAdd(c, 1)
-	if overflow {
-		// TODO: can't happen when switch to big.Int
-		return 0, errors.New("temp")
-	}
-	return n, SetCount(db, count, n)
+	c.Add(c, big1)
+	return c, SetCount(db, count, c)
 
 }
 
 type Count struct {
 	Name  string `serialize:"true" json:"name"`
-	Value uint64 `serialize:"true" json:"value"`
+	Value string `serialize:"true" json:"value"` // string value because can be quite large
 }
 
 func GetAllCounts(db database.Database) (counts []*Count, err error) {
@@ -815,7 +810,7 @@ func GetAllCounts(db database.Database) (counts []*Count, err error) {
 
 		counts = append(counts, &Count{
 			Name:  string(curKey[2:]),
-			Value: binary.BigEndian.Uint64(cursor.Value()),
+			Value: new(big.Int).SetBytes(cursor.Value()).String(),
 		})
 	}
 	return counts, nil
