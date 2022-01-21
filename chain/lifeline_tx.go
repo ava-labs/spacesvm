@@ -4,6 +4,7 @@
 package chain
 
 import (
+	"math/big"
 	"strconv"
 
 	"github.com/ava-labs/spacesvm/parser"
@@ -48,7 +49,13 @@ func (l *LifelineTx) Execute(t *TransactionContext) error {
 	// Lifeline spread across all units
 	lastExpiry := i.Expiry
 	i.Expiry += (g.ClaimReward * l.Units) / i.Units
-	return PutSpaceInfo(t.Database, []byte(l.Space), i, lastExpiry)
+	if err := PutSpaceInfo(t.Database, []byte(l.Space), i, lastExpiry); err != nil {
+		return err
+	}
+
+	// Update lifeline counts
+	_, err = IncrementCount(t.Database, CountLifelineUnitsSpent, new(big.Int).SetUint64(l.Units))
+	return err
 }
 
 func (l *LifelineTx) FeeUnits(g *Genesis) uint64 {

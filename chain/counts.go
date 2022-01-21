@@ -5,9 +5,9 @@ package chain
 
 var (
 	// Space Usage
-	CountCreatedSpaces     = []byte("createdSpaces")
-	CountExpiredSpaces     = []byte("expiredSpaces")
-	CountLifelineUnitsUsed = []byte("lifelineUnitsUsed")
+	CountCreatedSpaces      = []byte("createdSpaces")
+	CountExpiredSpaces      = []byte("expiredSpaces")
+	CountLifelineUnitsSpent = []byte("lifelineUnitsSpent")
 
 	// Key/Value Usage
 	CountSetKeys      = []byte("setKeys")      // includes new sets + modifications
@@ -17,4 +17,5 @@ var (
 	// Active State Usage
 	CountActivePaths     = []byte("activePaths")
 	CountActiveValueSize = []byte("activeValueSize")
+	CountActiveUnits     = []byte("activeUnits")
 )
