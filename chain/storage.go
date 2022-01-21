@@ -40,6 +40,8 @@ import (
 //   -> [owner]=> balance
 // 0x8/ (owned spaces)
 //   -> [owner]/[space]=> nil
+// 0x9/ (singleton counters)
+//   -> [counter] => uint64
 
 const (
 	blockPrefix   = 0x0
@@ -51,6 +53,7 @@ const (
 	pruningPrefix = 0x6
 	balancePrefix = 0x7
 	ownedPrefix   = 0x8
+	countPrefix   = 0x9
 
 	shortIDLen = 20
 
@@ -162,6 +165,15 @@ func PrefixOwnedKey(address common.Address, space []byte) (k []byte) {
 	k[2+common.AddressLength] = parser.ByteDelimiter
 	copy(k[2+common.AddressLength+1:], space)
 	return
+}
+
+// [countPrefix] + [delimiter] + [count]
+func PrefixCountKey(count []byte) (k []byte) {
+	k = make([]byte, 2+len(count))
+	k[0] = countPrefix
+	k[1] = parser.ByteDelimiter
+	copy(k[2:], count)
+	return k
 }
 
 const specificTimeKeyLen = 2 + 8 + 1 + shortIDLen
@@ -746,4 +758,65 @@ func GetAllOwned(db database.Database, owner common.Address) (spaces []string, e
 		)
 	}
 	return spaces, nil
+}
+
+func GetCount(db database.KeyValueReader, count []byte) (uint64, error) {
+	k := PrefixCountKey(count)
+	v, err := db.Get(k)
+	if errors.Is(err, database.ErrNotFound) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	return binary.BigEndian.Uint64(v), nil
+}
+
+func SetCount(db database.KeyValueWriter, count []byte, value uint64) error {
+	k := PrefixCountKey(count)
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, value)
+	return db.Put(k, b)
+}
+
+// TODO: use big.Int to support value
+func IncrementCount(db database.KeyValueReaderWriter, count []byte) (newValue uint64, err error) {
+	c, err := GetCount(db, count)
+	if err != nil {
+		return 0, err
+	}
+
+	n, overflow := smath.SafeAdd(c, 1)
+	if overflow {
+		// TODO: can't happen when switch to big.Int
+		return 0, errors.New("temp")
+	}
+	return n, SetCount(db, count, n)
+
+}
+
+type Count struct {
+	Name  string `serialize:"true" json:"name"`
+	Value uint64 `serialize:"true" json:"value"`
+}
+
+func GetAllCounts(db database.Database) (counts []*Count, err error) {
+	baseKey := PrefixCountKey(nil)
+	cursor := db.NewIteratorWithStart(baseKey)
+	counts = []*Count{}
+	for cursor.Next() {
+		curKey := cursor.Key()
+		if bytes.Compare(baseKey, curKey) < -1 { // startKey < curKey; continue search
+			continue
+		}
+		if !bytes.Contains(curKey, baseKey) { // curKey does not contain base key; end search
+			break
+		}
+
+		counts = append(counts, &Count{
+			Name:  string(curKey[2:]),
+			Value: binary.BigEndian.Uint64(cursor.Value()),
+		})
+	}
+	return counts, nil
 }
