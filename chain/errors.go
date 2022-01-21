@@ -42,4 +42,7 @@ var (
 	ErrInvalidBalance  = errors.New("invalid balance")
 	ErrNonActionable   = errors.New("transaction doesn't do anything")
 	ErrBlockTooBig     = errors.New("block too big")
+
+	// Parsing Errors
+	ErrNotANumber = errors.New("not a number")
 )
