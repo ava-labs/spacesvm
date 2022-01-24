@@ -512,12 +512,23 @@ _Can use this to get the current fee rate._
 ## Running the VM
 To build the VM (and `spaces-cli`), run `./scripts/build.sh`.
 
-### Joining the Spaces Demo
+### Joining the Spaces Demo (Subnet: `Ai42MkKqk8yjXFCpoHXw7rdTWSHiKEMqh5h8gbxwjgkCUfkrk`)
+You can find the genesis used for the Spaces Demo in `networks/42`.
+
+#### Install SpacesVM Plugin
+git clone 
+
+#### Update Config File
+
+#### Restart Node
+
+#### Become a Fuji Validator
+
+#### Become a Subnet Validator
 If you'd like to become a validator on the demo, reach out to @\_patrickogrady on Twitter
 after you've joined the network and synced to tip. Please send a screenshot
 indicating you've done this successfully.
 
-You can find the genesis used for the Spaces Demo in `networks/42`.
 
 ### Running a local network
 [`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego](https://github.com/ava-labs/avalanchego), sets up a local network,
