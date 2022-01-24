@@ -16,6 +16,8 @@ type Config struct {
 	PruneInterval     time.Duration `serialize:"true" json:"pruneInterval"`
 	FullPruneInterval time.Duration `serialize:"true" json:"fullPruneInterval"`
 
+	CompactInterval time.Duration `serialize:"true" json:"compactInterval"`
+
 	MempoolSize       int `serialize:"true" json:"mempoolSize"`
 	ActivityCacheSize int `serialize:"true" json:"activityCacheSize"`
 }
@@ -28,6 +30,8 @@ func (c *Config) SetDefaults() {
 	c.PruneLimit = 128
 	c.PruneInterval = time.Minute
 	c.FullPruneInterval = time.Second
+
+	c.CompactInterval = 1 * time.Minute
 
 	c.MempoolSize = 1024
 	c.ActivityCacheSize = 128

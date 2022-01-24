@@ -60,6 +60,15 @@ const (
 var (
 	lastAccepted  = []byte("last_accepted")
 	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
+
+	CompactablePrefixes = []byte{
+		infoPrefix,
+		keyPrefix,
+		expiryPrefix,
+		pruningPrefix,
+		balancePrefix,
+		ownedPrefix,
+	}
 )
 
 // [blockPrefix] + [delimiter] + [blockID]
@@ -751,4 +760,8 @@ func GetAllOwned(db database.Database, owner common.Address) (spaces []string, e
 		)
 	}
 	return spaces, cursor.Error()
+}
+
+func CompactablePrefixKey(pfx byte) []byte {
+	return []byte{pfx, parser.ByteDelimiter}
 }

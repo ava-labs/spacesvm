@@ -81,6 +81,7 @@ type VM struct {
 	doneBuild   chan struct{}
 	doneGossip  chan struct{}
 	donePrune   chan struct{}
+	doneCompact chan struct{}
 }
 
 const (
@@ -118,6 +119,7 @@ func (vm *VM) Initialize(
 	vm.doneBuild = make(chan struct{})
 	vm.doneGossip = make(chan struct{})
 	vm.donePrune = make(chan struct{})
+	vm.doneCompact = make(chan struct{})
 
 	vm.appSender = appSender
 	vm.network = vm.NewPushNetwork()
@@ -197,6 +199,7 @@ func (vm *VM) Initialize(
 	go vm.builder.Build()
 	go vm.builder.Gossip()
 	go vm.prune()
+	go vm.compact()
 	return nil
 }
 
@@ -218,6 +221,7 @@ func (vm *VM) Shutdown() error {
 	<-vm.doneBuild
 	<-vm.doneGossip
 	<-vm.donePrune
+	<-vm.doneCompact
 	if vm.ctx == nil {
 		return nil
 	}
