@@ -21,6 +21,12 @@ func (vm *VM) compact() {
 	prefixes := chain.CompactablePrefixes
 	currentPrefix := 0
 
+	// Ensure there is something to compact
+	if len(prefixes) == 0 {
+		log.Debug("exiting compactor because nothing to compact")
+		return
+	}
+
 	for {
 		select {
 		case <-t.C:
