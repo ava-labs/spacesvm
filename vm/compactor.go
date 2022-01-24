@@ -18,11 +18,11 @@ func (vm *VM) compact() {
 	t := time.NewTimer(vm.config.CompactInterval)
 	defer t.Stop()
 
-	prefixes := chain.CompactablePrefixes
-	currentPrefix := 0
+	ranges := chain.CompactableRanges
+	currentRange := 0
 
 	// Ensure there is something to compact
-	if len(prefixes) == 0 {
+	if len(ranges) == 0 {
 		log.Debug("exiting compactor because nothing to compact")
 		return
 	}
@@ -36,17 +36,16 @@ func (vm *VM) compact() {
 
 		// Compact next range
 		start := time.Now()
-		rangeStart := chain.CompactablePrefixKey(prefixes[currentPrefix])
-		rangeEnd := chain.CompactablePrefixKey(prefixes[currentPrefix] + 1)
-		if err := vm.db.Compact(rangeStart, rangeEnd); err != nil {
-			log.Error("unable to compact prefix range", "start", rangeStart, "stop", rangeEnd)
+		prefix := ranges[currentRange]
+		if err := vm.db.Compact(prefix.Start, prefix.End); err != nil {
+			log.Error("unable to compact prefix range", "start", prefix.Start, "stop", prefix.End)
 		}
-		log.Debug("compacted prefix", "start", rangeStart, "stop", rangeEnd, "t", time.Since(start))
+		log.Debug("compacted prefix", "start", prefix.Start, "stop", prefix.End, "t", time.Since(start))
 
-		// Update prefix compaction index
-		currentPrefix++
-		if currentPrefix > len(prefixes)-1 {
-			currentPrefix = 0
+		// Update range compaction index
+		currentRange++
+		if currentRange > len(ranges)-1 {
+			currentRange = 0
 		}
 
 		t.Reset(vm.config.CompactInterval)

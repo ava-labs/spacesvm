@@ -57,19 +57,26 @@ const (
 	linkedTxLRUSize = 512
 )
 
+type PrefixRange struct {
+	Start []byte
+	End   []byte
+}
+
 var (
 	lastAccepted  = []byte("last_accepted")
 	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
 
-	// CompactablePrefixes have frequent overwrite/delete operations and should
-	// be compacted on a regular basis to avoid DB size bloat.
-	CompactablePrefixes = []byte{
-		infoPrefix,
-		keyPrefix,
-		expiryPrefix,
-		pruningPrefix,
-		balancePrefix,
-		ownedPrefix,
+	CompactableRanges = []*PrefixRange{
+		{nil, []byte{blockPrefix, parser.ByteDelimiter}},
+		{[]byte{blockPrefix, parser.ByteDelimiter}, []byte{txPrefix, parser.ByteDelimiter}},
+		{[]byte{txPrefix, parser.ByteDelimiter}, []byte{txValuePrefix, parser.ByteDelimiter}},
+		{[]byte{txValuePrefix, parser.ByteDelimiter}, []byte{infoPrefix, parser.ByteDelimiter}},
+		{[]byte{infoPrefix, parser.ByteDelimiter}, []byte{keyPrefix, parser.ByteDelimiter}},
+		{[]byte{keyPrefix, parser.ByteDelimiter}, []byte{expiryPrefix, parser.ByteDelimiter}},
+		// Group expiry and pruning together
+		{[]byte{expiryPrefix, parser.ByteDelimiter}, []byte{balancePrefix, parser.ByteDelimiter}},
+		{[]byte{balancePrefix, parser.ByteDelimiter}, []byte{ownedPrefix, parser.ByteDelimiter}},
+		{[]byte{ownedPrefix, parser.ByteDelimiter}, nil},
 	}
 )
 
