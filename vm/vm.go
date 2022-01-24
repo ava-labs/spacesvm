@@ -112,13 +112,6 @@ func (vm *VM) Initialize(
 
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
-
-	// Clear any previous data
-	if err := database.ClearPrefix(vm.db, vm.db, nil); err != nil {
-		return err
-	}
-	log.Debug("database cleared")
-
 	vm.activityCache = make([]*chain.Activity, vm.config.ActivityCacheSize)
 
 	// Init channels before initializing other structs
