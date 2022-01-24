@@ -313,6 +313,7 @@ func linkValues(db database.KeyValueWriter, block *StatelessBlock) ([]*Transacti
 			}
 			ogTxs[i] = cptx
 
+			log.Debug("storing linked value", "txID", tx.ID(), "size", len(t.Value))
 			if err := db.Put(PrefixTxValueKey(tx.ID()), t.Value); err != nil {
 				return nil, err
 			}
@@ -359,6 +360,7 @@ func SetLastAccepted(db database.KeyValueWriter, block *StatelessBlock) error {
 	if err != nil {
 		return err
 	}
+	log.Debug("storing stateful block", "bID", bid, "size", len(sbytes))
 	if err := db.Put(PrefixBlockKey(bid), sbytes); err != nil {
 		return err
 	}
@@ -539,6 +541,7 @@ func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastEx
 	}
 	// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 	k := PrefixExpiryKey(i.Expiry, i.RawSpace)
+	log.Debug("storing expiry info for space", "space", string(space), "size", len(ExpiryDataValue(i.Owner, space)))
 	if err := db.Put(k, ExpiryDataValue(i.Owner, space)); err != nil {
 		return err
 	}
@@ -548,6 +551,7 @@ func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastEx
 	if err != nil {
 		return err
 	}
+	log.Debug("storing space info", "space", string(space), "size", len(b))
 	return db.Put(k, b)
 }
 
@@ -563,6 +567,7 @@ func MoveSpaceInfo(
 	if err != nil {
 		return err
 	}
+	log.Debug("moving space info", "space", string(space), "size", len(b))
 	if err := db.Put(k, b); err != nil {
 		return err
 	}
@@ -574,6 +579,7 @@ func MoveSpaceInfo(
 		return err
 	}
 	k = PrefixExpiryKey(i.Expiry, i.RawSpace)
+	log.Debug("moving space info, putting expiry info", "space", string(space), "size", len(ExpiryDataValue(i.Owner, space)))
 	return db.Put(k, ExpiryDataValue(i.Owner, space))
 }
 
@@ -599,6 +605,7 @@ func PutSpaceKey(db database.Database, space []byte, key []byte, vmeta *ValueMet
 	if err != nil {
 		return err
 	}
+	log.Debug("storing space key", "space", string(space), "key", string(key), "size", len(rvmeta))
 	return db.Put(k, rvmeta)
 }
 
