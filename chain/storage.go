@@ -349,6 +349,7 @@ func restoreValues(db database.KeyValueReader, block *StatefulBlock) error {
 
 func SetLastAccepted(db database.KeyValueWriter, block *StatelessBlock) error {
 	bid := block.ID()
+	log.Debug("storing last accepted", "bid", bid, "size", len(bid))
 	if err := db.Put(lastAccepted, bid[:]); err != nil {
 		return err
 	}
@@ -443,6 +444,7 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 		if bootstrapped {
 			// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 			k = PrefixPruningKey(expired, rspc)
+			log.Debug("storing empty pruning key", "expired", expired, "rspc", rspc)
 			if err := db.Put(k, nil); err != nil {
 				return err
 			}
@@ -528,6 +530,7 @@ func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastEx
 		i.RawSpace = rspace
 
 		// Only store the owner on creation
+		log.Debug("storing empty space owner", "owner", i.Owner.Hex(), "space", string(space))
 		if err := db.Put(PrefixOwnedKey(i.Owner, space), nil); err != nil {
 			return err
 		}
@@ -575,6 +578,7 @@ func MoveSpaceInfo(
 	if err := db.Delete(PrefixOwnedKey(oldOwner, space)); err != nil {
 		return err
 	}
+	log.Debug("storing new empty space owner", "owner", i.Owner.Hex(), "space", string(space))
 	if err := db.Put(PrefixOwnedKey(i.Owner, space), nil); err != nil {
 		return err
 	}
@@ -623,6 +627,7 @@ func DeleteSpaceKey(db database.Database, space []byte, key []byte) error {
 
 func SetTransaction(db database.KeyValueWriter, tx *Transaction) error {
 	k := PrefixTxKey(tx.ID())
+	log.Debug("storing empty set tx", "txId", tx.ID())
 	return db.Put(k, nil)
 }
 
@@ -665,6 +670,7 @@ func SetBalance(db database.KeyValueWriter, address common.Address, bal uint64) 
 	k := PrefixBalanceKey(address)
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, bal)
+	log.Debug("setting balance", "addr", address, "bal", bal)
 	return db.Put(k, b)
 }
 
