@@ -61,6 +61,8 @@ var (
 	lastAccepted  = []byte("last_accepted")
 	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
 
+	// CompactablePrefixes have frequent overwrite/delete operations and should
+	// be compacted on a regular basis to avoid DB size bloat.
 	CompactablePrefixes = []byte{
 		infoPrefix,
 		keyPrefix,
