@@ -7,7 +7,9 @@ package vm
 import (
 	ejson "encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"runtime/pprof"
 	"time"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -110,6 +112,13 @@ func (vm *VM) Initialize(
 
 	vm.ctx = ctx
 	vm.db = dbManager.Current().Database
+
+	// Clear any previous data
+	if err := database.ClearPrefix(vm.db, vm.db, nil); err != nil {
+		return err
+	}
+	log.Debug("database cleared")
+
 	vm.activityCache = make([]*chain.Activity, vm.config.ActivityCacheSize)
 
 	// Init channels before initializing other structs
@@ -197,7 +206,23 @@ func (vm *VM) Initialize(
 	go vm.builder.Build()
 	go vm.builder.Gossip()
 	go vm.prune()
+	go vm.Profile()
 	return nil
+}
+
+func (vm *VM) Profile() {
+	f, err := ioutil.TempFile("", "profile")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close() // error handling omitted for example
+	log.Debug("profile running", "name", f.Name())
+
+	if err := pprof.StartCPUProfile(f); err != nil {
+		panic(err)
+	}
+	<-vm.stop
+	pprof.StopCPUProfile()
 }
 
 // implements "snowmanblock.ChainVM.common.VM"
