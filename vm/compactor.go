@@ -39,9 +39,9 @@ func (vm *VM) compact() {
 		rangeStart := chain.CompactablePrefixKey(prefixes[currentPrefix])
 		rangeEnd := chain.CompactablePrefixKey(prefixes[currentPrefix] + 1)
 		if err := vm.db.Compact(rangeStart, rangeEnd); err != nil {
-			log.Error("unable to compact prefix range", "start", string(rangeStart), "stop", string(rangeEnd))
+			log.Error("unable to compact prefix range", "start", rangeStart, "stop", rangeEnd)
 		}
-		log.Debug("compacted prefix", "prefix", string(rangeStart), "t", time.Since(start))
+		log.Debug("compacted prefix", "start", rangeStart, "stop", rangeEnd, "t", time.Since(start))
 
 		// Update prefix compaction index
 		currentPrefix++
