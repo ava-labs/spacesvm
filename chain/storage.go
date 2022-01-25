@@ -57,9 +57,24 @@ const (
 	linkedTxLRUSize = 512
 )
 
+type CompactRange struct {
+	Start []byte
+	Limit []byte
+}
+
 var (
 	lastAccepted  = []byte("last_accepted")
 	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
+
+	CompactRanges = []*CompactRange{
+		// Don't compact block/tx/txValue ranges because no overwriting/deletion
+		{[]byte{infoPrefix, parser.ByteDelimiter}, []byte{keyPrefix, parser.ByteDelimiter}},
+		{[]byte{keyPrefix, parser.ByteDelimiter}, []byte{expiryPrefix, parser.ByteDelimiter}},
+		// Group expiry and pruning together
+		{[]byte{expiryPrefix, parser.ByteDelimiter}, []byte{balancePrefix, parser.ByteDelimiter}},
+		{[]byte{balancePrefix, parser.ByteDelimiter}, []byte{ownedPrefix, parser.ByteDelimiter}},
+		{[]byte{ownedPrefix, parser.ByteDelimiter}, []byte{ownedPrefix + 1, parser.ByteDelimiter}},
+	}
 )
 
 // [blockPrefix] + [delimiter] + [blockID]
@@ -751,4 +766,8 @@ func GetAllOwned(db database.Database, owner common.Address) (spaces []string, e
 		)
 	}
 	return spaces, cursor.Error()
+}
+
+func CompactablePrefixKey(pfx byte) []byte {
+	return []byte{pfx, parser.ByteDelimiter}
 }
