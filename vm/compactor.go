@@ -11,6 +11,25 @@ import (
 	"github.com/ava-labs/spacesvm/chain"
 )
 
+func (vm *VM) compactCall(prefix *chain.PrefixRange) {
+	// Lock to prevent concurrent modification of state
+	vm.ctx.Lock.Lock()
+	defer vm.ctx.Lock.Unlock()
+
+	start := time.Now()
+	if err := vm.db.Compact(prefix.Start, prefix.End); err != nil {
+		log.Error("unable to compact prefix range", "start", prefix.Start, "stop", prefix.End)
+		return
+	}
+	log.Debug("compacted prefix", "start", prefix.Start, "stop", prefix.End, "t", time.Since(start))
+
+	// Make sure to update children or else won't be persisted
+	if err := vm.lastAccepted.SetChildrenDB(vm.db); err != nil {
+		log.Error("unable to update child databases of last accepted block", "error", err)
+		return
+	}
+}
+
 func (vm *VM) compact() {
 	log.Debug("starting compaction loops")
 	defer close(vm.doneCompact)
@@ -18,10 +37,9 @@ func (vm *VM) compact() {
 	t := time.NewTimer(vm.config.CompactInterval)
 	defer t.Stop()
 
+	// Ensure there is something to compact
 	ranges := chain.CompactableRanges
 	currentRange := 0
-
-	// Ensure there is something to compact
 	if len(ranges) == 0 {
 		log.Debug("exiting compactor because nothing to compact")
 		return
@@ -35,12 +53,8 @@ func (vm *VM) compact() {
 		}
 
 		// Compact next range
-		start := time.Now()
 		prefix := ranges[currentRange]
-		if err := vm.db.Compact(prefix.Start, prefix.End); err != nil {
-			log.Error("unable to compact prefix range", "start", prefix.Start, "stop", prefix.End)
-		}
-		log.Debug("compacted prefix", "start", prefix.Start, "stop", prefix.End, "t", time.Since(start))
+		vm.compactCall(prefix)
 
 		// Update range compaction index
 		currentRange++
