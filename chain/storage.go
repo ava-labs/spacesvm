@@ -67,16 +67,13 @@ var (
 	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
 
 	CompactableRanges = []*PrefixRange{
-		{nil, []byte{blockPrefix, parser.ByteDelimiter}},
-		{[]byte{blockPrefix, parser.ByteDelimiter}, []byte{txPrefix, parser.ByteDelimiter}},
-		{[]byte{txPrefix, parser.ByteDelimiter}, []byte{txValuePrefix, parser.ByteDelimiter}},
-		{[]byte{txValuePrefix, parser.ByteDelimiter}, []byte{infoPrefix, parser.ByteDelimiter}},
+		// Don't compact block/tx/txValue ranges because no overwriting/deletion
 		{[]byte{infoPrefix, parser.ByteDelimiter}, []byte{keyPrefix, parser.ByteDelimiter}},
 		{[]byte{keyPrefix, parser.ByteDelimiter}, []byte{expiryPrefix, parser.ByteDelimiter}},
 		// Group expiry and pruning together
 		{[]byte{expiryPrefix, parser.ByteDelimiter}, []byte{balancePrefix, parser.ByteDelimiter}},
 		{[]byte{balancePrefix, parser.ByteDelimiter}, []byte{ownedPrefix, parser.ByteDelimiter}},
-		{[]byte{ownedPrefix, parser.ByteDelimiter}, nil},
+		{[]byte{ownedPrefix, parser.ByteDelimiter}, []byte{ownedPrefix + 1, parser.ByteDelimiter}},
 	}
 )
 
