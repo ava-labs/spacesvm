@@ -268,6 +268,7 @@ type KeyValueMeta struct {
 func GetAllValueMetas(db database.Database, rspace ids.ShortID) (kvs []*KeyValueMeta, err error) {
 	baseKey := SpaceValueKey(rspace, nil)
 	cursor := db.NewIteratorWithStart(baseKey)
+	defer cursor.Release()
 	kvs = []*KeyValueMeta{}
 	for cursor.Next() {
 		curKey := cursor.Key()
@@ -289,7 +290,7 @@ func GetAllValueMetas(db database.Database, rspace ids.ShortID) (kvs []*KeyValue
 			ValueMeta: vmeta,
 		})
 	}
-	return kvs, nil
+	return kvs, cursor.Error()
 }
 
 // linkValues extracts all *SetTx.Value in [block] and replaces them with the
@@ -405,6 +406,7 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 	startKey := RangeTimeKey(expiryPrefix, parent)
 	endKey := RangeTimeKey(expiryPrefix, current)
 	cursor := db.NewIteratorWithStart(startKey)
+	defer cursor.Release()
 	for cursor.Next() {
 		// [expiryPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 		curKey := cursor.Key()
@@ -453,7 +455,7 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 		}
 		log.Debug("space expired", "space", string(space))
 	}
-	return nil
+	return cursor.Error()
 }
 
 // PruneNext queries the keys that are currently marked with "pruningPrefix",
@@ -462,6 +464,7 @@ func PruneNext(db database.Database, limit int) (removals int, err error) {
 	startKey := RangeTimeKey(pruningPrefix, 0)
 	endKey := RangeTimeKey(pruningPrefix, math.MaxInt64)
 	cursor := db.NewIteratorWithStart(startKey)
+	defer cursor.Release()
 	for cursor.Next() && removals < limit {
 		// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
 		curKey := cursor.Key()
@@ -485,7 +488,7 @@ func PruneNext(db database.Database, limit int) (removals int, err error) {
 		log.Debug("rspace pruned", "rspace", rspc.Hex())
 		removals++
 	}
-	return removals, nil
+	return removals, cursor.Error()
 }
 
 // DB
@@ -692,6 +695,7 @@ func ApplyReward(
 	startKey := SpaceInfoKey(iterator)
 	baseKey := SpaceInfoKey(nil)
 	cursor := db.NewIteratorWithStart(startKey)
+	defer cursor.Release()
 	for cursor.Next() {
 		curKey := cursor.Key()
 		if bytes.Compare(baseKey, curKey) < -1 { // startKey < curKey; continue search
@@ -724,12 +728,13 @@ func ApplyReward(
 
 	// No reward applied
 	log.Debug("skipping reward: no valid space")
-	return common.Address{}, false, nil
+	return common.Address{}, false, cursor.Error()
 }
 
 func GetAllOwned(db database.Database, owner common.Address) (spaces []string, err error) {
 	baseKey := PrefixOwnedKey(owner, nil)
 	cursor := db.NewIteratorWithStart(baseKey)
+	defer cursor.Release()
 	spaces = []string{}
 	for cursor.Next() {
 		curKey := cursor.Key()
@@ -745,5 +750,5 @@ func GetAllOwned(db database.Database, owner common.Address) (spaces []string, e
 			string(curKey[2+common.AddressLength+1:]),
 		)
 	}
-	return spaces, nil
+	return spaces, cursor.Error()
 }
