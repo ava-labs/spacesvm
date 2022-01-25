@@ -11,17 +11,17 @@ import (
 	"github.com/ava-labs/spacesvm/chain"
 )
 
-func (vm *VM) compactCall(prefix *chain.PrefixRange) {
+func (vm *VM) compactCall(r *chain.CompactRange) {
 	// Lock to prevent concurrent modification of state
 	vm.ctx.Lock.Lock()
 	defer vm.ctx.Lock.Unlock()
 
 	start := time.Now()
-	if err := vm.db.Compact(prefix.Start, prefix.End); err != nil {
-		log.Error("unable to compact prefix range", "start", prefix.Start, "stop", prefix.End)
+	if err := vm.db.Compact(r.Start, r.Limit); err != nil {
+		log.Error("unable to compact range", "start", r.Start, "stop", r.Limit)
 		return
 	}
-	log.Debug("compacted prefix", "start", prefix.Start, "stop", prefix.End, "t", time.Since(start))
+	log.Debug("compacted range", "start", r.Start, "stop", r.Limit, "t", time.Since(start))
 
 	// Make sure to update children or else won't be persisted
 	if err := vm.lastAccepted.SetChildrenDB(vm.db); err != nil {
@@ -38,7 +38,7 @@ func (vm *VM) compact() {
 	defer t.Stop()
 
 	// Ensure there is something to compact
-	ranges := chain.CompactableRanges
+	ranges := chain.CompactRanges
 	currentRange := 0
 	if len(ranges) == 0 {
 		log.Debug("exiting compactor because nothing to compact")

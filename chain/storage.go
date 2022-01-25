@@ -57,16 +57,16 @@ const (
 	linkedTxLRUSize = 512
 )
 
-type PrefixRange struct {
+type CompactRange struct {
 	Start []byte
-	End   []byte
+	Limit []byte
 }
 
 var (
 	lastAccepted  = []byte("last_accepted")
 	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
 
-	CompactableRanges = []*PrefixRange{
+	CompactRanges = []*CompactRange{
 		// Don't compact block/tx/txValue ranges because no overwriting/deletion
 		{[]byte{infoPrefix, parser.ByteDelimiter}, []byte{keyPrefix, parser.ByteDelimiter}},
 		{[]byte{keyPrefix, parser.ByteDelimiter}, []byte{expiryPrefix, parser.ByteDelimiter}},
