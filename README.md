@@ -516,10 +516,7 @@ To build the VM (and `spaces-cli`), run `./scripts/build.sh`.
 If you'd like to validate the [Spaces Subnet Demo] on Fuji, please follow the following
 steps: 
 
-_Note: Spaces is still in an **ALPHA** stage and may require you to
-periodically update your VM to address any discovered bugs._
-
-You can find the genesis used for the Spaces Demo in `networks/42/*`.
+_You can find the genesis used for the Spaces Demo in `networks/42/*`._
 
 #### Download and Build SpacesVM
 ```bash
@@ -594,9 +591,9 @@ ERROR[01-26|05:54:19] chains/manager.go#270: error creating chain 2AM3vsuLoJdGBG
 ```
 
 #### Become a Fuji Validator
-Once your node is up and running with the SpacesVM, you'll need to become
-a Fuji Validator. This is the exact same flow as Mainnet except you only need
-to stake `1 AVAX` instead of `2000 AVAX`.
+Once your node is up and running with the SpacesVM, you'll need to [become a Fuji Validator].
+This is the exact same flow as Mainnet except you only need to stake
+`1 AVAX` instead of `2000 AVAX`.
 
 Recall, only validators on the Primary Network (in this case Fuji) can become
 validators of subnets.
@@ -691,3 +688,4 @@ or by using the [subnet-cli].
 [Subnet]: https://docs.avax.network/learn/platform-overview/#subnets
 [Spaces Subnet Demo]: https://tryspaces.xyz
 [Spaces Demo Validator Request]: https://forms.gle/aDFWBLEP9GvHwaFG6
+[become a Fuji Validator]: https://docs.avax.network/build/tutorials/nodes-and-staking/staking-avax-by-validating-or-delegating-with-the-avalanche-wallet
