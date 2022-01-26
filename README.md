@@ -525,23 +525,31 @@ cd spacesvm;
 ./scripts/build.sh
 ```
 
-Running the above commands will generate a binary and save it at 
-`./build/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm`.
+Running the above commands will generate a binary and save it at
+`~/spacesvm/build/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm`.
 
 #### Move Binary
 Once the SpacesVM binary is built, you'll need to move it to AvalancheGo's
-plugin directory (within the `--build-dir`). By default, this is `~/avalanchego/build/plugins`.
+plugin directory (within the `--build-dir`) so it can be run by your node.
+When building from source, this defaults to `~/avalanchego/build/plugins`.
+This build directory is structured as:
+```
+build-dir
+|_avalanchego
+    |_plugins
+      |_evm
+```
 
-When inside of the `avalanchego` directory (assuming you built `avalanchego`
-from source), run the following command to move the binary your generated:
+To put the SpacesVM binary in the right place, run the following command
+(assuming the `avalanchego` and `spacesvm` repos are in the same folder):
 ```bash
-mv ../spacesvm/build/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm
-build/plugins;
+mv ./spacesvm/build/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm ./avalanchego/build/plugins;
 ```
 
 #### Add Subnet to Whitelist
-Next, you'll need to either modify your config file or provide an argument on
-startup telling your node to connect to the Spaces Subnet Demo.
+Next, you'll need to provide the `whitelisted-subnets` argument by
+modifying your config file or providing an argument on
+startup (which tells your node to connect to the Spaces Subnet Demo).
 
 Example Config File:
 ```json
@@ -595,15 +603,17 @@ Once your node is up and running with the SpacesVM, you'll need to [become a Fuj
 This is the exact same flow as Mainnet except you only need to stake
 `1 AVAX` instead of `2000 AVAX`.
 
-Recall, only validators on the Primary Network (in this case Fuji) can become
-validators of subnets.
+Recall, **only validators on the Primary Network (in this case Fuji) can become
+validators of subnets.**
 
 #### Submit a Validator Request
 Once you've completed the above steps and your node is fully bootstrapped, submit a
-[Spaces Demo Validator Request] to be considered as a validator. The Spaces
-Subnet Demo is a Permissioned Subnet and requires explicit approval from the
-creator to validate. In the near future, it will be possible to create
-permissionless subnets that anyone can join.
+[Spaces Demo Validator Request] to be considered as a validator (everyone will
+be approved).
+
+The Spaces Subnet Demo is a Permissioned Subnet and requires explicit approval from the
+creator to validate. In the near future, it will be possible to create permissionless
+subnets that anyone can join.
 
 If you have any questions, reach out to @\_patrickogrady on Twitter!
 
