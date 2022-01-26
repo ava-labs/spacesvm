@@ -513,11 +513,102 @@ _Can use this to get the current fee rate._
 To build the VM (and `spaces-cli`), run `./scripts/build.sh`.
 
 ### Joining the Spaces Demo
-If you'd like to become a validator on the demo, reach out to @\_patrickogrady on Twitter
-after you've joined the network and synced to tip. Please send a screenshot
-indicating you've done this successfully.
+If you'd like to validate the [Spaces Subnet Demo] on Fuji, please follow the following
+steps: 
 
-You can find the genesis used for the Spaces Demo in `networks/42`.
+_Note: Spaces is still in an **ALPHA** stage and may require you to
+periodically update your VM to address any discovered bugs._
+
+You can find the genesis used for the Spaces Demo in `networks/42/*`.
+
+#### Download and Build SpacesVM
+```bash
+git clone https://github.com/ava-labs/spacesvm.git;
+cd spacesvm;
+./scripts/build.sh
+```
+
+Running the above commands will generate a binary and save it at 
+`./build/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm`.
+
+#### Move Binary
+Once the SpacesVM binary is built, you'll need to move it to AvalancheGo's
+plugin directory (within the `--build-dir`). By default, this is `~/avalanchego/build/plugins`.
+
+When inside of the `avalanchego` directory (assuming you built `avalanchego`
+from source), run the following command to move the binary your generated:
+```bash
+mv ../spacesvm/build/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm
+build/plugins;
+```
+
+#### Add Subnet to Whitelist
+Next, you'll need to either modify your config file or provide an argument on
+startup telling your node to connect to the Spaces Subnet Demo.
+
+Example Config File:
+```json
+{
+  "network-id":"fuji",
+  "health-check-frequency":"2s",
+  "log-display-level":"INFO",
+  "log-level":"INFO",
+  "whitelisted-subnets":"Ai42MkKqk8yjXFCpoHXw7rdTWSHiKEMqh5h8gbxwjgkCUfkrk"
+}
+```
+
+Example Node Args:
+```bash
+--whitelisted-subnets=Ai42MkKqk8yjXFCpoHXw7rdTWSHiKEMqh5h8gbxwjgkCUfkrk --network-id=fuji
+```
+
+#### Restart Node
+Once you've performed the following steps, you'll need to restart your
+AvalancheGo node for the changes to take effect.
+
+If you completed the steps successfully, you'll see the node print out:
+```bash
+INFO [01-25|16:47:04] chains/manager.go#246: creating chain:
+    ID: 2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD
+    VMID:sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm
+INFO [01-25|16:47:04] api/server/server.go#203: adding route /ext/bc/2JVSBoinj9C2J33VntvzYtVJNZdN2NKiwwKjcumHUWEb5DbBrm/events
+INFO [01-25|16:47:04] api/server/server.go#203: adding route /ext/bc/2JVSBoinj9C2J33VntvzYtVJNZdN2NKiwwKjcumHUWEb5DbBrm
+INFO [01-25|16:47:04] api/server/server.go#203: adding route /ext/bc/2JVSBoinj9C2J33VntvzYtVJNZdN2NKiwwKjcumHUWEb5DbBrm/wallet
+INFO [01-25|16:47:04] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/snowman/transitive.go#67: initializing consensus engine
+INFO [01-25|16:47:04] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/snowman/bootstrap/bootstrapper.go#225: Starting bootstrap...
+INFO [01-25|16:47:04] <P Chain> snow/engine/snowman/bootstrap/bootstrapper.go#458: waiting for the remaining chains in this subnet to finish syncing
+INFO [01-25|16:47:04] api/server/server.go#203: adding route /ext/bc/2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD/public
+INFO [01-25|16:47:04] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/common/bootstrapper.go#235: Bootstrapping started syncing with 2 vertices in the accepted frontier
+INFO [01-25|16:47:05] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/snowman/bootstrap/bootstrapper.go#419: bootstrapping fetched 69 blocks. Executing state transitions...
+INFO [01-25|16:47:06] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/common/queue/jobs.go#181: executed 69 operations
+INFO [01-25|16:47:06] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/snowman/transitive.go#354: bootstrapping finished with 2DUxceCx71L5TLTeLpKUQxSBVm8vTKPmFs2usAyRnusUzs4Q4M as the last accepted block
+```
+
+If you didn't put the SpacesVM binary in the right place, you'll see something
+like:
+```bash
+INFO [01-26|05:54:19] chains/manager.go#246: creating chain:
+    ID: 2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD
+    VMID:sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm
+ERROR[01-26|05:54:19] chains/manager.go#270: error creating chain 2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD: error while looking up VM: there is no ID with alias sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm
+```
+
+#### Become a Fuji Validator
+Once your node is up and running with the SpacesVM, you'll need to become
+a Fuji Validator. This is the exact same flow as Mainnet except you only need
+to stake `1 AVAX` instead of `2000 AVAX`.
+
+Recall, only validators on the Primary Network (in this case Fuji) can become
+validators of subnets.
+
+#### Submit a Validator Request
+Once you've completed the above steps and your node is fully bootstrapped, submit a
+[Spaces Demo Validator Request] to be considered as a validator. The Spaces
+Subnet Demo is a Permissioned Subnet and requires explicit approval from the
+creator to validate. In the near future, it will be possible to create
+permissionless subnets that anyone can join.
+
+If you have any questions, reach out to @\_patrickogrady on Twitter!
 
 ### Running a local network
 [`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego], sets up a local network,
@@ -598,3 +689,5 @@ or by using the [subnet-cli].
 [Coreth]: https://github.com/ava-labs/coreth
 [C-Chain]: https://docs.avax.network/learn/platform-overview/#contract-chain-c-chain
 [Subnet]: https://docs.avax.network/learn/platform-overview/#subnets
+[Spaces Subnet Demo]: https://tryspaces.xyz
+[Spaces Demo Validator Request]: https://forms.gle/aDFWBLEP9GvHwaFG6
