@@ -549,7 +549,9 @@ mv ./spacesvm/build/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm ./avalanch
 #### Add Subnet to Whitelist
 Next, you'll need to provide the `whitelisted-subnets` argument by
 modifying your config file or providing an argument on
-startup (which tells your node to connect to the Spaces Subnet Demo).
+startup (which tells your node to connect to the Spaces Subnet Demo). 
+[Ai42MkKqk8yjXFCpoHXw7rdTWSHiKEMqh5h8gbxwjgkCUfkrk](https://testnet.avascan.info/blockchains?subnet=Ai42MkKqk8yjXFCpoHXw7rdTWSHiKEMqh5h8gbxwjgkCUfkrk) 
+is the subnet id for Spaces Subnet.
 
 Example Config File:
 ```json
