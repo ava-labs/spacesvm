@@ -3,9 +3,7 @@
 
 package chain
 
-import (
-	"github.com/ava-labs/avalanchego/ids"
-)
+import "github.com/ava-labs/avalanchego/ids"
 
 type Activity struct {
 	Tmstmp int64  `serialize:"true" json:"timestamp"`

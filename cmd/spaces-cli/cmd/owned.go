@@ -4,6 +4,8 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -25,7 +27,7 @@ func ownedFunc(cmd *cobra.Command, args []string) error {
 	sender := crypto.PubkeyToAddress(priv.PublicKey)
 
 	cli := client.New(uri, requestTimeout)
-	spaces, err := cli.Owned(sender)
+	spaces, err := cli.Owned(context.Background(), sender)
 	if err != nil {
 		return err
 	}

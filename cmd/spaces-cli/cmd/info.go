@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -24,7 +25,7 @@ func infoFunc(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("expected exactly 1 argument, got %d", len(args))
 	}
 	cli := client.New(uri, requestTimeout)
-	info, values, err := cli.Info(args[0])
+	info, values, err := cli.Info(context.Background(), args[0])
 	if err != nil {
 		return err
 	}

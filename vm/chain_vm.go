@@ -16,7 +16,7 @@ func (vm *VM) Genesis() *chain.Genesis {
 }
 
 func (vm *VM) IsBootstrapped() bool {
-	return vm.bootstrapped
+	return vm.bootstrapped.GetValue()
 }
 
 func (vm *VM) State() database.Database {

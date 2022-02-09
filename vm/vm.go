@@ -20,10 +20,12 @@ import (
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	snowmanblock "github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	"github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/json"
 	"github.com/gorilla/rpc/v2"
 	log "github.com/inconshreveable/log15"
 
+	avagoversion "github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/mempool"
 	"github.com/ava-labs/spacesvm/version"
@@ -46,7 +48,7 @@ type VM struct {
 	genesis     *chain.Genesis
 	AirdropData []byte
 
-	bootstrapped bool
+	bootstrapped utils.AtomicBool
 
 	mempool   *mempool.Mempool
 	appSender common.AppSender
@@ -203,15 +205,29 @@ func (vm *VM) Initialize(
 	return nil
 }
 
-// implements "snowmanblock.ChainVM.common.VM"
-func (vm *VM) Bootstrapping() error {
+func (vm *VM) SetState(state snow.State) error {
+	switch state {
+	case snow.Bootstrapping:
+		return vm.onBootstrapStarted()
+	case snow.NormalOp:
+		return vm.onNormalOperationsStarted()
+	default:
+		return snow.ErrUnknownState
+	}
+}
+
+// onBootstrapStarted marks this VM as bootstrapping
+func (vm *VM) onBootstrapStarted() error {
+	vm.bootstrapped.SetValue(false)
 	return nil
 }
 
-// implements "snowmanblock.ChainVM.common.VM"
-func (vm *VM) Bootstrapped() error {
-	log.Debug("chain boostrapped")
-	vm.bootstrapped = true
+// onNormalOperationsStarted marks this VM as bootstrapped
+func (vm *VM) onNormalOperationsStarted() error {
+	if vm.bootstrapped.GetValue() {
+		return nil
+	}
+	vm.bootstrapped.SetValue(true)
 	return nil
 }
 
@@ -295,7 +311,7 @@ func (vm *VM) HealthCheck() (interface{}, error) {
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.validators.Connector"
-func (vm *VM) Connected(id ids.ShortID) error {
+func (vm *VM) Connected(id ids.ShortID, nodeVersion avagoversion.Application) error {
 	// no-op
 	return nil
 }

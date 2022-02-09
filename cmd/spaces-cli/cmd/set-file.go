@@ -36,7 +36,7 @@ func setFileFunc(cmd *cobra.Command, args []string) error {
 	defer f.Close()
 
 	cli := client.New(uri, requestTimeout)
-	g, err := cli.Genesis()
+	g, err := cli.Genesis(context.Background())
 	if err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/fatih/color"
@@ -23,7 +24,7 @@ func networkFunc(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("expected exactly 0 arguments, got %d", len(args))
 	}
 	cli := client.New(uri, requestTimeout)
-	networkID, subnetID, chainID, err := cli.Network()
+	networkID, subnetID, chainID, err := cli.Network(context.Background())
 	if err != nil {
 		return err
 	}
