@@ -8,7 +8,7 @@ go 1.17
 replace github.com/ava-labs/spacesvm => ../..
 
 require (
-	github.com/ava-labs/avalanche-network-runner v1.0.0
+	github.com/ava-labs/avalanche-network-runner v1.0.2-0.20220203182649-813da3d67099
 	github.com/ava-labs/avalanchego v1.7.5
 	github.com/ava-labs/spacesvm v0.0.0-00010101000000-000000000000
 	github.com/onsi/ginkgo/v2 v2.0.0
