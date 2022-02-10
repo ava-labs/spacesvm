@@ -158,7 +158,7 @@ func Download(cli client.Client, path string, f io.Writer) error {
 
 // Delete all hashes under a root
 func Delete(ctx context.Context, cli client.Client, path string, priv *ecdsa.PrivateKey) error {
-	exists, rb, _, err := cli.Resolve(context.Background(), path)
+	exists, rb, _, err := cli.Resolve(ctx, path)
 	if err != nil {
 		return err
 	}
