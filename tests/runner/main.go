@@ -26,7 +26,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	avago_constants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/logging"
-	"github.com/ava-labs/avalanchego/vms/platformvm"
+	pstatus "github.com/ava-labs/avalanchego/vms/platformvm/status"
 	"github.com/ava-labs/spacesvm/tests"
 	formatter "github.com/onsi/ginkgo/v2/formatter"
 	"github.com/spf13/cobra"
@@ -394,7 +394,7 @@ var (
 func (lc *localNetwork) createUser() error {
 	outf("{{blue}}{{bold}}setting up the same user in all nodes...{{/}}\n")
 	for name, cli := range lc.apiClis {
-		ok, err := cli.KeystoreAPI().CreateUser(userPass)
+		ok, err := cli.KeystoreAPI().CreateUser(context.Background(), userPass)
 		if !ok || err != nil {
 			return fmt.Errorf("failedt to create user: %w in %q", err, name)
 		}
@@ -407,7 +407,7 @@ func (lc *localNetwork) importKeysAndFunds() error {
 	for _, name := range lc.nodeNames {
 		cli := lc.apiClis[name]
 
-		pAddr, err := cli.PChainAPI().ImportKey(userPass, genesisPrivKey)
+		pAddr, err := cli.PChainAPI().ImportKey(context.Background(), userPass, genesisPrivKey)
 		if err != nil {
 			return fmt.Errorf("failed to import genesis key for P-chain: %w in %q", err, name)
 		}
@@ -415,7 +415,7 @@ func (lc *localNetwork) importKeysAndFunds() error {
 		if lc.pchainFundedAddr != expectedPchainFundedAddr {
 			return fmt.Errorf("unexpected P-chain funded address %q (expected %q)", lc.pchainFundedAddr, expectedPchainFundedAddr)
 		}
-		pBalance, err := cli.PChainAPI().GetBalance(pAddr)
+		pBalance, err := cli.PChainAPI().GetBalance(context.Background(), []string{pAddr})
 		if err != nil {
 			return fmt.Errorf("failed to get P-chain balance: %w in %q", err, name)
 		}
@@ -430,6 +430,7 @@ func (lc *localNetwork) createSubnet() error {
 	name := lc.nodeNames[0]
 	cli := lc.apiClis[name]
 	subnetTxID, err := cli.PChainAPI().CreateSubnet(
+		context.Background(),
 		userPass,
 		[]string{lc.pchainFundedAddr}, // from
 		lc.pchainFundedAddr,           // changeAddr
@@ -465,12 +466,12 @@ func (lc *localNetwork) checkPChainTx(name string, txID ids.ID) error {
 		case <-time.After(checkInterval):
 		}
 
-		status, err := pcli.GetTxStatus(txID, true)
+		status, err := pcli.GetTxStatus(context.Background(), txID, true)
 		if err != nil {
 			outf("{{yellow}}failed to get tx status %v in %q{{/}}\n", err, name)
 			continue
 		}
-		if status.Status != platformvm.Committed {
+		if status.Status != pstatus.Committed {
 			outf("{{yellow}}subnet tx %s status %q in %q{{/}}\n", txID, status.Status, name)
 			continue
 		}
@@ -498,7 +499,7 @@ func (lc *localNetwork) checkSubnet(name string) error {
 		case <-time.After(checkInterval):
 		}
 
-		subnets, err := pcli.GetSubnets([]ids.ID{})
+		subnets, err := pcli.GetSubnets(context.Background(), []ids.ID{})
 		if err != nil {
 			outf("{{yellow}}failed to get subnets %v in %q{{/}}\n", err, name)
 			continue
@@ -528,6 +529,7 @@ func (lc *localNetwork) addSubnetValidators() error {
 	outf("{{blue}}{{bold}}adding subnet validator...{{/}}\n")
 	for name, cli := range lc.apiClis {
 		valTxID, err := cli.PChainAPI().AddSubnetValidator(
+			context.Background(),
 			userPass,
 			[]string{lc.pchainFundedAddr}, // from
 			lc.pchainFundedAddr,           // changeAddr
@@ -557,6 +559,7 @@ func (lc *localNetwork) createBlockchain() error {
 	outf("{{blue}}{{bold}}creating blockchain with vm name %q and ID %q...{{/}}\n", lc.vmName, lc.vmID)
 	for name, cli := range lc.apiClis {
 		blkChainTxID, err := cli.PChainAPI().CreateBlockchain(
+			context.Background(),
 			userPass,
 			[]string{lc.pchainFundedAddr}, // from
 			lc.pchainFundedAddr,           // changeAddr
@@ -593,7 +596,7 @@ func (lc *localNetwork) checkBlockchain(name string) error {
 		case <-time.After(checkInterval):
 		}
 
-		blockchains, err := pcli.GetBlockchains()
+		blockchains, err := pcli.GetBlockchains(context.Background())
 		if err != nil {
 			outf("{{yellow}}failed to get blockchains %v in %q{{/}}\n", err, name)
 			continue
@@ -614,12 +617,12 @@ func (lc *localNetwork) checkBlockchain(name string) error {
 			continue
 		}
 
-		status, err := pcli.GetBlockchainStatus(blockchainID.String())
+		status, err := pcli.GetBlockchainStatus(context.Background(), blockchainID.String())
 		if err != nil {
 			outf("{{yellow}}failed to get blockchain status %v in %q{{/}}\n", err, name)
 			continue
 		}
-		if status != platformvm.Validating {
+		if status != pstatus.Validating {
 			outf("{{yellow}}blockchain status %q in %q, retrying{{/}}\n", status, name)
 			continue
 		}
@@ -647,7 +650,7 @@ func (lc *localNetwork) checkBootstrapped(name string) error {
 		case <-time.After(checkInterval):
 		}
 
-		bootstrapped, err := icli.IsBootstrapped(lc.blkChainTxID.String())
+		bootstrapped, err := icli.IsBootstrapped(context.Background(), lc.blkChainTxID.String())
 		if err != nil {
 			outf("{{yellow}}failed to check blockchain bootstrapped %v in %q{{/}}\n", err, name)
 			continue
