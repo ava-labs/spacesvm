@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -191,7 +192,7 @@ func newLocalNetwork(
 
 		// need to whitelist subnet ID to create custom VM chain
 		// ref. vms/platformvm/createChain
-		cfg.NodeConfigs[i].ConfigFile = []byte(fmt.Sprintf(`{
+		cfg.NodeConfigs[i].ConfigFile = fmt.Sprintf(`{
 	"network-peer-list-gossip-frequency":"250ms",
 	"network-max-reconnect-delay":"1s",
 	"public-ip":"0.0.0.0",
@@ -207,17 +208,8 @@ func newLocalNetwork(
 }`,
 			filepath.Join(logsDir, nodeName),
 			expectedSubnetTxID,
-		))
-		wr := &writer{
-			c:    colors[i%len(cfg.NodeConfigs)],
-			name: nodeName,
-			w:    os.Stdout,
-		}
-		cfg.NodeConfigs[i].ImplSpecificConfig = local.NodeConfig{
-			BinaryPath: avalancheGoBinPath,
-			Stdout:     wr,
-			Stderr:     wr,
-		}
+		)
+		cfg.NodeConfigs[i].ImplSpecificConfig = json.RawMessage(fmt.Sprintf(`{"binaryPath":"%s", "redirectStdout":true,"redirectStderr":true}`, avalancheGoBinPath))
 	}
 
 	sigc := make(chan os.Signal, 1)
@@ -429,7 +421,8 @@ func (lc *localNetwork) createSubnet() error {
 	outf("{{blue}}{{bold}}creating subnet...{{/}}\n")
 	name := lc.nodeNames[0]
 	cli := lc.apiClis[name]
-	subnetTxID, err := cli.PChainAPI().CreateSubnet(context.Background(),
+	subnetTxID, err := cli.PChainAPI().CreateSubnet(
+		context.Background(),
 		userPass,
 		[]string{lc.pchainFundedAddr}, // from
 		lc.pchainFundedAddr,           // changeAddr
@@ -527,7 +520,8 @@ func (lc *localNetwork) checkSubnet(name string) error {
 func (lc *localNetwork) addSubnetValidators() error {
 	outf("{{blue}}{{bold}}adding subnet validator...{{/}}\n")
 	for name, cli := range lc.apiClis {
-		valTxID, err := cli.PChainAPI().AddSubnetValidator(context.Background(),
+		valTxID, err := cli.PChainAPI().AddSubnetValidator(
+			context.Background(),
 			userPass,
 			[]string{lc.pchainFundedAddr}, // from
 			lc.pchainFundedAddr,           // changeAddr
@@ -556,7 +550,8 @@ func (lc *localNetwork) createBlockchain() error {
 
 	outf("{{blue}}{{bold}}creating blockchain with vm name %q and ID %q...{{/}}\n", lc.vmName, lc.vmID)
 	for name, cli := range lc.apiClis {
-		blkChainTxID, err := cli.PChainAPI().CreateBlockchain(context.Background(),
+		blkChainTxID, err := cli.PChainAPI().CreateBlockchain(
+			context.Background(),
 			userPass,
 			[]string{lc.pchainFundedAddr}, // from
 			lc.pchainFundedAddr,           // changeAddr
