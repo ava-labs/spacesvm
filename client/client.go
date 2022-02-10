@@ -244,9 +244,9 @@ done:
 	return false, ctx.Err()
 }
 
-func (cli *client) Resolve(ctx context.Context, path string) (exists bool, value []byte, valueMeta *chain.ValueMeta, err error) {
+func (cli *client) Resolve(ctx context.Context, path string) (bool, []byte, *chain.ValueMeta, error) {
 	resp := new(vm.ResolveReply)
-	if err = cli.req.SendRequest(
+	if err := cli.req.SendRequest(
 		ctx,
 		"resolve",
 		&vm.ResolveArgs{
