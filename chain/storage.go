@@ -534,7 +534,7 @@ func ExpiryDataValue(address common.Address, space []byte) (v []byte) {
 	return v
 }
 
-func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastExpiry uint64) error {
+func PutSpaceInfo(db database.KeyValueWriterDeleter, space []byte, i *SpaceInfo, lastExpiry uint64) error {
 	// If [RawSpace] is empty, this is a new space.
 	if i.RawSpace == ids.ShortEmpty {
 		rspace, err := RawSpace(space, i.Created)
@@ -572,7 +572,7 @@ func PutSpaceInfo(db database.KeyValueWriter, space []byte, i *SpaceInfo, lastEx
 // MoveSpaceInfo should only be used if the expiry isn't changing and
 // [SpaceInfo] is already in the database.
 func MoveSpaceInfo(
-	db database.KeyValueWriter, oldOwner common.Address,
+	db database.KeyValueWriterDeleter, oldOwner common.Address,
 	space []byte, i *SpaceInfo,
 ) error {
 	// [infoPrefix] + [delimiter] + [space]
@@ -603,7 +603,7 @@ type ValueMeta struct {
 	Updated uint64 `serialize:"true" json:"updated"`
 }
 
-func PutSpaceKey(db database.Database, space []byte, key []byte, vmeta *ValueMeta) error {
+func PutSpaceKey(db database.KeyValueReaderWriter, space []byte, key []byte, vmeta *ValueMeta) error {
 	spaceInfo, exists, err := GetSpaceInfo(db, space)
 	if err != nil {
 		return err
@@ -645,7 +645,11 @@ func HasTransaction(db database.KeyValueReader, txID ids.ID) (bool, error) {
 func getLinkedValue(db database.KeyValueReader, b []byte) ([]byte, error) {
 	bh := string(b)
 	if v, ok := linkedTxCache.Get(bh); ok {
-		return v.([]byte), nil
+		bytes, ok := v.([]byte)
+		if !ok {
+			return nil, fmt.Errorf("expected []byte but got %T", v)
+		}
+		return bytes, nil
 	}
 	txID, err := ids.ToID(b)
 	if err != nil {

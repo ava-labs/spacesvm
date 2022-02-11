@@ -8,20 +8,19 @@ go 1.17
 replace github.com/ava-labs/spacesvm => ../..
 
 require (
-	github.com/ava-labs/avalanche-network-runner v0.0.0-20211220205928-4a40af6d2f7e
-	github.com/ava-labs/avalanchego v1.7.2
+	github.com/ava-labs/avalanche-network-runner v1.0.2-0.20220203182649-813da3d67099
+	github.com/ava-labs/avalanchego v1.7.5
 	github.com/ava-labs/spacesvm v0.0.0-00010101000000-000000000000
 	github.com/onsi/ginkgo/v2 v2.0.0
 	github.com/spf13/cobra v1.2.1
 )
 
 require (
-	github.com/AppsFlyer/go-sundheit v0.2.0 // indirect
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/VictoriaMetrics/fastcache v1.6.0 // indirect
-	github.com/ava-labs/coreth v0.8.1-rc.0 // indirect
+	github.com/ava-labs/coreth v0.8.5-rc.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.21.0-beta // indirect
 	github.com/btcsuite/btcutil v1.0.2 // indirect
@@ -38,6 +37,7 @@ require (
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.1.5 // indirect
@@ -73,7 +73,6 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
@@ -96,7 +95,6 @@ require (
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	github.com/tyler-smith/go-bip39 v1.0.2 // indirect
-	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect

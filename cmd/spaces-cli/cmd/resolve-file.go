@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -38,7 +39,7 @@ func resolveFileFunc(cmd *cobra.Command, args []string) error {
 	defer f.Close()
 
 	cli := client.New(uri, requestTimeout)
-	if err := tree.Download(cli, args[0], f); err != nil {
+	if err := tree.Download(context.Background(), cli, args[0], f); err != nil {
 		return err
 	}
 

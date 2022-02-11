@@ -51,7 +51,7 @@ func SignIssueTx(
 	ret := &Op{}
 	ret.applyOpts(opts)
 
-	td, txCost, err := cli.SuggestedFee(input)
+	td, txCost, err := cli.SuggestedFee(ctx, input)
 	if err != nil {
 		return ids.Empty, 0, err
 	}
@@ -66,7 +66,7 @@ func SignIssueTx(
 		return ids.Empty, 0, err
 	}
 
-	txID, err = cli.IssueTx(td, sig)
+	txID, err = cli.IssueTx(ctx, td, sig)
 	if err != nil {
 		return ids.Empty, 0, err
 	}
@@ -88,17 +88,17 @@ func SignIssueRawTx(
 	ret := &Op{}
 	ret.applyOpts(opts)
 
-	g, err := cli.Genesis()
+	g, err := cli.Genesis(ctx)
 	if err != nil {
 		return ids.Empty, 0, err
 	}
 
-	la, err := cli.Accepted()
+	la, err := cli.Accepted(ctx)
 	if err != nil {
 		return ids.Empty, 0, err
 	}
 
-	price, blockCost, err := cli.SuggestedRawFee()
+	price, blockCost, err := cli.SuggestedRawFee(ctx)
 	if err != nil {
 		return ids.Empty, 0, err
 	}
@@ -126,7 +126,7 @@ func SignIssueRawTx(
 		"issuing tx %s (fee units=%d, load units=%d, price=%d, blkID=%s)",
 		tx.ID(), tx.FeeUnits(g), tx.LoadUnits(g), tx.GetPrice(), tx.GetBlockID(),
 	)
-	txID, err = cli.IssueRawTx(tx.Bytes())
+	txID, err = cli.IssueRawTx(ctx, tx.Bytes())
 	if err != nil {
 		return ids.Empty, 0, err
 	}
@@ -155,7 +155,7 @@ func handleConfirmation(
 	}
 
 	if len(ret.space) > 0 {
-		info, _, err := cli.Info(ret.space)
+		info, _, err := cli.Info(ctx, ret.space)
 		if err != nil {
 			color.Red("cannot get space info %v", err)
 			return err
@@ -165,7 +165,7 @@ func handleConfirmation(
 
 	if ret.balance {
 		addr := crypto.PubkeyToAddress(priv.PublicKey)
-		b, err := cli.Balance(addr)
+		b, err := cli.Balance(ctx, addr)
 		if err != nil {
 			return err
 		}

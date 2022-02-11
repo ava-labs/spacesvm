@@ -190,11 +190,11 @@ var _ = ginkgo.BeforeSuite(func() {
 	// check during and it will be inaccurate)
 	for _, inst := range instances {
 		cli := inst.cli
-		g, err := cli.Genesis()
+		g, err := cli.Genesis(context.Background())
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		for _, alloc := range g.CustomAllocation {
-			bal, err := cli.Balance(alloc.Address)
+			bal, err := cli.Balance(context.Background(), alloc.Address)
 			gomega.Ω(err).Should(gomega.BeNil())
 			gomega.Ω(bal).Should(gomega.Equal(alloc.Balance))
 		}
@@ -216,7 +216,7 @@ var _ = ginkgo.Describe("[Ping]", func() {
 	ginkgo.It("can ping", func() {
 		for _, inst := range instances {
 			cli := inst.cli
-			ok, err := cli.Ping()
+			ok, err := cli.Ping(context.Background())
 			gomega.Ω(ok).Should(gomega.BeTrue())
 			gomega.Ω(err).Should(gomega.BeNil())
 		}
@@ -227,7 +227,7 @@ var _ = ginkgo.Describe("[Network]", func() {
 	ginkgo.It("can get network", func() {
 		for _, inst := range instances {
 			cli := inst.cli
-			networkID, subnetID, chainID, err := cli.Network()
+			networkID, subnetID, chainID, err := cli.Network(context.Background())
 			gomega.Ω(networkID).Should(gomega.Equal(uint32(1)))
 			gomega.Ω(subnetID).ShouldNot(gomega.Equal(ids.Empty))
 			gomega.Ω(chainID).ShouldNot(gomega.Equal(ids.Empty))
@@ -248,14 +248,14 @@ func RandStringRunes(n int) string {
 
 var _ = ginkgo.Describe("Tx Types", func() {
 	ginkgo.It("ensure activity yet", func() {
-		activity, err := instances[0].cli.RecentActivity()
+		activity, err := instances[0].cli.RecentActivity(context.Background())
 		gomega.Ω(err).To(gomega.BeNil())
 
 		gomega.Ω(len(activity)).To(gomega.Equal(0))
 	})
 
 	ginkgo.It("ensure nothing owned yet", func() {
-		spaces, err := instances[0].cli.Owned(sender)
+		spaces, err := instances[0].cli.Owned(context.Background(), sender)
 		gomega.Ω(err).To(gomega.BeNil())
 
 		gomega.Ω(len(spaces)).To(gomega.Equal(0))
@@ -264,7 +264,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 	ginkgo.It("get currently accepted block ID", func() {
 		for _, inst := range instances {
 			cli := inst.cli
-			_, err := cli.Accepted()
+			_, err := cli.Accepted(context.Background())
 			gomega.Ω(err).Should(gomega.BeNil())
 		}
 	})
@@ -315,7 +315,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 
 		ginkgo.By("ensure something owned", func() {
-			spaces, err := instances[1].cli.Owned(sender)
+			spaces, err := instances[1].cli.Owned(context.Background(), sender)
 			gomega.Ω(err).To(gomega.BeNil())
 
 			gomega.Ω(spaces).To(gomega.Equal([]string{space}))
@@ -332,7 +332,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 
 		ginkgo.By("ensure all activity accounted for", func() {
-			activity, err := instances[1].cli.RecentActivity()
+			activity, err := instances[1].cli.RecentActivity(context.Background())
 			gomega.Ω(err).To(gomega.BeNil())
 
 			gomega.Ω(len(activity)).To(gomega.Equal(2))
@@ -363,7 +363,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		err = tx.Init(genesis)
 		gomega.Ω(err).Should(gomega.BeNil())
 
-		_, err = instances[0].cli.IssueRawTx(tx.Bytes())
+		_, err = instances[0].cli.IssueRawTx(context.Background(), tx.Bytes())
 		gomega.Ω(err.Error()).Should(gomega.Equal(chain.ErrInvalidBlockID.Error()))
 	})
 
@@ -380,7 +380,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 
 		ginkgo.By("ensure everything owned", func() {
-			spaces, err := instances[0].cli.Owned(sender)
+			spaces, err := instances[0].cli.Owned(context.Background(), sender)
 			gomega.Ω(err).To(gomega.BeNil())
 
 			gomega.Ω(spaces).To(gomega.ContainElements(
@@ -390,7 +390,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 
 		ginkgo.By("check space after ClaimTx has been accepted", func() {
-			pf, values, err := instances[0].cli.Info(space)
+			pf, values, err := instances[0].cli.Info(context.Background(), space)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(pf).NotTo(gomega.BeNil())
 			gomega.Ω(pf.Units).To(gomega.Equal(uint64(100)))
@@ -412,14 +412,14 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 
 		ginkgo.By("read back from VM with range query", func() {
-			_, kvs, err := instances[0].cli.Info(space)
+			_, kvs, err := instances[0].cli.Info(context.Background(), space)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 			gomega.Ω(kvs[0].ValueMeta.Size).To(gomega.Equal(uint64(5)))
 		})
 
 		ginkgo.By("read back from VM with resolve", func() {
-			exists, value, valueMeta, err := instances[0].cli.Resolve(space + "/" + k)
+			exists, value, valueMeta, err := instances[0].cli.Resolve(context.Background(), space+"/"+k)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(exists).To(gomega.BeTrue())
 			gomega.Ω(value).To(gomega.Equal(v))
@@ -447,7 +447,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 
 		ginkgo.By("ensure all activity accounted for", func() {
-			activity, err := instances[0].cli.RecentActivity()
+			activity, err := instances[0].cli.RecentActivity(context.Background())
 			gomega.Ω(err).To(gomega.BeNil())
 
 			gomega.Ω(len(activity)).To(gomega.Equal(5))
@@ -493,7 +493,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 
 	ginkgo.It("Distribute Lottery Reward", func() {
 		ginkgo.By("ensure that sender is rewarded at least once", func() {
-			bal, err := instances[0].cli.Balance(sender)
+			bal, err := instances[0].cli.Balance(context.Background(), sender)
 			gomega.Ω(err).To(gomega.BeNil())
 
 			found := false
@@ -507,7 +507,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 				createIssueRawTx(instances[0], claimTx, priv2)
 				expectBlkAccept(instances[0])
 
-				bal2, err := instances[0].cli.Balance(sender)
+				bal2, err := instances[0].cli.Balance(context.Background(), sender)
 				gomega.Ω(err).To(gomega.BeNil())
 
 				if bal2 > bal {
@@ -519,7 +519,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 
 		ginkgo.By("ensure all activity accounted for", func() {
-			activity, err := instances[0].cli.RecentActivity()
+			activity, err := instances[0].cli.RecentActivity(context.Background())
 			gomega.Ω(err).To(gomega.BeNil())
 
 			a0 := activity[0]
@@ -619,7 +619,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 				newFile, err = ioutil.TempFile("", "computer")
 				gomega.Ω(err).Should(gomega.BeNil())
 
-				err = tree.Download(instances[0].cli, path, newFile)
+				err = tree.Download(context.Background(), instances[0].cli, path, newFile)
 				gomega.Ω(err).Should(gomega.BeNil())
 			})
 
@@ -659,7 +659,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 				// Should error
 				dummyFile, err := ioutil.TempFile("", "computer_copy")
 				gomega.Ω(err).Should(gomega.BeNil())
-				err = tree.Download(instances[0].cli, path, dummyFile)
+				err = tree.Download(context.Background(), instances[0].cli, path, dummyFile)
 				gomega.Ω(err).Should(gomega.MatchError(tree.ErrMissing))
 				dummyFile.Close()
 			})
@@ -670,15 +670,15 @@ var _ = ginkgo.Describe("Tx Types", func() {
 })
 
 func createIssueRawTx(i instance, utx chain.UnsignedTransaction, signer *ecdsa.PrivateKey) {
-	g, err := i.cli.Genesis()
+	g, err := i.cli.Genesis(context.Background())
 	gomega.Ω(err).Should(gomega.BeNil())
 	utx.SetMagic(g.Magic)
 
-	la, err := i.cli.Accepted()
+	la, err := i.cli.Accepted(context.Background())
 	gomega.Ω(err).Should(gomega.BeNil())
 	utx.SetBlockID(la)
 
-	price, blockCost, err := i.cli.SuggestedRawFee()
+	price, blockCost, err := i.cli.SuggestedRawFee(context.Background())
 	gomega.Ω(err).Should(gomega.BeNil())
 	utx.SetPrice(price + blockCost/utx.FeeUnits(g))
 
@@ -691,12 +691,12 @@ func createIssueRawTx(i instance, utx chain.UnsignedTransaction, signer *ecdsa.P
 	err = tx.Init(genesis)
 	gomega.Ω(err).To(gomega.BeNil())
 
-	_, err = i.cli.IssueRawTx(tx.Bytes())
+	_, err = i.cli.IssueRawTx(context.Background(), tx.Bytes())
 	gomega.Ω(err).To(gomega.BeNil())
 }
 
 func createIssueTx(i instance, input *chain.Input, signer *ecdsa.PrivateKey) {
-	td, _, err := i.cli.SuggestedFee(input)
+	td, _, err := i.cli.SuggestedFee(context.Background(), input)
 	gomega.Ω(err).Should(gomega.BeNil())
 
 	dh, err := tdata.DigestHash(td)
@@ -705,7 +705,7 @@ func createIssueTx(i instance, input *chain.Input, signer *ecdsa.PrivateKey) {
 	sig, err := chain.Sign(dh, signer)
 	gomega.Ω(err).Should(gomega.BeNil())
 
-	_, err = i.cli.IssueTx(td, sig)
+	_, err = i.cli.IssueTx(context.Background(), td, sig)
 	gomega.Ω(err).To(gomega.BeNil())
 }
 

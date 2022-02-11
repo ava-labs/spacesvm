@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -22,7 +23,7 @@ func activityFunc(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("expected exactly 0 arguments, got %d", len(args))
 	}
 	cli := client.New(uri, requestTimeout)
-	activity, err := cli.RecentActivity()
+	activity, err := cli.RecentActivity(context.Background())
 	if err != nil {
 		return err
 	}

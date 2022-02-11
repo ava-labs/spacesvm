@@ -99,7 +99,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			cli: client.New(u, requestTimeout),
 		}
 	}
-	genesis, err = instances[0].cli.Genesis()
+	genesis, err = instances[0].cli.Genesis(context.Background())
 	gomega.Ω(err).Should(gomega.BeNil())
 	color.Blue("created clients with %+v", clusterInfo)
 })
@@ -118,7 +118,7 @@ var _ = ginkgo.Describe("[Ping]", func() {
 	ginkgo.It("can ping", func() {
 		for _, inst := range instances {
 			cli := inst.cli
-			ok, err := cli.Ping()
+			ok, err := cli.Ping(context.Background())
 			gomega.Ω(ok).Should(gomega.BeTrue())
 			gomega.Ω(err).Should(gomega.BeNil())
 		}
@@ -131,7 +131,7 @@ var _ = ginkgo.Describe("[Network]", func() {
 		gomega.Ω(err).Should(gomega.BeNil())
 		for _, inst := range instances {
 			cli := inst.cli
-			networkID, subnetID, chainID, err := cli.Network()
+			networkID, subnetID, chainID, err := cli.Network(context.Background())
 			gomega.Ω(networkID).Should(gomega.Equal(uint32(1337)))
 			gomega.Ω(subnetID).Should(gomega.Equal(sID))
 			gomega.Ω(chainID).ShouldNot(gomega.Equal(ids.Empty))
@@ -144,7 +144,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 	ginkgo.It("get currently accepted block ID", func() {
 		for _, inst := range instances {
 			cli := inst.cli
-			_, err := cli.Accepted()
+			_, err := cli.Accepted(context.Background())
 			gomega.Ω(err).Should(gomega.BeNil())
 		}
 	})
@@ -157,7 +157,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 				Space:  space,
 			}
 
-			claimed, err := instances[0].cli.Claimed(space)
+			claimed, err := instances[0].cli.Claimed(context.Background(), space)
 			gomega.Ω(err).Should(gomega.BeNil())
 			gomega.Ω(claimed).Should(gomega.BeFalse())
 
@@ -173,7 +173,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 
-			claimed, err = instances[0].cli.Claimed(space)
+			claimed, err = instances[0].cli.Claimed(context.Background(), space)
 			gomega.Ω(err).Should(gomega.BeNil())
 			gomega.Ω(claimed).Should(gomega.BeTrue())
 		})
@@ -181,7 +181,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check space to check if ClaimTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking space on %q", inst.uri)
-				pf, _, err := inst.cli.Info(space)
+				pf, _, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(100)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -218,7 +218,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check space to check if SetTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking space on %q", inst.uri)
-				pf, _, err := inst.cli.Info(space)
+				pf, _, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(100)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -228,11 +228,11 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("send Range to all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking SetTx with Range on %q", inst.uri)
-				_, kvs, err := inst.cli.Info(space)
+				_, kvs, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 				gomega.Ω(kvs[0].ValueMeta.Size).To(gomega.Equal(uint64(len(v))))
-				_, rv, _, err := inst.cli.Resolve(space + "/" + kvs[0].Key)
+				_, rv, _, err := inst.cli.Resolve(context.Background(), space+"/"+kvs[0].Key)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(rv).To(gomega.Equal(v))
 			}
@@ -268,7 +268,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check space to check if SetTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking space on %q", inst.uri)
-				pf, _, err := inst.cli.Info(space)
+				pf, _, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(102)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -278,11 +278,11 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("send Range to all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking SetTx with Range on %q", inst.uri)
-				_, kvs, err := inst.cli.Info(space)
+				_, kvs, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 				gomega.Ω(kvs[0].ValueMeta.Size).To(gomega.Equal(uint64(len(v2))))
-				_, rv, _, err := inst.cli.Resolve(space + "/" + kvs[0].Key)
+				_, rv, _, err := inst.cli.Resolve(context.Background(), space+"/"+kvs[0].Key)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(rv).To(gomega.Equal(v2))
 			}
@@ -316,7 +316,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check space to check if SetTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking space on %q", inst.uri)
-				pf, _, err := inst.cli.Info(space)
+				pf, _, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(100)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -326,7 +326,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("send Range to all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking SetTx with Range on %q", inst.uri)
-				_, kvs, err := inst.cli.Info(space)
+				_, kvs, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(len(kvs)).To(gomega.Equal(0))
 			}
@@ -337,7 +337,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		// TODO: repeat above without copying all code
 		space := strings.Repeat("b", parser.MaxIdentifierSize)
 		ginkgo.By("mine and issue ClaimTx to the first node", func() {
-			claimed, err := instances[0].cli.Claimed(space)
+			claimed, err := instances[0].cli.Claimed(context.Background(), space)
 			gomega.Ω(err).Should(gomega.BeNil())
 			gomega.Ω(claimed).Should(gomega.BeFalse())
 
@@ -356,7 +356,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 			cancel()
 			gomega.Ω(err).Should(gomega.BeNil())
 
-			claimed, err = instances[0].cli.Claimed(space)
+			claimed, err = instances[0].cli.Claimed(context.Background(), space)
 			gomega.Ω(err).Should(gomega.BeNil())
 			gomega.Ω(claimed).Should(gomega.BeTrue())
 		})
@@ -364,7 +364,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check space to check if ClaimTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking space on %q", inst.uri)
-				pf, _, err := inst.cli.Info(space)
+				pf, _, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(100)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -399,7 +399,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check space to check if SetTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking space on %q", inst.uri)
-				pf, _, err := inst.cli.Info(space)
+				pf, _, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(100)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -409,11 +409,11 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("send Range to all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking SetTx with Range on %q", inst.uri)
-				_, kvs, err := inst.cli.Info(space)
+				_, kvs, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 				gomega.Ω(kvs[0].ValueMeta.Size).To(gomega.Equal(uint64(len(v))))
-				_, rv, _, err := inst.cli.Resolve(space + "/" + kvs[0].Key)
+				_, rv, _, err := inst.cli.Resolve(context.Background(), space+"/"+kvs[0].Key)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(rv).To(gomega.Equal(v))
 			}
@@ -447,7 +447,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check space to check if SetTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking space on %q", inst.uri)
-				pf, _, err := inst.cli.Info(space)
+				pf, _, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(102)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -457,11 +457,11 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("send Range to all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking SetTx with Range on %q", inst.uri)
-				_, kvs, err := inst.cli.Info(space)
+				_, kvs, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(kvs[0].Key).To(gomega.Equal(k))
 				gomega.Ω(kvs[0].ValueMeta.Size).To(gomega.Equal(uint64(len(v2))))
-				_, rv, _, err := inst.cli.Resolve(space + "/" + kvs[0].Key)
+				_, rv, _, err := inst.cli.Resolve(context.Background(), space+"/"+kvs[0].Key)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(rv).To(gomega.Equal(v2))
 			}
@@ -493,7 +493,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("check space to check if SetTx has been accepted from all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking space on %q", inst.uri)
-				pf, _, err := inst.cli.Info(space)
+				pf, _, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(pf.Units).To(gomega.Equal(uint64(100)))
 				gomega.Ω(pf.Owner).To(gomega.Equal(sender))
@@ -503,7 +503,7 @@ var _ = ginkgo.Describe("[Claim/SetTx]", func() {
 		ginkgo.By("send Range to all nodes", func() {
 			for _, inst := range instances {
 				color.Blue("checking SetTx with Range on %q", inst.uri)
-				_, kvs, err := inst.cli.Info(space)
+				_, kvs, err := inst.cli.Info(context.Background(), space)
 				gomega.Ω(err).To(gomega.BeNil())
 				gomega.Ω(len(kvs)).To(gomega.Equal(0))
 			}
