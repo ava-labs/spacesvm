@@ -106,8 +106,8 @@ func Upload(
 }
 
 // TODO: make multi-threaded
-func Download(cli client.Client, path string, f io.Writer) error {
-	exists, rb, _, err := cli.Resolve(context.Background(), path)
+func Download(ctx context.Context, cli client.Client, path string, f io.Writer) error {
+	exists, rb, _, err := cli.Resolve(ctx, path)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func Download(cli client.Client, path string, f io.Writer) error {
 	amountDownloaded := 0
 	for _, h := range r.Children {
 		chunk := space + parser.Delimiter + h
-		exists, b, _, err := cli.Resolve(context.Background(), chunk)
+		exists, b, _, err := cli.Resolve(ctx, chunk)
 		if err != nil {
 			return err
 		}

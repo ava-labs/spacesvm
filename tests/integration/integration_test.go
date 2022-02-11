@@ -619,7 +619,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 				newFile, err = ioutil.TempFile("", "computer")
 				gomega.Ω(err).Should(gomega.BeNil())
 
-				err = tree.Download(instances[0].cli, path, newFile)
+				err = tree.Download(context.Background(), instances[0].cli, path, newFile)
 				gomega.Ω(err).Should(gomega.BeNil())
 			})
 
@@ -659,7 +659,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 				// Should error
 				dummyFile, err := ioutil.TempFile("", "computer_copy")
 				gomega.Ω(err).Should(gomega.BeNil())
-				err = tree.Download(instances[0].cli, path, dummyFile)
+				err = tree.Download(context.Background(), instances[0].cli, path, dummyFile)
 				gomega.Ω(err).Should(gomega.MatchError(tree.ErrMissing))
 				dummyFile.Close()
 			})
