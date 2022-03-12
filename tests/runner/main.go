@@ -167,10 +167,7 @@ func newLocalNetwork(
 	vmGenesisPath string,
 	outputPath string,
 ) *localNetwork {
-	lcfg, err := logging.DefaultConfig()
-	if err != nil {
-		panic(err)
-	}
+	lcfg := logging.DefaultConfig
 	logFactory := logging.NewFactory(lcfg)
 	logger, err := logFactory.Make("main")
 	if err != nil {
@@ -245,7 +242,7 @@ func (lc *localNetwork) start() {
 	}()
 
 	outf("{{blue}}{{bold}}create and run local network with log-dir %q{{/}}\n", lc.logsDir)
-	nw, err := local.NewNetwork(lc.logger, lc.cfg)
+	nw, err := local.NewNetwork(lc.logger, lc.cfg, os.TempDir())
 	if err != nil {
 		lc.errc <- err
 		return
