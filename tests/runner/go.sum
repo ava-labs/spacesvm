@@ -125,16 +125,16 @@ github.com/ava-labs/avalanchego v1.7.4/go.mod h1:+xnmwjlkeNHhs0v5p2yvdv7cw0jgyq4
 github.com/ava-labs/avalanchego v1.7.5-0.20220202014036-7c45dd1e2377/go.mod h1:sUhn77bV5EBGXwqcFz1FzFs94MR6SRgrU+Ob7lb+pC4=
 github.com/ava-labs/avalanchego v1.7.7-rc.1/go.mod h1:a5R0Zar2qRmaz2ukZs2zCocU/HvOIYrkKB506rsQTks=
 github.com/ava-labs/avalanchego v1.7.7-rc.4/go.mod h1:ZFuoVdAoCKS3Q4NFBKsR7TVCGyLvdbgwUkmkGE6jmi0=
-github.com/ava-labs/avalanchego v1.7.7 h1:X0ZAmJvrc5i4nsybVcMLBBhtljRiEb0d/xlUgttte0Y=
-github.com/ava-labs/avalanchego v1.7.7/go.mod h1:kmNZJ1p2sdBeVW1uwFXj4O48O9PNfXxqRQXSZ0cT45M=
+github.com/ava-labs/avalanchego v1.7.8 h1:CnEEHFTc8Ds2mwL9BDswLfYnDFv5mpJaxcR874v8gl0=
+github.com/ava-labs/avalanchego v1.7.8/go.mod h1:1QNPNIFEYjNevyzaGx+RhdhWGG5LiA6Mn3iomnkf/h0=
 github.com/ava-labs/avalanchego-operator v0.0.0-20211115144351-99f07d2570bf h1:vHIdrlBIqbkqbERfPX3Ut+Ofg2vsqdB8OC6JMegT0qk=
 github.com/ava-labs/avalanchego-operator v0.0.0-20211115144351-99f07d2570bf/go.mod h1:RTkVkouQ0HBSBVSFAQCUviXPU7Iuxoy+Fui3ykmD9HA=
 github.com/ava-labs/coreth v0.8.4-rc.1/go.mod h1:bP2Atm7pCJdx8fwzsPT3xU/kWOdHFklpja7aRNT++Qo=
 github.com/ava-labs/coreth v0.8.4-rc.3/go.mod h1:9TgpLJVY9ot6RV8Lh66F356S4MfalvaL3sAqw4+miTU=
 github.com/ava-labs/coreth v0.8.6-rc.1/go.mod h1:D60h55zuIQu6/dc7nWpXNyk3xakq3xsWMFuumttcpqw=
 github.com/ava-labs/coreth v0.8.7-rc.1/go.mod h1:E9yfBswaDbV3WeFeX90wS0eRAfeW7WPbxgbc4b0KJlk=
-github.com/ava-labs/coreth v0.8.7-rc.2 h1:QrQiAIl4zGRy8eOQWXubm2Hs+zXJLggjItZa8q35Yww=
-github.com/ava-labs/coreth v0.8.7-rc.2/go.mod h1:HC8D4Ei7PNRzpPpqGC/M08YYeBp1kogJBVcWIfGseVA=
+github.com/ava-labs/coreth v0.8.8-rc.0 h1:OrkVfcuqydR0t8tqNsoLPHoogqVN6lb2j5VWgwaD1EM=
+github.com/ava-labs/coreth v0.8.8-rc.0/go.mod h1:HC8D4Ei7PNRzpPpqGC/M08YYeBp1kogJBVcWIfGseVA=
 github.com/aws/aws-sdk-go-v2 v1.2.0/go.mod h1:zEQs02YRBw1DjK0PoJv3ygDYOFTre1ejlJWl8FwAuQo=
 github.com/aws/aws-sdk-go-v2/config v1.1.1/go.mod h1:0XsVy9lBI/BCXm+2Tuvt39YmdHwS5unDQmxZOYe8F5Y=
 github.com/aws/aws-sdk-go-v2/credentials v1.1.1/go.mod h1:mM2iIjwl7LULWtS6JCACyInboHirisUUdkBPoTHMOUo=
@@ -177,6 +177,7 @@ github.com/certifi/gocertifi v0.0.0-20191021191039-0944d244cd40/go.mod h1:sGbDF6
 github.com/certifi/gocertifi v0.0.0-20200922220541-2c3bb06c6054/go.mod h1:sGbDF6GwGcLpkNXPUTkMRoywsNa/ol15pxFe6ERfguA=
 github.com/cespare/cp v0.1.0 h1:SE+dxFebS7Iik5LK0tsi1k9ZCxEaFX4AjQmoyA+1dJk=
 github.com/cespare/cp v0.1.0/go.mod h1:SOGHArjBr4JWaSDEVpWpo/hNg6RoKrls6Oh40hiwW+s=
+github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cespare/xxhash/v2 v2.1.2 h1:YRXhKfTDauu4ajMg1TPgFO5jnlC2HCbmLXMcTG5cbYE=
@@ -531,6 +532,7 @@ github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:
 github.com/imdario/mergo v0.3.5/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=
 github.com/imdario/mergo v0.3.12 h1:b6R2BslTbIEToALKP7LxUvijTsNI9TAe80pLWN2g/HU=
 github.com/imdario/mergo v0.3.12/go.mod h1:jmQim1M+e3UYxmgPu/WyfjB3N3VflVyUjjjwH0dnCYA=
+github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac/go.mod h1:cOaXtrgN4ScfRrD9Bre7U1thNq5RtJ8ZoP4iXVGRj6o=
 github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NHg9XEKhtSvM=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/influxdata/flux v0.65.1/go.mod h1:J754/zds0vvpfwuq7Gc2wRdVwEodfpCFM7mYlOw2LqY=
