@@ -14,6 +14,13 @@ the VM defines the behavior of the blockchain where it is instantiated. For exam
 could deploy another instance of the EVM as their own blockchain (to take
 this to its logical conclusion).
 
+## AvalancheGo Compatibility
+```
+[v0.0.1] AvalancheGo@v1.7.0-v1.7.4
+[v0.0.2] AvalancheGo@v1.7.5-v1.7.6
+[v0.0.3] AvalancheGo@v1.7.7-v1.7.8
+```
+
 ## Introduction
 Just as [Coreth] powers the [C-Chain], SpacesVM can be used to power its own
 blockchain in an Avalanche [Subnet]. Instead of providing a place to execute Solidity
@@ -621,23 +628,23 @@ If you have any questions, reach out to @\_patrickogrady on Twitter!
 
 ### Running a local network
 [`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego], sets up a local network,
-and creates a `spacesvm` genesis file. To build and run E2E tests, you need to set the variable `E2E` before it: `E2E=true ./scripts/run.sh 1.7.4`
+and creates a `spacesvm` genesis file. To build and run E2E tests, you need to set the variable `E2E` before it: `E2E=true ./scripts/run.sh 1.7.8`
 
 _See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made._
 
 ```bash
 # to startup a local cluster (good for development)
 cd ${HOME}/go/src/github.com/ava-labs/spacesvm
-./scripts/run.sh 1.7.4
+./scripts/run.sh 1.7.8
 
 # to run full e2e tests and shut down cluster afterwards
 cd ${HOME}/go/src/github.com/ava-labs/spacesvm
-E2E=true ./scripts/run.sh 1.7.4
+E2E=true ./scripts/run.sh 1.7.8
 ```
 
 ```bash
 # inspect cluster endpoints when ready
-cat /tmp/avalanchego-v1.7.4/output.yaml
+cat /tmp/avalanchego-v1.7.8/output.yaml
 <<COMMENT
 endpoint: /ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM
 logsDir: ...

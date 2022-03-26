@@ -9,7 +9,7 @@ replace github.com/ava-labs/spacesvm => ../..
 
 require (
 	github.com/ava-labs/avalanche-network-runner v1.0.7
-	github.com/ava-labs/avalanchego v1.7.7
+	github.com/ava-labs/avalanchego v1.7.8
 	github.com/ava-labs/spacesvm v0.0.0-00010101000000-000000000000
 	github.com/onsi/ginkgo/v2 v2.1.0
 	github.com/spf13/cobra v1.3.0
@@ -20,7 +20,7 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/VictoriaMetrics/fastcache v1.9.0 // indirect
-	github.com/ava-labs/coreth v0.8.7-rc.2 // indirect
+	github.com/ava-labs/coreth v0.8.8-rc.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.21.0-beta // indirect
 	github.com/btcsuite/btcutil v1.0.2 // indirect
