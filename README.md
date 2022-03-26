@@ -14,6 +14,13 @@ the VM defines the behavior of the blockchain where it is instantiated. For exam
 could deploy another instance of the EVM as their own blockchain (to take
 this to its logical conclusion).
 
+## AvalancheGo Compatibility
+```
+[v0.0.1] AvalancheGo@v1.7.0-v1.7.4
+[v0.0.2] AvalancheGo@v1.7.5-v1.7.6
+[v0.0.3] AvalancheGo@v1.7.7-v1.7.8
+```
+
 ## Introduction
 Just as [Coreth] powers the [C-Chain], SpacesVM can be used to power its own
 blockchain in an Avalanche [Subnet]. Instead of providing a place to execute Solidity
