@@ -220,7 +220,12 @@ func (th *Mempool) remove(id ids.ID) *chain.Transaction {
 		// sync.
 		return nil
 	}
-	return heap.Remove(th.minHeap, minEntry.index).(*txEntry).tx // O(log N)
+	txe, ok := heap.Remove(th.minHeap, minEntry.index).(*txEntry) // O(log N)
+	if !ok {
+		// This should never happen
+		return nil
+	}
+	return txe.tx
 }
 
 // addPending makes sure that an item is in the Pending channel.

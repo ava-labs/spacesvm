@@ -44,7 +44,8 @@ func createTestMempool(
 	priv *ecdsa.PrivateKey,
 	maxSize int,
 	n int,
-	sampleBlk int) (mp chain.Mempool, sampleBlkIDs ids.Set) {
+	sampleBlk int,
+) (mp chain.Mempool, sampleBlkIDs ids.Set) {
 	b.Helper()
 	if sampleBlk*2 >= n {
 		b.Fatalf("unexpected sampleBlk %d (expected < N/2 %d)", sampleBlk, n)
