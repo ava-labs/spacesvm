@@ -11,7 +11,6 @@ import (
 	"github.com/ava-labs/avalanchego/vms/rpcchainvm"
 	"github.com/ava-labs/spacesvm/cmd/spacesvm/version"
 	"github.com/ava-labs/spacesvm/vm"
-	"github.com/hashicorp/go-plugin"
 	log "github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 )
@@ -54,17 +53,10 @@ func main() {
 // TODO: serve separate endpoint for range query
 // e.g., GET http://localhost/vm/foo returns "bar"
 func runFunc(cmd *cobra.Command, args []string) error {
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: rpcchainvm.Handshake,
-		Plugins: map[string]plugin.Plugin{
-			"vm": rpcchainvm.New(&vm.VM{AirdropData: AirdropData}),
-		},
+	rpcchainvm.Serve(&vm.VM{AirdropData: AirdropData})
 
-		// A non-nil value here enables gRPC serving for this plugin...
-		GRPCServer: plugin.DefaultGRPCServer,
-	})
-
-	// Remove reference so VM can free when ready
+	// Remove airdrop reference so VM can free memory
 	AirdropData = nil
+
 	return nil
 }
