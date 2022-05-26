@@ -288,19 +288,19 @@ func (vm *VM) CreateStaticHandlers() (map[string]*common.HTTPHandler, error) {
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"
-func (vm *VM) AppRequest(nodeID ids.ShortID, requestID uint32, deadline time.Time, request []byte) error {
+func (vm *VM) AppRequest(nodeID ids.NodeID, requestID uint32, deadline time.Time, request []byte) error {
 	// (currently) no app-specific messages
 	return nil
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"
-func (vm *VM) AppRequestFailed(nodeID ids.ShortID, requestID uint32) error {
+func (vm *VM) AppRequestFailed(nodeID ids.NodeID, requestID uint32) error {
 	// (currently) no app-specific messages
 	return nil
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"
-func (vm *VM) AppResponse(nodeID ids.ShortID, requestID uint32, response []byte) error {
+func (vm *VM) AppResponse(nodeID ids.NodeID, requestID uint32, response []byte) error {
 	// (currently) no app-specific messages
 	return nil
 }
@@ -311,13 +311,13 @@ func (vm *VM) HealthCheck() (interface{}, error) {
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.validators.Connector"
-func (vm *VM) Connected(id ids.ShortID, nodeVersion avagoversion.Application) error {
+func (vm *VM) Connected(id ids.NodeID, nodeVersion avagoversion.Application) error {
 	// no-op
 	return nil
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.validators.Connector"
-func (vm *VM) Disconnected(id ids.ShortID) error {
+func (vm *VM) Disconnected(id ids.NodeID) error {
 	// no-op
 	return nil
 }
