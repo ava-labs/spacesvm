@@ -145,7 +145,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			NetworkID: networkID,
 			SubnetID:  subnetID,
 			ChainID:   chainID,
-			NodeID:    ids.GenerateTestShortID(),
+			NodeID:    ids.GenerateTestNodeID(),
 		}
 
 		toEngine := make(chan common.Message, 1)
@@ -177,7 +177,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 		httpServer := httptest.NewServer(hd[vm.PublicEndpoint].Handler)
 		instances[i] = instance{
-			nodeID:     ctx.NodeID,
+			nodeID:     ids.ShortID(ctx.NodeID),
 			vm:         v,
 			toEngine:   toEngine,
 			httpServer: httpServer,
@@ -780,6 +780,6 @@ func (app *appSender) SendAppGossip(appGossipBytes []byte) error {
 	return app.instances[app.next].vm.AppGossip(sender, appGossipBytes)
 }
 
-func (app *appSender) SendAppRequest(_ ids.ShortSet, _ uint32, _ []byte) error { return nil }
-func (app *appSender) SendAppResponse(_ ids.ShortID, _ uint32, _ []byte) error { return nil }
-func (app *appSender) SendAppGossipSpecific(_ ids.ShortSet, _ []byte) error    { return nil }
+func (app *appSender) SendAppRequest(_ ids.NodeIDSet, _ uint32, _ []byte) error { return nil }
+func (app *appSender) SendAppResponse(_ ids.NodeID, _ uint32, _ []byte) error   { return nil }
+func (app *appSender) SendAppGossipSpecific(_ ids.NodeIDSet, _ []byte) error    { return nil }
