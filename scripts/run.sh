@@ -2,13 +2,13 @@
 set -e
 
 # e.g.,
-# ./scripts/run.sh 1.7.3
+# ./scripts/run.sh 1.7.11
 #
-# to shut the cluster down
-# SHUTDOWN=false ./scripts/run.sh 1.7.3
-
-# to run E2E tests
-# E2E=true ./scripts/run.sh 1.7.3
+# run without e2e tests
+# ./scripts/run.sh 1.7.11
+#
+# to run E2E tests (terminates cluster afterwards)
+# E2E=true ./scripts/run.sh 1.7.11
 if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -21,14 +21,19 @@ if [[ -z "${VERSION}" ]]; then
   exit 255
 fi
 
-SHUTDOWN=${SHUTDOWN:-false}
+MODE=${MODE:-run}
 E2E=${E2E:-false}
-if [[ ${SHUTDOWN} == true || ${E2E} == true ]]; then
-  _SHUTDOWN_FLAG="--shutdown"
-else
-  _SHUTDOWN_FLAG=""
+if [[ ${E2E} == true ]]; then
+  MODE="test"
 fi
 
+AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
+
+echo "Running with:"
+echo VERSION: ${VERSION}
+echo MODE: ${MODE}
+
+############################
 # download avalanchego
 # https://github.com/ava-labs/avalanchego/releases
 GOARCH=$(go env GOARCH)
@@ -56,6 +61,12 @@ elif [[ ${GOOS} == "darwin" ]]; then
 fi
 find /tmp/avalanchego-v${VERSION}
 
+AVALANCHEGO_PATH=/tmp/avalanchego-v${VERSION}/avalanchego
+AVALANCHEGO_PLUGIN_DIR=/tmp/avalanchego-v${VERSION}/plugins
+
+############################
+
+############################
 echo "building spacesvm"
 go build \
 -o /tmp/avalanchego-v${VERSION}/plugins/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm \
@@ -64,7 +75,9 @@ find /tmp/avalanchego-v${VERSION}
 
 echo "building spaces-cli"
 go build -v -o /tmp/spaces-cli ./cmd/spaces-cli
+############################
 
+############################
 echo "creating allocations file"
 cat <<EOF > /tmp/allocations.json
 [
@@ -84,38 +97,64 @@ rm -f /tmp/spacesvm.genesis
 --genesis-file /tmp/spacesvm.genesis \
 --airdrop-hash 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da \
 --airdrop-units 10000
+############################
 
-echo "building runner"
-pushd ./tests/runner
-go build -v -o /tmp/runner .
-popd
+############################
+echo "building e2e.test"
+# to install the ginkgo binary (required for test build and run)
+go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.1.4
+ACK_GINKGO_RC=true ginkgo build ./tests/e2e
+./tests/e2e/e2e.test --help
 
-if [[ ${E2E} == true ]]; then
-  echo "building e2e.test"
-  # to install the ginkgo binary (required for test build and run)
-  go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.0.0-rc2
-  ACK_GINKGO_RC=true ginkgo build ./tests/e2e
-  ./tests/e2e/e2e.test --help
+#################################
+# download avalanche-network-runner
+# https://github.com/ava-labs/avalanche-network-runner
+# TODO: use "go install -v github.com/ava-labs/avalanche-network-runner/cmd/avalanche-network-runner@v${NETWORK_RUNNER_VERSION}"
+NETWORK_RUNNER_VERSION=1.0.16
+DOWNLOAD_PATH=/tmp/avalanche-network-runner.tar.gz
+DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_linux_amd64.tar.gz
+if [[ ${GOOS} == "darwin" ]]; then
+  DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_darwin_amd64.tar.gz
 fi
 
-echo "launch local test cluster in the background"
-/tmp/runner \
---avalanchego-path=/tmp/avalanchego-v${VERSION}/avalanchego \
---vm-id=sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm \
---vm-genesis-path=/tmp/spacesvm.genesis \
---output-path=/tmp/avalanchego-v${VERSION}/output.yaml 2> /dev/null &
+rm -f ${DOWNLOAD_PATH}
+rm -f /tmp/avalanche-network-runner
+
+echo "downloading avalanche-network-runner ${NETWORK_RUNNER_VERSION} at ${DOWNLOAD_URL}"
+curl -L ${DOWNLOAD_URL} -o ${DOWNLOAD_PATH}
+
+echo "extracting downloaded avalanche-network-runner"
+tar xzvf ${DOWNLOAD_PATH} -C /tmp
+/tmp/avalanche-network-runner -h
+
+############################
+# run "avalanche-network-runner" server
+echo "launch avalanche-network-runner in the background"
+/tmp/avalanche-network-runner \
+server \
+--log-level debug \
+--port=":32342" \
+--disable-grpc-gateway &
 PID=${!}
 
-sleep 60
-echo "wait until local cluster is ready from PID ${PID}"
-while [[ ! -s /tmp/avalanchego-v${VERSION}/output.yaml ]]
-  do
-  echo "waiting for /tmp/avalanchego-v${VERSION}/output.yaml creation"
-  sleep 5
-  # wait up to 5-minute
-  ((c++)) && ((c==60)) && break
-done
+############################
+# By default, it runs all e2e test cases!
+# Use "--ginkgo.skip" to skip tests.
+# Use "--ginkgo.focus" to select tests.
+echo "running e2e tests"
+./tests/e2e/e2e.test \
+--ginkgo.v \
+--network-runner-log-level debug \
+--network-runner-grpc-endpoint="0.0.0.0:32342" \
+--avalanchego-path=${AVALANCHEGO_PATH} \
+--avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
+--avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
+--vm-genesis-path=/tmp/spacesvm.genesis \
+--output-path=/tmp/avalanchego-v${VERSION}/output.yaml \
+--mode=${MODE}
 
+############################
+# e.g., print out MetaMask endpoints
 if [[ -f "/tmp/avalanchego-v${VERSION}/output.yaml" ]]; then
   echo "cluster is ready!"
   cat /tmp/avalanchego-v${VERSION}/output.yaml
@@ -125,12 +164,21 @@ else
   exit 255
 fi
 
-if [[ ${E2E} == true ]]; then
-  echo "running e2e tests against the local cluster with shutdown flag '${_SHUTDOWN_FLAG}'"
-  ./tests/e2e/e2e.test \
-  --ginkgo.v \
-  --cluster-info-path /tmp/avalanchego-v${VERSION}/output.yaml \
-  ${_SHUTDOWN_FLAG}
-
-  echo "ALL SUCCESS!"
+############################
+if [[ ${MODE} == "test" ]]; then
+  # "e2e.test" already terminates the cluster for "test" mode
+  # just in case tests are aborted, manually terminate them again
+  echo "network-runner RPC server was running on PID ${PID} as test mode; terminating the process..."
+  pkill -P ${PID} || true
+  kill -2 ${PID}
+  pkill -9 -f sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm || true # in case pkill didn't work
+else
+  echo "network-runner RPC server is running on PID ${PID}..."
+  echo ""
+  echo "use the following command to terminate:"
+  echo ""
+  echo "pkill -P ${PID}"
+  echo "kill -2 ${PID}"
+  echo "pkill -9 -f sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm"
+  echo ""
 fi

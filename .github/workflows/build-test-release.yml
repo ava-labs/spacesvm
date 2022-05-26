@@ -4,10 +4,9 @@ on:
   push:
     branches:
       - master
+    tags:
+      - "*"
   pull_request:
-
-permissions:
-  contents: read
 
 jobs:
   build_test_release:
@@ -29,7 +28,7 @@ jobs:
         run: scripts/tests.integration.sh
       - name: Run e2e tests
         shell: bash
-        run: scripts/run.sh 1.7.10
+        run: E2E=true scripts/run.sh 1.7.11
         env:
           E2E: true
       - name: Run GoReleaser for cross-platform builds
@@ -37,6 +36,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          # TODO: automate github release page announce and artifact uploads?
-          # https://goreleaser.com/cmd/goreleaser_release/
-          args: release --rm-dist --skip-announce --skip-publish
+          args: release --rm-dist
+        env:
+          # https://docs.github.com/en/actions/security-guides/automatic-token-authentication#about-the-github_token-secret
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

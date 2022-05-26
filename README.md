@@ -629,23 +629,23 @@ If you have any questions, reach out to @\_patrickogrady on Twitter!
 
 ### Running a local network
 [`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego], sets up a local network,
-and creates a `spacesvm` genesis file. To build and run E2E tests, you need to set the variable `E2E` before it: `E2E=true ./scripts/run.sh 1.7.10`
+and creates a `spacesvm` genesis file. To build and run E2E tests, you need to set the variable `E2E` before it: `E2E=true ./scripts/run.sh 1.7.11`
 
-_See [`tests/e2e`](tests/e2e) and [`tests/runner`](tests/runner) to see how it's set up and how its client requests are made._
+_See [`tests/e2e`](tests/e2e) to see how it's set up and how its client requests are made._
 
 ```bash
 # to startup a local cluster (good for development)
 cd ${HOME}/go/src/github.com/ava-labs/spacesvm
-./scripts/run.sh 1.7.10
+./scripts/run.sh 1.7.11
 
 # to run full e2e tests and shut down cluster afterwards
 cd ${HOME}/go/src/github.com/ava-labs/spacesvm
-E2E=true ./scripts/run.sh 1.7.10
+E2E=true ./scripts/run.sh 1.7.11
 ```
 
 ```bash
 # inspect cluster endpoints when ready
-cat /tmp/avalanchego-v1.7.10/output.yaml
+cat /tmp/avalanchego-v1.7.11/output.yaml
 <<COMMENT
 endpoint: /ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM
 logsDir: ...
