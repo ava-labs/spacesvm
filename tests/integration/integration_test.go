@@ -90,7 +90,7 @@ var (
 )
 
 type instance struct {
-	nodeID     ids.ShortID
+	nodeID     ids.NodeID
 	vm         *vm.VM
 	toEngine   chan common.Message
 	httpServer *httptest.Server
@@ -177,7 +177,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 		httpServer := httptest.NewServer(hd[vm.PublicEndpoint].Handler)
 		instances[i] = instance{
-			nodeID:     ids.ShortID(ctx.NodeID),
+			nodeID:     ctx.NodeID,
 			vm:         v,
 			toEngine:   toEngine,
 			httpServer: httpServer,
