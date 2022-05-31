@@ -177,8 +177,6 @@ else
   echo ""
   echo "use the following command to terminate:"
   echo ""
-  echo "pkill -P ${PID}"
-  echo "kill -2 ${PID}"
-  echo "pkill -9 -f sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm"
+  echo "pkill -P ${PID} && kill -2 ${PID} && pkill -9 -f sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm"
   echo ""
 fi
