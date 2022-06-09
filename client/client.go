@@ -7,6 +7,7 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -68,8 +69,7 @@ type Client interface {
 // New creates a new client object.
 func New(uri string, reqTimeout time.Duration) Client {
 	req := rpc.NewEndpointRequester(
-		uri,
-		vm.PublicEndpoint,
+		fmt.Sprintf("%s/%s", uri, vm.PublicEndpoint),
 		"spacesvm",
 	)
 	return &client{req: req}
