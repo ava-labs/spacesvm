@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/ava-labs/avalanche-network-runner-sdk v0.0.0
-	github.com/ava-labs/avalanchego v1.7.11
+	github.com/ava-labs/avalanchego v1.7.13
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/fatih/color v1.13.0
 	github.com/golang/mock v1.6.0
