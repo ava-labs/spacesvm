@@ -2,13 +2,13 @@
 set -e
 
 # e.g.,
-# ./scripts/run.sh 1.7.11
+# ./scripts/run.sh 1.7.13
 #
 # run without e2e tests
-# ./scripts/run.sh 1.7.11
+# ./scripts/run.sh 1.7.13
 #
 # to run E2E tests (terminates cluster afterwards)
-# E2E=true ./scripts/run.sh 1.7.11
+# E2E=true ./scripts/run.sh 1.7.13
 if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255

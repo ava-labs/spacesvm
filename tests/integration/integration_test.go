@@ -364,7 +364,7 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		_, err = instances[0].cli.IssueRawTx(context.Background(), tx.Bytes())
-		gomega.Ω(err.Error()).Should(gomega.Equal(chain.ErrInvalidBlockID.Error()))
+		gomega.Ω(err.Error()).Should(gomega.ContainSubstring(chain.ErrInvalidBlockID.Error()))
 	})
 
 	ginkgo.It("Claim/SetTx in a single node", func() {
