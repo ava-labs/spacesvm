@@ -4,6 +4,4 @@
 // Package version defines version variables.
 package version
 
-import "github.com/ava-labs/avalanchego/version"
-
-var Version = version.NewDefaultVersion(0, 0, 1)
+var Version = "v0.0.7"
