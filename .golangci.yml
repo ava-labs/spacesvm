@@ -16,72 +16,41 @@ linters:
   disable-all: true
   enable:
     - asciicheck
-    - bidichk
-    - bodyclose
-    - contextcheck
     - deadcode
     - depguard
-    - dogsled
-    - dupl
-    - durationcheck
     - errcheck
-    - errname
-    - errorlint
-    - exhaustive
     - exportloopref
-    - forcetypeassert
     - goconst
     - gocritic
     - gofmt
     - gofumpt
     - goimports
-    - goprintffuncname
+    - revive
     - gosec
     - gosimple
     - govet
-    - ifshort
     - ineffassign
-    - interfacer # https://github.com/mvdan/interfacer archived by the owner
-    - lll
     - misspell
     - nakedret
-    - nestif
-    - noctx
     - nolintlint
     - prealloc
-    - promlinter
-    - revive
-    - rowserrcheck
-    - sqlclosecheck
-    - staticcheck
-    - structcheck
     - stylecheck
-    - tagliatelle
-    - tenv
-    - thelper
-    - tparallel
-    - typecheck
     - unconvert
     - unparam
     - unused
     - varcheck
-    - wastedassign
+    - unconvert
     - whitespace
-    # - cyclop
-    # - exhaustivestruct
-    # - forbidigo
-    # - funlen
-    # - gocognit
-    # - godot
-    # - goerr113
+    - staticcheck
+    # - bodyclose
+    # - structcheck
+    # - lll
     # - gomnd
-    # - nilerr
-    # - nlreturn
-    # - paralleltest
-    # - testpackage
-    # - varnamelen
-    # - wrapcheck
-    # - wsl
+    # - goprintffuncname
+    # - interfacer
+    # - typecheck
+    # - goerr113
+    # - noctx
 
 linters-settings:
   gocritic:
