@@ -311,7 +311,7 @@ func (vm *VM) HealthCheck() (interface{}, error) {
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.validators.Connector"
-func (vm *VM) Connected(id ids.NodeID, nodeVersion avagoversion.Application) error {
+func (vm *VM) Connected(id ids.NodeID, nodeVersion *avagoversion.Application) error {
 	// no-op
 	return nil
 }
