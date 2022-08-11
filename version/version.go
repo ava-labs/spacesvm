@@ -4,4 +4,10 @@
 // Package version defines version variables.
 package version
 
-var Version = "v0.0.7"
+import "github.com/ava-labs/avalanchego/version"
+
+var Version = &version.Semantic{
+	Major: 0,
+	Minor: 0,
+	Patch: 7,
+}
