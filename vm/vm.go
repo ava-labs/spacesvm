@@ -245,7 +245,7 @@ func (vm *VM) Shutdown() error {
 }
 
 // implements "snowmanblock.ChainVM.common.VM"
-func (vm *VM) Version() (string, error) { return version.Version, nil }
+func (vm *VM) Version() (string, error) { return version.Version.String(), nil }
 
 // NewHandler returns a new Handler for a service where:
 //   * The handler's functionality is defined by [service]
