@@ -11,7 +11,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/sync"
-	"github.com/ava-labs/avalanchego/utils/logging"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -80,12 +79,10 @@ func (client *stateSyncClient) acceptSyncSummary(summary SyncSummary) (bool, err
 // stateSync blockingly performs the state sync for [client.syncSummary].
 // Returns an error if one occurred.
 func (client *stateSyncClient) stateSync() error {
-	writer := originalStderr
-	syncLogger := logging.NewLogger(false, "sync", logging.NewWrappedCore(logging.Info, writer, logging.Plain.ConsoleEncoder()))
 	syncClient := sync.NewClient(&sync.ClientConfig{
 		NetworkClient:    client.networkClient,
 		StateSyncNodeIDs: client.stateSyncNodeIDs,
-		Log:              syncLogger,
+		Log:              newLogger("sync"),
 	})
 
 	worker := sync.NewStateSyncWorker(client.db.(*merkledb.MerkleDB), syncClient, client.syncSummary.BlockRoot, numSyncThreads)

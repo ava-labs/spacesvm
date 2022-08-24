@@ -26,10 +26,10 @@ import (
 	"github.com/ava-labs/avalanchego/sync"
 	"github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/json"
+	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/gorilla/rpc/v2"
 	log "github.com/inconshreveable/log15"
 
-	avagoversion "github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/mempool"
 	"github.com/ava-labs/spacesvm/version"
@@ -92,13 +92,17 @@ type VM struct {
 	builderStop chan struct{}
 	doneBuild   chan struct{}
 	doneGossip  chan struct{}
-	donePrune   chan struct{}
+	// donePrune   chan struct{}
 	doneCompact chan struct{}
 
 	// State sync
 	acceptedRootsByHeight  map[uint64]ids.ID
 	acceptedBlocksByHeight map[uint64]*chain.StatelessBlock
 	*stateSyncClient
+
+	// AppRequest and AppResponse handlers for State sync
+	sync.NetworkClient
+	*sync.NetworkServer
 }
 
 func init() {
@@ -154,7 +158,7 @@ func (vm *VM) Initialize(
 
 	vm.appSender = appSender
 	vm.network = vm.NewPushNetwork()
-	networkClient := sync.NewNetworkClient(appSender, vm.ctx.NodeID, maxActiveRequests)
+	vm.NetworkClient = sync.NewNetworkClient(appSender, vm.ctx.NodeID, maxActiveRequests)
 	stateSyncNodeIDs, err := vm.config.StateSyncNodeIDs()
 	if err != nil {
 		return err
@@ -163,9 +167,10 @@ func (vm *VM) Initialize(
 		enabled:          vm.config.StateSyncEnabled,
 		stateSyncNodeIDs: stateSyncNodeIDs,
 		db:               vm.db,
-		networkClient:    networkClient,
+		networkClient:    vm.NetworkClient,
 		toEngine:         toEngine,
 	})
+	vm.NetworkServer = sync.NewNetworkServer(appSender, vm.db.(*merkledb.MerkleDB), newLogger("sync-server"))
 
 	vm.blocks = &cache.LRU{Size: blocksLRUSize}
 	vm.verifiedBlocks = make(map[ids.ID]*chain.StatelessBlock)
@@ -328,39 +333,9 @@ func (vm *VM) CreateStaticHandlers() (map[string]*common.HTTPHandler, error) {
 	return nil, nil
 }
 
-// implements "snowmanblock.ChainVM.commom.VM.AppHandler"
-func (vm *VM) AppRequest(nodeID ids.NodeID, requestID uint32, deadline time.Time, request []byte) error {
-	// (currently) no app-specific messages
-	return nil
-}
-
-// implements "snowmanblock.ChainVM.commom.VM.AppHandler"
-func (vm *VM) AppRequestFailed(nodeID ids.NodeID, requestID uint32) error {
-	// (currently) no app-specific messages
-	return nil
-}
-
-// implements "snowmanblock.ChainVM.commom.VM.AppHandler"
-func (vm *VM) AppResponse(nodeID ids.NodeID, requestID uint32, response []byte) error {
-	// (currently) no app-specific messages
-	return nil
-}
-
 // implements "snowmanblock.ChainVM.commom.VM.health.Checkable"
 func (vm *VM) HealthCheck() (interface{}, error) {
 	return http.StatusOK, nil
-}
-
-// implements "snowmanblock.ChainVM.commom.VM.validators.Connector"
-func (vm *VM) Connected(id ids.NodeID, nodeVersion *avagoversion.Application) error {
-	// no-op
-	return nil
-}
-
-// implements "snowmanblock.ChainVM.commom.VM.validators.Connector"
-func (vm *VM) Disconnected(id ids.NodeID) error {
-	// no-op
-	return nil
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.Getter"
@@ -513,4 +488,9 @@ func (vm *VM) GetBlockIDAtHeight(height uint64) (ids.ID, error) {
 		return block.ID(), nil
 	}
 	return ids.Empty, database.ErrNotFound
+}
+
+func newLogger(prefix string) logging.Logger {
+	writer := originalStderr
+	return logging.NewLogger(false, "sync", logging.NewWrappedCore(logging.Info, writer, logging.Plain.ConsoleEncoder()))
 }
