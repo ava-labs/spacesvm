@@ -158,7 +158,7 @@ func (vm *VM) Initialize(
 
 	vm.appSender = appSender
 	vm.network = vm.NewPushNetwork()
-	vm.NetworkClient = sync.NewNetworkClient(appSender, vm.ctx.NodeID, maxActiveRequests)
+	vm.NetworkClient = sync.NewNetworkClient(appSender, vm.ctx.NodeID, maxActiveRequests, newLogger("sync-network-client"))
 	stateSyncNodeIDs, err := vm.config.StateSyncNodeIDs()
 	if err != nil {
 		return err
