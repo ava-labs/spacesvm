@@ -92,7 +92,7 @@ type VM struct {
 	builderStop chan struct{}
 	doneBuild   chan struct{}
 	doneGossip  chan struct{}
-	// donePrune   chan struct{}
+	donePrune   chan struct{}
 	doneCompact chan struct{}
 
 	// State sync
@@ -279,6 +279,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Shutdown() error {
+	vm.stateSyncClient.Shutdown()
 	close(vm.stop)
 	<-vm.doneBuild
 	<-vm.doneGossip

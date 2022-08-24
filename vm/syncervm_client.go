@@ -5,6 +5,8 @@
 package vm
 
 import (
+	"context"
+
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/merkledb"
 	"github.com/ava-labs/avalanchego/ids"
@@ -29,6 +31,8 @@ type stateSyncClientConfig struct {
 
 type stateSyncClient struct {
 	*stateSyncClientConfig
+
+	cancel context.CancelFunc
 
 	// State Sync results
 	syncSummary  SyncSummary
@@ -82,15 +86,31 @@ func (client *stateSyncClient) stateSync() error {
 	syncClient := sync.NewClient(&sync.ClientConfig{
 		NetworkClient:    client.networkClient,
 		StateSyncNodeIDs: client.stateSyncNodeIDs,
-		Log:              newLogger("sync"),
+		Log:              newLogger("sync-client"),
 	})
 
-	worker := sync.NewStateSyncWorker(client.db.(*merkledb.MerkleDB), syncClient, client.syncSummary.BlockRoot, numSyncThreads)
-	worker.StartSyncing()
-	worker.Wait()
-	return worker.Error()
+	worker := sync.NewStateSyncWorker(&sync.StateSyncConfig{
+		SyncDB:                client.db.(*merkledb.MerkleDB),
+		Client:                syncClient,
+		RootID:                client.syncSummary.BlockRoot,
+		SimultaneousWorkLimit: numSyncThreads,
+		Log:                   newLogger("sync-worker"),
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	client.cancel = cancel
+	if err := worker.StartSyncing(ctx); err != nil {
+		return err
+	}
+	return worker.Wait()
 }
 
 // finishSync is called after a successful state sync to update necessary pointers
 // for the VM to begin normal operations.
 func (client *stateSyncClient) finishSync() error { return nil }
+
+func (client *stateSyncClient) Shutdown() {
+	if client.cancel != nil {
+		client.cancel()
+	}
+}
