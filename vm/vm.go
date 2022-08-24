@@ -260,6 +260,7 @@ func (vm *VM) Initialize(
 func (vm *VM) SetState(state snow.State) error {
 	switch state {
 	case snow.StateSyncing:
+		return nil
 	case snow.Bootstrapping:
 		return vm.onBootstrapStarted()
 	case snow.NormalOp:
