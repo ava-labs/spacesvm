@@ -4,7 +4,11 @@
 package vm
 
 import (
+	"fmt"
+	"strings"
 	"time"
+
+	"github.com/ava-labs/avalanchego/ids"
 )
 
 type Config struct {
@@ -20,6 +24,9 @@ type Config struct {
 
 	MempoolSize       int `serialize:"true" json:"mempoolSize"`
 	ActivityCacheSize int `serialize:"true" json:"activityCacheSize"`
+
+	StateSyncEnabled bool   `serialize:"true" json:"stateSyncEnabled"`
+	StateSyncIDs     string `serialize:"true" json:"stateSyncIDs"`
 }
 
 func (c *Config) SetDefaults() {
@@ -35,4 +42,21 @@ func (c *Config) SetDefaults() {
 
 	c.MempoolSize = 1024
 	c.ActivityCacheSize = 128
+}
+
+func (c *Config) StateSyncNodeIDs() ([]ids.NodeID, error) {
+	// parse nodeIDs from state sync IDs in vm config
+	var stateSyncIDs []ids.NodeID
+	if c.StateSyncEnabled && len(c.StateSyncIDs) > 0 {
+		nodeIDs := strings.Split(c.StateSyncIDs, ",")
+		stateSyncIDs = make([]ids.NodeID, len(nodeIDs))
+		for i, nodeIDString := range nodeIDs {
+			nodeID, err := ids.NodeIDFromString(nodeIDString)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse %s as NodeID: %w", nodeIDString, err)
+			}
+			stateSyncIDs[i] = nodeID
+		}
+	}
+	return stateSyncIDs, nil
 }

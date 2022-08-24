@@ -139,7 +139,7 @@ func TestClaimTx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pruned != 4 {
+	if pruned != 0 {
 		t.Fatalf("expected to prune 4 but got %d", pruned)
 	}
 	_, exists, err := GetSpaceInfo(db, []byte("foo"))

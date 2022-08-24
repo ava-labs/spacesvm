@@ -6,13 +6,16 @@ package vm
 
 import (
 	ejson "encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/manager"
+	"github.com/ava-labs/avalanchego/database/merkledb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
@@ -20,6 +23,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	snowmanblock "github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	"github.com/ava-labs/avalanchego/sync"
 	"github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/json"
 	"github.com/gorilla/rpc/v2"
@@ -34,11 +38,17 @@ import (
 const (
 	Name           = "spacesvm"
 	PublicEndpoint = "/public"
+
+	blocksLRUSize = 128
+	historyLength = 128
 )
 
 var (
-	_ snowmanblock.ChainVM = &VM{}
-	_ chain.VM             = &VM{}
+	_ snowmanblock.ChainVM              = &VM{}
+	_ chain.VM                          = &VM{}
+	_ snowmanblock.HeightIndexedChainVM = &VM{} // needed for state sync
+
+	originalStderr *os.File
 )
 
 type VM struct {
@@ -84,11 +94,19 @@ type VM struct {
 	doneGossip  chan struct{}
 	donePrune   chan struct{}
 	doneCompact chan struct{}
+
+	// State sync
+	acceptedRootsByHeight  map[uint64]ids.ID
+	acceptedBlocksByHeight map[uint64]*chain.StatelessBlock
+	*stateSyncClient
 }
 
-const (
-	blocksLRUSize = 128
-)
+func init() {
+	// Preserve [os.Stderr] prior to the call in plugin/main.go to plugin.Serve(...).
+	// Preserving the log level allows us to update the root handler while writing to the original
+	// [os.Stderr] that is being piped through to the logger via the rpcchainvm.
+	originalStderr = os.Stderr
+}
 
 // implements "snowmanblock.ChainVM.common.VM"
 func (vm *VM) Initialize(
@@ -101,6 +119,9 @@ func (vm *VM) Initialize(
 	_ []*common.Fx,
 	appSender common.AppSender,
 ) error {
+	log.Root().SetHandler(
+		log.LvlFilterHandler(log.LvlInfo, log.Root().GetHandler()),
+	)
 	log.Info("initializing spacesvm", "version", version.Version)
 
 	// Load config
@@ -112,7 +133,15 @@ func (vm *VM) Initialize(
 	}
 
 	vm.ctx = ctx
-	vm.db = dbManager.Current().Database
+
+	var err error
+	vm.db, err = merkledb.New(dbManager.Current().Database, historyLength)
+	if err != nil {
+		return err
+	}
+	vm.acceptedRootsByHeight = make(map[uint64]ids.ID, historyLength)
+	vm.acceptedBlocksByHeight = make(map[uint64]*chain.StatelessBlock, historyLength)
+
 	vm.activityCache = make([]*chain.Activity, vm.config.ActivityCacheSize)
 
 	// Init channels before initializing other structs
@@ -120,11 +149,23 @@ func (vm *VM) Initialize(
 	vm.builderStop = make(chan struct{})
 	vm.doneBuild = make(chan struct{})
 	vm.doneGossip = make(chan struct{})
-	vm.donePrune = make(chan struct{})
+	// vm.donePrune = make(chan struct{})
 	vm.doneCompact = make(chan struct{})
 
 	vm.appSender = appSender
 	vm.network = vm.NewPushNetwork()
+	networkClient := sync.NewNetworkClient(appSender, vm.ctx.NodeID, maxActiveRequests)
+	stateSyncNodeIDs, err := vm.config.StateSyncNodeIDs()
+	if err != nil {
+		return err
+	}
+	vm.stateSyncClient = NewStateSyncClient(&stateSyncClientConfig{
+		enabled:          vm.config.StateSyncEnabled,
+		stateSyncNodeIDs: stateSyncNodeIDs,
+		db:               vm.db,
+		networkClient:    networkClient,
+		toEngine:         toEngine,
+	})
 
 	vm.blocks = &cache.LRU{Size: blocksLRUSize}
 	vm.verifiedBlocks = make(map[ids.ID]*chain.StatelessBlock)
@@ -200,7 +241,7 @@ func (vm *VM) Initialize(
 
 	go vm.builder.Build()
 	go vm.builder.Gossip()
-	go vm.prune()
+	// go vm.prune()
 	go vm.compact()
 	return nil
 }
@@ -236,7 +277,7 @@ func (vm *VM) Shutdown() error {
 	close(vm.stop)
 	<-vm.doneBuild
 	<-vm.doneGossip
-	<-vm.donePrune
+	// <-vm.donePrune
 	<-vm.doneCompact
 	if vm.ctx == nil {
 		return nil
@@ -326,7 +367,7 @@ func (vm *VM) Disconnected(id ids.NodeID) error {
 // replaces "core.SnowmanVM.GetBlock"
 func (vm *VM) GetBlock(id ids.ID) (snowman.Block, error) {
 	b, err := vm.GetStatelessBlock(id)
-	if err != nil {
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		log.Warn("failed to get block", "err", err)
 	}
 	return b, err
@@ -458,4 +499,18 @@ func (vm *VM) SetPreference(id ids.ID) error {
 // replaces "core.SnowmanVM.LastAccepted"
 func (vm *VM) LastAccepted() (ids.ID, error) {
 	return vm.lastAccepted.ID(), nil
+}
+
+// VerifyHeightIndex always returns nil.
+// There is no persistent index to update, we only keep an in-memory
+// log of recently accepted blocks.
+func (vm *VM) VerifyHeightIndex() error { return nil }
+
+// GetBlockIDAtHeight returns a block from the in-memory log of
+// recently accepted blocks.
+func (vm *VM) GetBlockIDAtHeight(height uint64) (ids.ID, error) {
+	if block, ok := vm.acceptedBlocksByHeight[height]; ok {
+		return block.ID(), nil
+	}
+	return ids.Empty, database.ErrNotFound
 }

@@ -5,6 +5,7 @@ package vm
 
 import (
 	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/avalanchego/database/merkledb"
 	"github.com/ava-labs/avalanchego/ids"
 	log "github.com/inconshreveable/log15"
 
@@ -47,8 +48,19 @@ func (vm *VM) Accepted(b *chain.StatelessBlock) {
 	vm.blocks.Put(b.ID(), b)
 	delete(vm.verifiedBlocks, b.ID())
 	vm.lastAccepted = b
-	log.Debug("accepted block", "blkID", b.ID())
+	root, err := vm.db.(*merkledb.MerkleDB).GetMerkleRoot()
+	if err != nil {
+		panic(err)
+	}
 
+	// update the map of accepted roots to height for state sync
+	height := b.Height()
+	delete(vm.acceptedRootsByHeight, height-historyLength-1)  // keep the map size at [historyLength]
+	delete(vm.acceptedBlocksByHeight, height-historyLength-1) // keep the map size at [historyLength]
+	vm.acceptedRootsByHeight[height] = root
+	vm.acceptedBlocksByHeight[height] = b
+
+	log.Info("accepted block", "height", height, "root", root)
 	if vm.config.ActivityCacheSize == 0 {
 		return
 	}

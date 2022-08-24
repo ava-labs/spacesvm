@@ -452,23 +452,24 @@ func ExpireNext(db database.Database, rparent int64, rcurrent int64, bootstrappe
 		}
 
 		expired, rspc, err := extractSpecificTimeKey(curKey)
+		_ = expired
 		if err != nil {
 			return err
 		}
-		if bootstrapped {
-			// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
-			k = PrefixPruningKey(expired, rspc)
-			if err := db.Put(k, nil); err != nil {
-				return err
-			}
-		} else {
-			// If we are not yet bootstrapped, we should delete the dangling value keys
-			// immediately instead of clearing async.
-			if err := database.ClearPrefix(db, db, SpaceValueKey(rspc, nil)); err != nil {
-				return err
-			}
+		// if bootstrapped {
+		// 	// [pruningPrefix] + [delimiter] + [timestamp] + [delimiter] + [rawSpace]
+		// 	k = PrefixPruningKey(expired, rspc)
+		// 	if err := db.Put(k, nil); err != nil {
+		// 		return err
+		// 	}
+		// } else {
+		// If we are not yet bootstrapped, we should delete the dangling value keys
+		// immediately instead of clearing async.
+		if err := database.ClearPrefix(db, db, SpaceValueKey(rspc, nil)); err != nil {
+			return err
 		}
-		log.Debug("space expired", "space", string(space))
+		//}
+		log.Info("space expired", "space", string(space))
 	}
 	return cursor.Error()
 }
