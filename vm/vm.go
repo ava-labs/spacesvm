@@ -215,7 +215,13 @@ func (vm *VM) Initialize(
 		}
 
 		vm.preferred, vm.lastAccepted = blkID, blk
-		log.Info("initialized spacesvm from last accepted", "block", blkID)
+		vm.acceptedBlocksByHeight[blk.Height()] = vm.lastAccepted
+		root, err := vm.db.(*merkledb.MerkleDB).GetMerkleRoot()
+		if err != nil {
+			return err
+		}
+		vm.acceptedRootsByHeight[blk.Height()] = root
+		log.Info("initialized spacesvm from last accepted", "block", blkID, "root", root)
 	} else {
 		genesisBlk, err := chain.ParseStatefulBlock(
 			vm.genesis.StatefulBlock(),
