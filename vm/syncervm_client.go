@@ -109,7 +109,7 @@ func (client *stateSyncClient) stateSync() error {
 // finishSync is called after a successful state sync to update necessary pointers
 // for the VM to begin normal operations.
 func (client *stateSyncClient) finishSync() error {
-	return client.updateLastAccepted(client.syncSummary.summaryID)
+	return client.updateLastAccepted(client.syncSummary.BlockHash)
 }
 
 func (client *stateSyncClient) Shutdown() {
