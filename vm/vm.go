@@ -515,7 +515,7 @@ func (vm *VM) updateLastAccepted(lastAccepted ids.ID) error {
 	vm.acceptedBlocksByHeight[height] = block
 	vm.acceptedRootsByHeight[height] = root
 
-	vm.ctx.Log.Info(
+	log.Info(
 		"updateLastAccepted succeeded",
 		zap.Stringer("block", block.ID()),
 		zap.Uint64("height", height),
