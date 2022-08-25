@@ -29,6 +29,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/gorilla/rpc/v2"
 	log "github.com/inconshreveable/log15"
+	"go.uber.org/zap"
 
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/mempool"
@@ -164,11 +165,12 @@ func (vm *VM) Initialize(
 		return err
 	}
 	vm.stateSyncClient = NewStateSyncClient(&stateSyncClientConfig{
-		enabled:          vm.config.StateSyncEnabled,
-		stateSyncNodeIDs: stateSyncNodeIDs,
-		db:               vm.db,
-		networkClient:    vm.NetworkClient,
-		toEngine:         toEngine,
+		enabled:            vm.config.StateSyncEnabled,
+		stateSyncNodeIDs:   stateSyncNodeIDs,
+		db:                 vm.db,
+		networkClient:      vm.NetworkClient,
+		toEngine:           toEngine,
+		updateLastAccepted: vm.updateLastAccepted,
 	})
 	vm.NetworkServer = sync.NewNetworkServer(appSender, vm.db.(*merkledb.MerkleDB), newLogger("sync-server"))
 
@@ -499,7 +501,29 @@ func (vm *VM) GetBlockIDAtHeight(height uint64) (ids.ID, error) {
 	return ids.Empty, database.ErrNotFound
 }
 
+func (vm *VM) updateLastAccepted(lastAccepted ids.ID) error {
+	block, err := vm.GetStatelessBlock(lastAccepted)
+	if err != nil {
+		return err
+	}
+	vm.preferred, vm.lastAccepted = block.ID(), block
+	height := block.Height()
+	root, err := vm.db.(*merkledb.MerkleDB).GetMerkleRoot()
+	if err != nil {
+		return err
+	}
+	vm.acceptedBlocksByHeight[height] = block
+	vm.acceptedRootsByHeight[height] = root
+
+	vm.ctx.Log.Info(
+		"updateLastAccepted succeeded",
+		zap.Stringer("block", block.ID()),
+		zap.Uint64("height", height),
+		zap.Stringer("root", root))
+	return nil
+}
+
 func newLogger(prefix string) logging.Logger {
 	writer := originalStderr
-	return logging.NewLogger(false, "sync", logging.NewWrappedCore(logging.Info, writer, logging.Plain.ConsoleEncoder()))
+	return logging.NewLogger(false, prefix, logging.NewWrappedCore(logging.Info, writer, logging.Plain.ConsoleEncoder()))
 }

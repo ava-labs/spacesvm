@@ -7,14 +7,18 @@ package vm
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	"github.com/ethereum/go-ethereum/log"
+	"go.uber.org/zap"
 )
 
 // GetLastStateSummary returns the latest state summary.
 func (vm *VM) GetLastStateSummary() (block.StateSummary, error) {
 	height := vm.lastAccepted.Height()
 	summary, err := vm.stateSummaryAtHeight(height)
-	log.Info("Serving state summary at latest height", "height", height, "summary", summary, "err", err)
+	vm.ctx.Log.Info(
+		"Serving state summary at latest height",
+		zap.Uint64("height", height),
+		zap.Stringer("summary", summary),
+		zap.Error(err))
 	return summary, err
 }
 
@@ -23,7 +27,11 @@ func (vm *VM) GetLastStateSummary() (block.StateSummary, error) {
 // If not, [database.ErrNotFound] must be returned.
 func (vm *VM) GetStateSummary(height uint64) (block.StateSummary, error) {
 	summary, err := vm.stateSummaryAtHeight(height)
-	log.Info("Serving state summary at requested height", "height", height, "summary", summary, "err", err)
+	vm.ctx.Log.Info(
+		"Serving state summary at requested height",
+		zap.Uint64("height", height),
+		zap.Stringer("summary", summary),
+		zap.Error(err))
 	return summary, err
 }
 

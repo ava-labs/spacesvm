@@ -22,11 +22,12 @@ const (
 )
 
 type stateSyncClientConfig struct {
-	enabled          bool
-	db               database.Database
-	stateSyncNodeIDs []ids.NodeID
-	networkClient    sync.NetworkClient
-	toEngine         chan<- common.Message
+	enabled            bool
+	db                 database.Database
+	stateSyncNodeIDs   []ids.NodeID
+	networkClient      sync.NetworkClient
+	toEngine           chan<- common.Message
+	updateLastAccepted func(ids.ID) error
 }
 
 type stateSyncClient struct {
@@ -107,7 +108,9 @@ func (client *stateSyncClient) stateSync() error {
 
 // finishSync is called after a successful state sync to update necessary pointers
 // for the VM to begin normal operations.
-func (client *stateSyncClient) finishSync() error { return nil }
+func (client *stateSyncClient) finishSync() error {
+	return client.updateLastAccepted(client.syncSummary.summaryID)
+}
 
 func (client *stateSyncClient) Shutdown() {
 	if client.cancel != nil {
