@@ -29,7 +29,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/gorilla/rpc/v2"
 	log "github.com/inconshreveable/log15"
-	"go.uber.org/zap"
 
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/mempool"
@@ -506,7 +505,7 @@ func (vm *VM) updateLastAccepted(lastAccepted ids.ID) error {
 	if err != nil {
 		return err
 	}
-	vm.preferred, vm.lastAccepted = block.ID(), block
+	vm.preferred, vm.lastAccepted = lastAccepted, block
 	height := block.Height()
 	root, err := vm.db.(*merkledb.MerkleDB).GetMerkleRoot()
 	if err != nil {
@@ -515,11 +514,7 @@ func (vm *VM) updateLastAccepted(lastAccepted ids.ID) error {
 	vm.acceptedBlocksByHeight[height] = block
 	vm.acceptedRootsByHeight[height] = root
 
-	log.Info(
-		"updateLastAccepted succeeded",
-		zap.Stringer("block", block.ID()),
-		zap.Uint64("height", height),
-		zap.Stringer("root", root))
+	log.Info("updateLastAccepted succeeded", "block", lastAccepted, "height", height, "root", root)
 	return nil
 }
 
