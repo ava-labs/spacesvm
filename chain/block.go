@@ -224,8 +224,21 @@ func (b *StatelessBlock) Verify() error {
 
 // implements "snowman.Block.choices.Decidable"
 func (b *StatelessBlock) Accept() error {
-	if err := b.onAcceptDB.Commit(); err != nil {
-		return err
+	if b.vm.IsBootstrapped() {
+		batch, err := b.onAcceptDB.CommitBatch()
+		if err != nil {
+			return err
+		}
+		if err := batch.Replay(&replayDB{}); err != nil {
+			return err
+		}
+		if err := batch.Write(); err != nil {
+			return err
+		}
+	} else {
+		if err := b.onAcceptDB.Commit(); err != nil {
+			return err
+		}
 	}
 	for _, child := range b.children {
 		if err := child.onAcceptDB.SetDatabase(b.vm.State()); err != nil {
