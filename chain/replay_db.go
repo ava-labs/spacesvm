@@ -12,8 +12,7 @@ import (
 
 var _ database.KeyValueWriterDeleter = &replayDB{}
 
-type replayDB struct {
-}
+type replayDB struct{}
 
 func bytes2Hex(bytes []byte) string {
 	return hex.EncodeToString(bytes)
