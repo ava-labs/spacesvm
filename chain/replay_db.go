@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ethereum/go-ethereum/log"
+	log "github.com/inconshreveable/log15"
 )
 
 var _ database.KeyValueWriterDeleter = &replayDB{}
