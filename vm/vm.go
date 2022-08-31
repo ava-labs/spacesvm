@@ -506,16 +506,9 @@ func (vm *VM) updateLastAccepted(lastAccepted ids.ID) error {
 	if err != nil {
 		return err
 	}
-	vm.preferred, vm.lastAccepted = lastAccepted, block
-	height := block.Height()
-	root, err := vm.db.(*merkledb.MerkleDB).GetMerkleRoot()
-	if err != nil {
-		return err
-	}
-	vm.acceptedBlocksByHeight[height] = block
-	vm.acceptedRootsByHeight[height] = root
-
-	log.Info("updateLastAccepted succeeded", "block", lastAccepted, "height", height, "root", root)
+	vm.preferred = lastAccepted
+	vm.Accepted(block)
+	log.Info("updateLastAccepted succeeded", "block", lastAccepted, "height", block.Height())
 	return nil
 }
 

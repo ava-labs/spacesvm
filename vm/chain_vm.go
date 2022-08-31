@@ -62,7 +62,7 @@ func (vm *VM) Accepted(b *chain.StatelessBlock) {
 	vm.acceptedRootsByHeight[height] = root
 	vm.acceptedBlocksByHeight[height] = b
 
-	log.Info("accepted block", "height", height, "root", root)
+	log.Info("accepted block", "height", height, "root", root, "block", b.ID())
 	if vm.config.ActivityCacheSize == 0 {
 		return
 	}
