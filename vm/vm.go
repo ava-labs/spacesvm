@@ -284,7 +284,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 		return nil
 	}
 	vm.bootstrapped.SetValue(true)
-	vm.db.(*merkledb.MerkleDB).TraverseTrie()
+	vm.db.(*merkledb.MerkleDB).TraverseTrie("OnFinishBootstrap")
 	return nil
 }
 
