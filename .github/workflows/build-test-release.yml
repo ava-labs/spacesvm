@@ -19,7 +19,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: 1.18
       - name: Run unit tests
         shell: bash
         run: scripts/tests.unit.sh
@@ -28,7 +28,7 @@ jobs:
         run: scripts/tests.integration.sh
       - name: Run e2e tests
         shell: bash
-        run: E2E=true scripts/run.sh 1.7.17
+        run: E2E=true scripts/run.sh 1.8.0
         env:
           E2E: true
       - name: Run GoReleaser for cross-platform builds
