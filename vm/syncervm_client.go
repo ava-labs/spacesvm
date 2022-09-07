@@ -28,6 +28,7 @@ type stateSyncClientConfig struct {
 	networkClient      sync.NetworkClient
 	toEngine           chan<- common.Message
 	updateLastAccepted func(ids.ID) error
+	syncManager        *sync.StateSyncManager
 }
 
 type stateSyncClient struct {
@@ -44,6 +45,10 @@ func NewStateSyncClient(config *stateSyncClientConfig) *stateSyncClient {
 	return &stateSyncClient{
 		stateSyncClientConfig: config,
 	}
+}
+
+func (client *stateSyncClient) UpdateTarget(target sync.SyncTarget) {
+	client.syncManager.UpdateSyncTarget(target)
 }
 
 // StateSyncEnabled returns [client.enabled]
@@ -90,20 +95,23 @@ func (client *stateSyncClient) stateSync() error {
 		Log:              newLogger("sync-client"),
 	})
 
-	worker := sync.NewStateSyncWorker(&sync.StateSyncConfig{
-		SyncDB:                client.db.(*merkledb.MerkleDB),
-		Client:                syncClient,
-		RootID:                client.syncSummary.BlockRoot,
+	client.syncManager = sync.NewStateSyncManager(&sync.StateSyncConfig{
+		SyncDB: client.db.(*merkledb.MerkleDB),
+		Client: syncClient,
+		SyncTarget: sync.SyncTarget{
+			RootID:        client.syncSummary.BlockRoot,
+			TotalKeyCount: client.db.(*merkledb.MerkleDB).GetKeyCount(),
+		},
 		SimultaneousWorkLimit: numSyncThreads,
 		Log:                   newLogger("sync-worker"),
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	client.cancel = cancel
-	if err := worker.StartSyncing(ctx); err != nil {
+	if err := client.syncManager.StartSyncing(ctx); err != nil {
 		return err
 	}
-	return worker.Wait()
+	return client.syncManager.Wait()
 }
 
 // finishSync is called after a successful state sync to update necessary pointers
