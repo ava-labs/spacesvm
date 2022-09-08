@@ -53,7 +53,7 @@ func (vm *VM) Accepted(b *chain.StatelessBlock) {
 		panic(err)
 	}
 	if vm.bootstrapped.GetValue() {
-		vm.db.(*merkledb.MerkleDB).TraverseTrie("OnAccept")
+		//vm.db.(*merkledb.MerkleDB).TraverseTrie("OnAccept")
 	}
 	// update the map of accepted roots to height for state sync
 	height := b.Height()
