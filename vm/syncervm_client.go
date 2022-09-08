@@ -6,6 +6,7 @@ package vm
 
 import (
 	"context"
+	"time"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/merkledb"
@@ -52,7 +53,9 @@ func (client *stateSyncClient) UpdateTarget(target sync.SyncTarget) {
 }
 
 // StateSyncEnabled returns [client.enabled]
-func (client *stateSyncClient) StateSyncEnabled() (bool, error) { return client.enabled, nil }
+func (client *stateSyncClient) StateSyncEnabled() (bool, time.Duration, error) {
+	return client.enabled, 60 * time.Second, nil
+}
 
 // GetOngoingSyncStateSummary returns [database.ErrNotFound] since
 // we don't support resume in this demo.
