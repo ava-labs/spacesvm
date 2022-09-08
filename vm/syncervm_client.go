@@ -72,6 +72,12 @@ func (client *stateSyncClient) acceptSyncSummary(summary SyncSummary) (bool, err
 	client.syncSummary = summary
 
 	go func() {
+		if client.syncManager != nil {
+			client.syncManager.UpdateSyncTarget(sync.SyncTarget{
+				RootID: client.syncSummary.BlockRoot,
+			})
+			return
+		}
 		if err := client.stateSync(); err != nil {
 			client.stateSyncErr = err
 		} else {
@@ -81,6 +87,7 @@ func (client *stateSyncClient) acceptSyncSummary(summary SyncSummary) (bool, err
 		// this error will be propagated to the engine when it calls
 		// vm.SetState(snow.Bootstrapping)
 		log.Info("stateSync completed, notifying engine", "err", client.stateSyncErr)
+		client.syncManager = nil
 		client.toEngine <- common.StateSyncDone
 	}()
 	return true, nil
@@ -99,8 +106,7 @@ func (client *stateSyncClient) stateSync() error {
 		SyncDB: client.db.(*merkledb.MerkleDB),
 		Client: syncClient,
 		SyncTarget: sync.SyncTarget{
-			RootID:        client.syncSummary.BlockRoot,
-			TotalKeyCount: client.db.(*merkledb.MerkleDB).GetKeyCount(),
+			RootID: client.syncSummary.BlockRoot,
 		},
 		SimultaneousWorkLimit: numSyncThreads,
 		Log:                   newLogger("sync-worker"),
