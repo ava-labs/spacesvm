@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -47,6 +48,7 @@ var (
 	_ snowmanblock.ChainVM              = &VM{}
 	_ chain.VM                          = &VM{}
 	_ snowmanblock.HeightIndexedChainVM = &VM{} // needed for state sync
+	_ snowmanblock.StateSyncableVM      = &VM{}
 
 	originalStderr *os.File
 )
@@ -110,6 +112,50 @@ func init() {
 	// Preserving the log level allows us to update the root handler while writing to the original
 	// [os.Stderr] that is being piped through to the logger via the rpcchainvm.
 	originalStderr = os.Stderr
+}
+
+func getInProgressFileName() (string, error) {
+	dirname, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(dirname, ".syncing"), nil
+}
+
+func markSyncInProgress() error {
+	fn, err := getInProgressFileName()
+	if err != nil {
+		return err
+	}
+	f, err := os.Create(fn)
+	if err != nil {
+		return err
+	}
+	return f.Close()
+}
+
+func markSyncCompleted() error {
+	fn, err := getInProgressFileName()
+	if err != nil {
+		return err
+	}
+	return os.Remove(fn)
+}
+
+func isSyncInProgress() (bool, error) {
+	fn, err := getInProgressFileName()
+	if err != nil {
+		return false, err
+	}
+	f, err := os.Open(fn)
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, f.Close()
 }
 
 // implements "snowmanblock.ChainVM.common.VM"
@@ -202,7 +248,12 @@ func (vm *VM) Initialize(
 
 	vm.mempool = mempool.New(vm.genesis, vm.config.MempoolSize)
 
-	if has { //nolint:nestif
+	isSyncing, err := isSyncInProgress()
+	if err != nil {
+		return err
+	}
+
+	if has && !isSyncing { //nolint:nestif
 		blkID, err := chain.GetLastAccepted(vm.db)
 		if err != nil {
 			log.Error("could not get last accepted", "err", err)
@@ -274,7 +325,7 @@ func (vm *VM) SetState(state snow.State) error {
 // onBootstrapStarted marks this VM as bootstrapping
 func (vm *VM) onBootstrapStarted() error {
 	vm.bootstrapped.SetValue(false)
-	return nil
+	return markSyncCompleted() // in case there is a leftover sync and it is disabled, we have reset to genesis and can remove here.
 }
 
 // onNormalOperationsStarted marks this VM as bootstrapped

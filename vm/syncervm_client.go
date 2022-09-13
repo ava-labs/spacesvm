@@ -117,6 +117,9 @@ func (client *stateSyncClient) stateSync() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	client.cancel = cancel
+	if err := markSyncInProgress(); err != nil {
+		return err
+	}
 	if err := client.syncManager.StartSyncing(ctx); err != nil {
 		return err
 	}
