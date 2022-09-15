@@ -140,7 +140,11 @@ func markSyncCompleted() error {
 	if err != nil {
 		return err
 	}
-	return os.Remove(fn)
+	err = os.Remove(fn)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
 }
 
 func isSyncInProgress() (bool, error) {
@@ -356,10 +360,10 @@ func (vm *VM) Shutdown() error {
 func (vm *VM) Version() (string, error) { return version.Version.String(), nil }
 
 // NewHandler returns a new Handler for a service where:
-//   * The handler's functionality is defined by [service]
+//   - The handler's functionality is defined by [service]
 //     [service] should be a gorilla RPC service (see https://www.gorillatoolkit.org/pkg/rpc/v2)
-//   * The name of the service is [name]
-//   * The LockOption is the first element of [lockOption]
+//   - The name of the service is [name]
+//   - The LockOption is the first element of [lockOption]
 //     By default the LockOption is WriteLock
 //     [lockOption] should have either 0 or 1 elements. Elements beside the first are ignored.
 func newHandler(name string, service interface{}, lockOption ...common.LockOption) (*common.HTTPHandler, error) {
