@@ -48,7 +48,7 @@ func NewStateSyncClient(config *stateSyncClientConfig) *stateSyncClient {
 	}
 }
 
-func (client *stateSyncClient) UpdateTarget(target sync.SyncTarget) {
+func (client *stateSyncClient) UpdateTarget(target sync.TargetRoot) {
 	client.syncManager.UpdateSyncTarget(target)
 }
 
@@ -76,7 +76,7 @@ func (client *stateSyncClient) acceptSyncSummary(summary SyncSummary) (bool, err
 
 	go func() {
 		if client.syncManager != nil {
-			client.syncManager.UpdateSyncTarget(sync.SyncTarget{
+			client.syncManager.UpdateSyncTarget(sync.TargetRoot{
 				RootID: client.syncSummary.BlockRoot,
 			})
 			return
@@ -105,16 +105,19 @@ func (client *stateSyncClient) stateSync() error {
 		Log:              newLogger("sync-client"),
 	})
 
-	client.syncManager = sync.NewStateSyncManager(&sync.StateSyncConfig{
+	var err error
+	client.syncManager, err = sync.NewStateSyncManager(&sync.StateSyncConfig{
 		SyncDB: client.db.(*merkledb.MerkleDB),
 		Client: syncClient,
-		SyncTarget: sync.SyncTarget{
+		TargetRoot: sync.TargetRoot{
 			RootID: client.syncSummary.BlockRoot,
 		},
 		SimultaneousWorkLimit: numSyncThreads,
 		Log:                   newLogger("sync-worker"),
 	})
-
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	client.cancel = cancel
 	if err := markSyncInProgress(); err != nil {
