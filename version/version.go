@@ -9,5 +9,5 @@ import "github.com/ava-labs/avalanchego/version"
 var Version = &version.Semantic{
 	Major: 0,
 	Minor: 0,
-	Patch: 8,
+	Patch: 9,
 }
