@@ -459,3 +459,15 @@ func (vm *VM) SetPreference(id ids.ID) error {
 func (vm *VM) LastAccepted() (ids.ID, error) {
 	return vm.lastAccepted.ID(), nil
 }
+
+func (vm *VM) CrossChainAppRequest(chainID ids.ID, requestID uint32, deadline time.Time, request []byte) error {
+	return nil
+}
+
+func (vm *VM) CrossChainAppRequestFailed(chainID ids.ID, requestID uint32) error {
+	return nil
+}
+
+func (vm *VM) CrossChainAppResponse(chainID ids.ID, requestID uint32, response []byte) error {
+	return nil
+}

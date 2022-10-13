@@ -70,7 +70,6 @@ type Client interface {
 func New(uri string, reqTimeout time.Duration) Client {
 	req := rpc.NewEndpointRequester(
 		fmt.Sprintf("%s%s", uri, vm.PublicEndpoint),
-		"spacesvm",
 	)
 	return &client{req: req}
 }
