@@ -783,15 +783,19 @@ func (app *appSender) SendAppGossip(ctx context.Context, appGossipBytes []byte) 
 func (app *appSender) SendAppRequest(_ context.Context, _ ids.NodeIDSet, _ uint32, _ []byte) error {
 	return nil
 }
+
 func (app *appSender) SendAppResponse(_ context.Context, _ ids.NodeID, _ uint32, _ []byte) error {
 	return nil
 }
+
 func (app *appSender) SendAppGossipSpecific(_ context.Context, _ ids.NodeIDSet, _ []byte) error {
 	return nil
 }
+
 func (app *appSender) SendCrossChainAppRequest(_ context.Context, _ ids.ID, _ uint32, _ []byte) error {
 	return nil
 }
+
 func (app *appSender) SendCrossChainAppResponse(_ context.Context, _ ids.ID, _ uint32, _ []byte) error {
 	return nil
 }
