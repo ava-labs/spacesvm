@@ -772,16 +772,26 @@ type appSender struct {
 	instances []instance
 }
 
-func (app *appSender) SendAppGossip(appGossipBytes []byte) error {
+func (app *appSender) SendAppGossip(ctx context.Context, appGossipBytes []byte) error {
 	n := len(app.instances)
 	sender := app.instances[app.next].nodeID
 	app.next++
 	app.next %= n
-	return app.instances[app.next].vm.AppGossip(sender, appGossipBytes)
+	return app.instances[app.next].vm.AppGossip(ctx, sender, appGossipBytes)
 }
 
-func (app *appSender) SendAppRequest(_ ids.NodeIDSet, _ uint32, _ []byte) error     { return nil }
-func (app *appSender) SendAppResponse(_ ids.NodeID, _ uint32, _ []byte) error       { return nil }
-func (app *appSender) SendAppGossipSpecific(_ ids.NodeIDSet, _ []byte) error        { return nil }
-func (app *appSender) SendCrossChainAppRequest(_ ids.ID, _ uint32, _ []byte) error  { return nil }
-func (app *appSender) SendCrossChainAppResponse(_ ids.ID, _ uint32, _ []byte) error { return nil }
+func (app *appSender) SendAppRequest(_ context.Context, _ ids.NodeIDSet, _ uint32, _ []byte) error {
+	return nil
+}
+func (app *appSender) SendAppResponse(_ context.Context, _ ids.NodeID, _ uint32, _ []byte) error {
+	return nil
+}
+func (app *appSender) SendAppGossipSpecific(_ context.Context, _ ids.NodeIDSet, _ []byte) error {
+	return nil
+}
+func (app *appSender) SendCrossChainAppRequest(_ context.Context, _ ids.ID, _ uint32, _ []byte) error {
+	return nil
+}
+func (app *appSender) SendCrossChainAppResponse(_ context.Context, _ ids.ID, _ uint32, _ []byte) error {
+	return nil
+}
