@@ -780,6 +780,8 @@ func (app *appSender) SendAppGossip(appGossipBytes []byte) error {
 	return app.instances[app.next].vm.AppGossip(sender, appGossipBytes)
 }
 
-func (app *appSender) SendAppRequest(_ ids.NodeIDSet, _ uint32, _ []byte) error { return nil }
-func (app *appSender) SendAppResponse(_ ids.NodeID, _ uint32, _ []byte) error   { return nil }
-func (app *appSender) SendAppGossipSpecific(_ ids.NodeIDSet, _ []byte) error    { return nil }
+func (app *appSender) SendAppRequest(_ ids.NodeIDSet, _ uint32, _ []byte) error     { return nil }
+func (app *appSender) SendAppResponse(_ ids.NodeID, _ uint32, _ []byte) error       { return nil }
+func (app *appSender) SendAppGossipSpecific(_ ids.NodeIDSet, _ []byte) error        { return nil }
+func (app *appSender) SendCrossChainAppRequest(_ ids.ID, _ uint32, _ []byte) error  { return nil }
+func (app *appSender) SendCrossChainAppResponse(_ ids.ID, _ uint32, _ []byte) error { return nil }
