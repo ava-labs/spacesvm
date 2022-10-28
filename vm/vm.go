@@ -11,6 +11,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/rpc/v2"
+
+	log "github.com/inconshreveable/log15"
+
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/manager"
@@ -27,8 +31,6 @@ import (
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/mempool"
 	"github.com/ava-labs/spacesvm/version"
-	"github.com/gorilla/rpc/v2"
-	log "github.com/inconshreveable/log15"
 )
 
 const (
