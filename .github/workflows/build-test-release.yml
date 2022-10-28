@@ -31,7 +31,7 @@ jobs:
         run: E2E=true scripts/run.sh 1.9.1
         env:
           E2E: true
-  build_release:
+  build_test_release:
     needs: [build_test]
     runs-on: ubuntu-latest
     steps:
