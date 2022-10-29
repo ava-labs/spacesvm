@@ -5,10 +5,15 @@
 package vm
 
 import (
+	"context"
 	ejson "encoding/json"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/rpc/v2"
+
+	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
@@ -22,9 +27,6 @@ import (
 	snowmanblock "github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/json"
-	"github.com/gorilla/rpc/v2"
-	log "github.com/inconshreveable/log15"
-
 	avagoversion "github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/mempool"
@@ -288,19 +290,19 @@ func (vm *VM) CreateStaticHandlers() (map[string]*common.HTTPHandler, error) {
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"
-func (vm *VM) AppRequest(nodeID ids.NodeID, requestID uint32, deadline time.Time, request []byte) error {
+func (vm *VM) AppRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, deadline time.Time, request []byte) error {
 	// (currently) no app-specific messages
 	return nil
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"
-func (vm *VM) AppRequestFailed(nodeID ids.NodeID, requestID uint32) error {
+func (vm *VM) AppRequestFailed(ctx context.Context, nodeID ids.NodeID, requestID uint32) error {
 	// (currently) no app-specific messages
 	return nil
 }
 
 // implements "snowmanblock.ChainVM.commom.VM.AppHandler"
-func (vm *VM) AppResponse(nodeID ids.NodeID, requestID uint32, response []byte) error {
+func (vm *VM) AppResponse(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
 	// (currently) no app-specific messages
 	return nil
 }
@@ -458,4 +460,16 @@ func (vm *VM) SetPreference(id ids.ID) error {
 // replaces "core.SnowmanVM.LastAccepted"
 func (vm *VM) LastAccepted() (ids.ID, error) {
 	return vm.lastAccepted.ID(), nil
+}
+
+func (vm *VM) CrossChainAppRequest(ctx context.Context, chainID ids.ID, requestID uint32, deadline time.Time, request []byte) error {
+	return nil
+}
+
+func (vm *VM) CrossChainAppRequestFailed(ctx context.Context, chainID ids.ID, requestID uint32) error {
+	return nil
+}
+
+func (vm *VM) CrossChainAppResponse(ctx context.Context, chainID ids.ID, requestID uint32, response []byte) error {
+	return nil
 }

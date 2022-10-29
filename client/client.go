@@ -70,7 +70,6 @@ type Client interface {
 func New(uri string, reqTimeout time.Duration) Client {
 	req := rpc.NewEndpointRequester(
 		fmt.Sprintf("%s%s", uri, vm.PublicEndpoint),
-		"spacesvm",
 	)
 	return &client{req: req}
 }
@@ -82,7 +81,7 @@ type client struct {
 func (cli *client) Ping(ctx context.Context) (bool, error) {
 	resp := new(vm.PingReply)
 	err := cli.req.SendRequest(ctx,
-		"ping",
+		"spacesvm.ping",
 		nil,
 		resp,
 	)
@@ -96,7 +95,7 @@ func (cli *client) Network(ctx context.Context) (uint32, ids.ID, ids.ID, error) 
 	resp := new(vm.NetworkReply)
 	err := cli.req.SendRequest(
 		ctx,
-		"network",
+		"spacesvm.network",
 		nil,
 		resp,
 	)
@@ -110,7 +109,7 @@ func (cli *client) Genesis(ctx context.Context) (*chain.Genesis, error) {
 	resp := new(vm.GenesisReply)
 	err := cli.req.SendRequest(
 		ctx,
-		"genesis",
+		"spacesvm.genesis",
 		nil,
 		resp,
 	)
@@ -121,7 +120,7 @@ func (cli *client) Claimed(ctx context.Context, space string) (bool, error) {
 	resp := new(vm.ClaimedReply)
 	if err := cli.req.SendRequest(
 		ctx,
-		"claimed",
+		"spacesvm.claimed",
 		&vm.ClaimedArgs{Space: space},
 		resp,
 	); err != nil {
@@ -134,7 +133,7 @@ func (cli *client) Info(ctx context.Context, space string) (*chain.SpaceInfo, []
 	resp := new(vm.InfoReply)
 	if err := cli.req.SendRequest(
 		ctx,
-		"info",
+		"spacesvm.info",
 		&vm.InfoArgs{Space: space},
 		resp,
 	); err != nil {
@@ -147,7 +146,7 @@ func (cli *client) Accepted(ctx context.Context) (ids.ID, error) {
 	resp := new(vm.LastAcceptedReply)
 	if err := cli.req.SendRequest(
 		ctx,
-		"lastAccepted",
+		"spacesvm.lastAccepted",
 		nil,
 		resp,
 	); err != nil {
@@ -161,7 +160,7 @@ func (cli *client) SuggestedRawFee(ctx context.Context) (uint64, uint64, error) 
 	resp := new(vm.SuggestedRawFeeReply)
 	if err := cli.req.SendRequest(
 		ctx,
-		"suggestedRawFee",
+		"spacesvm.suggestedRawFee",
 		nil,
 		resp,
 	); err != nil {
@@ -174,7 +173,7 @@ func (cli *client) IssueRawTx(ctx context.Context, d []byte) (ids.ID, error) {
 	resp := new(vm.IssueRawTxReply)
 	if err := cli.req.SendRequest(
 		ctx,
-		"issueRawTx",
+		"spacesvm.issueRawTx",
 		&vm.IssueRawTxArgs{Tx: d},
 		resp,
 	); err != nil {
@@ -187,7 +186,7 @@ func (cli *client) HasTx(ctx context.Context, txID ids.ID) (bool, error) {
 	resp := new(vm.HasTxReply)
 	if err := cli.req.SendRequest(
 		ctx,
-		"hasTx",
+		"spacesvm.hasTx",
 		&vm.HasTxArgs{TxID: txID},
 		resp,
 	); err != nil {
@@ -200,7 +199,7 @@ func (cli *client) SuggestedFee(ctx context.Context, i *chain.Input) (*tdata.Typ
 	resp := new(vm.SuggestedFeeReply)
 	if err := cli.req.SendRequest(
 		ctx,
-		"suggestedFee",
+		"spacesvm.suggestedFee",
 		&vm.SuggestedFeeArgs{Input: i},
 		resp,
 	); err != nil {
@@ -213,7 +212,7 @@ func (cli *client) IssueTx(ctx context.Context, td *tdata.TypedData, sig []byte)
 	resp := new(vm.IssueTxReply)
 	if err := cli.req.SendRequest(
 		ctx,
-		"issueTx",
+		"spacesvm.issueTx",
 		&vm.IssueTxArgs{TypedData: td, Signature: sig},
 		resp,
 	); err != nil {
@@ -248,7 +247,7 @@ func (cli *client) Resolve(ctx context.Context, path string) (bool, []byte, *cha
 	resp := new(vm.ResolveReply)
 	if err := cli.req.SendRequest(
 		ctx,
-		"resolve",
+		"spacesvm.resolve",
 		&vm.ResolveArgs{
 			Path: path,
 		},
@@ -281,7 +280,7 @@ func (cli *client) Balance(ctx context.Context, addr common.Address) (bal uint64
 	resp := new(vm.BalanceReply)
 	if err = cli.req.SendRequest(
 		ctx,
-		"balance",
+		"spacesvm.balance",
 		&vm.BalanceArgs{
 			Address: addr,
 		},
@@ -296,7 +295,7 @@ func (cli *client) RecentActivity(ctx context.Context) (activity []*chain.Activi
 	resp := new(vm.RecentActivityReply)
 	if err = cli.req.SendRequest(
 		ctx,
-		"recentActivity",
+		"spacesvm.recentActivity",
 		nil,
 		resp,
 	); err != nil {
@@ -309,7 +308,7 @@ func (cli *client) Owned(ctx context.Context, addr common.Address) (spaces []str
 	resp := new(vm.OwnedReply)
 	if err = cli.req.SendRequest(
 		ctx,
-		"owned",
+		"spacesvm.owned",
 		&vm.OwnedArgs{
 			Address: addr,
 		},
