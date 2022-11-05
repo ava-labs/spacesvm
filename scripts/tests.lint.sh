@@ -9,6 +9,12 @@ if ! [[ "$0" =~ scripts/tests.lint.sh ]]; then
   exit 255
 fi
 
+SPACESVM_PATH=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  cd .. && pwd
+)
+source "$SPACESVM_PATH"/scripts/constants.sh
+
 if [ "$#" -eq 0 ]; then
   # by default, check all source code
   # to test only "mempool" package
