@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/ava-labs/avalanche-network-runner-sdk v0.2.0
-	github.com/ava-labs/avalanchego v1.9.1
+	github.com/ava-labs/avalanchego v1.9.2
 	github.com/ethereum/go-ethereum v1.10.25
 	github.com/fatih/color v1.13.0
 	github.com/golang/mock v1.6.0
