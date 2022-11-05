@@ -14,6 +14,12 @@ if ! [[ "$0" =~ scripts/run.sh ]]; then
   exit 255
 fi
 
+SPACESVM_PATH=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  cd .. && pwd
+)
+source "$SPACESVM_PATH"/scripts/constants.sh
+
 VERSION=$1
 if [[ -z "${VERSION}" ]]; then
   echo "Missing version argument!"

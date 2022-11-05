@@ -9,6 +9,12 @@ if ! [[ "$0" =~ scripts/build.sh ]]; then
   exit 255
 fi
 
+SPACESVM_PATH=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  cd .. && pwd
+)
+source "$SPACESVM_PATH"/scripts/constants.sh
+
 # Set default binary directory location
 name="sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm"
 

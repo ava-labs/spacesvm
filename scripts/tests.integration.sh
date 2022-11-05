@@ -6,6 +6,12 @@ if ! [[ "$0" =~ scripts/tests.integration.sh ]]; then
   exit 255
 fi
 
+SPACESVM_PATH=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  cd .. && pwd
+)
+source "$SPACESVM_PATH"/scripts/constants.sh
+
 # to install the ginkgo binary (required for test build and run)
 go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.0.0-rc2
 
