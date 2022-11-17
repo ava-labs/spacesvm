@@ -13,10 +13,8 @@ type rpcChainCompatibility struct {
 	RPCChainVMProtocolVersion map[string]uint `json:"rpcChainVMProtocolVersion"`
 }
 
-var (
-	//go:embed compatibility.json
-	rpcChainVMProtocolCompatibilityBytes []byte
-)
+//go:embed compatibility.json
+var rpcChainVMProtocolCompatibilityBytes []byte
 
 func TestCompatibility(t *testing.T) {
 	var compat rpcChainCompatibility
