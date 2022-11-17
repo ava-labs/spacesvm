@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/ava-labs/spacesvm/version"
+	avagoVersion "github.com/ava-labs/avalanchego/version"
+	spacesVersion "github.com/ava-labs/spacesvm/version"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,6 +22,8 @@ func TestCompatibility(t *testing.T) {
 	err := json.Unmarshal(rpcChainVMProtocolCompatibilityBytes, &compat)
 	assert.NoError(t, err)
 
-	_, valueInJSON := compat.RPCChainVMProtocolVersion[version.Version.String()]
+	currentSpacesRPC, valueInJSON := compat.RPCChainVMProtocolVersion[spacesVersion.Version.String()]
 	assert.True(t, valueInJSON)
+
+	assert.Equal(t, avagoVersion.RPCChainVMProtocol, currentSpacesRPC)
 }
