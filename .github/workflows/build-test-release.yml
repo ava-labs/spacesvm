@@ -28,7 +28,7 @@ jobs:
         run: scripts/tests.integration.sh
       - name: Run e2e tests
         shell: bash
-        run: E2E=true scripts/run.sh 1.9.2
+        run: E2E=true scripts/run.sh 1.9.3
         env:
           E2E: true
   build_test_release:
