@@ -4,6 +4,7 @@
 package chain
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -204,7 +205,7 @@ func (b *StatelessBlock) verify() (*StatelessBlock, *versiondb.Database, error) 
 }
 
 // implements "snowman.Block"
-func (b *StatelessBlock) Verify() error {
+func (b *StatelessBlock) Verify(ctx context.Context) error {
 	parent, onAcceptDB, err := b.verify()
 	if err != nil {
 		log.Debug("block verification failed", "blkID", b.ID(), "error", err)
@@ -223,7 +224,7 @@ func (b *StatelessBlock) Verify() error {
 }
 
 // implements "snowman.Block.choices.Decidable"
-func (b *StatelessBlock) Accept() error {
+func (b *StatelessBlock) Accept(ctx context.Context) error {
 	if err := b.onAcceptDB.Commit(); err != nil {
 		return err
 	}
@@ -238,7 +239,7 @@ func (b *StatelessBlock) Accept() error {
 }
 
 // implements "snowman.Block.choices.Decidable"
-func (b *StatelessBlock) Reject() error {
+func (b *StatelessBlock) Reject(ctx context.Context) error {
 	b.st = choices.Rejected
 	b.vm.Rejected(b)
 	return nil

@@ -4,6 +4,7 @@
 package vm
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"time"
@@ -53,7 +54,7 @@ func (vm *VM) ValidBlockID(blockID ids.ID) (bool, error) {
 }
 
 func (vm *VM) SuggestedFee() (uint64, uint64, error) {
-	prnt, err := vm.GetBlock(vm.preferred)
+	prnt, err := vm.GetBlock(context.Background(), vm.preferred)
 	if err != nil {
 		return 0, 0, err
 	}
