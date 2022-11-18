@@ -154,6 +154,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		// TODO: test appsender
 		v := &vm.VM{AirdropData: airdropData}
 		err := v.Initialize(
+			context.Background(),
 			ctx,
 			db,
 			genesisBytes,
@@ -172,7 +173,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		})
 
 		var hd map[string]*common.HTTPHandler
-		hd, err = v.CreateHandlers()
+		hd, err = v.CreateHandlers(context.Background())
 		gomega.Ω(err).Should(gomega.BeNil())
 
 		httpServer := httptest.NewServer(hd[vm.PublicEndpoint].Handler)
@@ -207,7 +208,7 @@ var _ = ginkgo.BeforeSuite(func() {
 var _ = ginkgo.AfterSuite(func() {
 	for _, iv := range instances {
 		iv.httpServer.Close()
-		err := iv.vm.Shutdown()
+		err := iv.vm.Shutdown(context.Background())
 		gomega.Ω(err).Should(gomega.BeNil())
 	}
 })
@@ -297,19 +298,21 @@ var _ = ginkgo.Describe("Tx Types", func() {
 		})
 
 		ginkgo.By("build block in the node 1", func() {
-			blk, err := instances[1].vm.BuildBlock()
+			ctx := context.Background()
+
+			blk, err := instances[1].vm.BuildBlock(ctx)
 			gomega.Ω(err).To(gomega.BeNil())
 
-			gomega.Ω(blk.Verify()).To(gomega.BeNil())
+			gomega.Ω(blk.Verify(ctx)).To(gomega.BeNil())
 			gomega.Ω(blk.Status()).To(gomega.Equal(choices.Processing))
 
-			err = instances[1].vm.SetPreference(blk.ID())
+			err = instances[1].vm.SetPreference(ctx, blk.ID())
 			gomega.Ω(err).To(gomega.BeNil())
 
-			gomega.Ω(blk.Accept()).To(gomega.BeNil())
+			gomega.Ω(blk.Accept(ctx)).To(gomega.BeNil())
 			gomega.Ω(blk.Status()).To(gomega.Equal(choices.Accepted))
 
-			lastAccepted, err := instances[1].vm.LastAccepted()
+			lastAccepted, err := instances[1].vm.LastAccepted(ctx)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
 		})
@@ -710,6 +713,7 @@ func createIssueTx(i instance, input *chain.Input, signer *ecdsa.PrivateKey) {
 }
 
 func asyncBlockPush(i instance, c chan struct{}) {
+	ctx := context.Background()
 	timer := time.NewTicker(500 * time.Millisecond)
 	for {
 		select {
@@ -721,21 +725,21 @@ func asyncBlockPush(i instance, c chan struct{}) {
 			// manually ack ready sig as in engine
 			<-i.toEngine
 
-			blk, err := i.vm.BuildBlock()
+			blk, err := i.vm.BuildBlock(ctx)
 			if err != nil {
 				continue
 			}
 
-			gomega.Ω(blk.Verify()).To(gomega.BeNil())
+			gomega.Ω(blk.Verify(ctx)).To(gomega.BeNil())
 			gomega.Ω(blk.Status()).To(gomega.Equal(choices.Processing))
 
-			err = i.vm.SetPreference(blk.ID())
+			err = i.vm.SetPreference(ctx, blk.ID())
 			gomega.Ω(err).To(gomega.BeNil())
 
-			gomega.Ω(blk.Accept()).To(gomega.BeNil())
+			gomega.Ω(blk.Accept(ctx)).To(gomega.BeNil())
 			gomega.Ω(blk.Status()).To(gomega.Equal(choices.Accepted))
 
-			lastAccepted, err := i.vm.LastAccepted()
+			lastAccepted, err := i.vm.LastAccepted(ctx)
 			gomega.Ω(err).To(gomega.BeNil())
 			gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
 		}
@@ -748,19 +752,21 @@ func expectBlkAccept(i instance) {
 	// manually ack ready sig as in engine
 	<-i.toEngine
 
-	blk, err := i.vm.BuildBlock()
+	ctx := context.Background()
+
+	blk, err := i.vm.BuildBlock(ctx)
 	gomega.Ω(err).To(gomega.BeNil())
 
-	gomega.Ω(blk.Verify()).To(gomega.BeNil())
+	gomega.Ω(blk.Verify(ctx)).To(gomega.BeNil())
 	gomega.Ω(blk.Status()).To(gomega.Equal(choices.Processing))
 
-	err = i.vm.SetPreference(blk.ID())
+	err = i.vm.SetPreference(ctx, blk.ID())
 	gomega.Ω(err).To(gomega.BeNil())
 
-	gomega.Ω(blk.Accept()).To(gomega.BeNil())
+	gomega.Ω(blk.Accept(ctx)).To(gomega.BeNil())
 	gomega.Ω(blk.Status()).To(gomega.Equal(choices.Accepted))
 
-	lastAccepted, err := i.vm.LastAccepted()
+	lastAccepted, err := i.vm.LastAccepted(ctx)
 	gomega.Ω(err).To(gomega.BeNil())
 	gomega.Ω(lastAccepted).To(gomega.Equal(blk.ID()))
 }

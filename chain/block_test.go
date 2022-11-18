@@ -4,6 +4,7 @@
 package chain
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -150,7 +151,7 @@ func TestBlock(t *testing.T) {
 	}
 	for i, tv := range tt {
 		blk := tv.createBlk()
-		err := blk.Verify()
+		err := blk.Verify(context.Background())
 		if !errors.Is(err, tv.expectedVerifyErr) {
 			t.Fatalf("#%d: block verify expected error %v, got %v", i, tv.expectedVerifyErr, err)
 		}
