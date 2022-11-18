@@ -106,7 +106,7 @@ func (n *PushNetwork) RegossipTxs() error {
 // assume gossip via proposervm has been activated
 // ref. "avalanchego/vms/platformvm/network.AppGossip"
 // ref. "coreeth/plugin/evm.GossipHandler.HandleEthTxs"
-func (vm *VM) AppGossip(_ context.Context, nodeID ids.NodeID, msg []byte) error {
+func (vm *VM) AppGossip(ctx context.Context, nodeID ids.NodeID, msg []byte) error {
 	log.Debug("AppGossip message handler",
 		"sender", nodeID,
 		"receiver", vm.ctx.NodeID,
