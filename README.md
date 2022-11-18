@@ -26,6 +26,8 @@ this to its logical conclusion).
 [v0.0.8] AvalancheGo@v1.8.0-v1.8.6
 [v0.0.9] AvalancheGo@v1.9.0-1.9.1
 [v0.0.10] AvalancheGo@v1.9.2
+[v0.0.11] AvalancheGo@v1.9.2
+[v0.0.12] AvalancheGo@v1.9.3
 ```
 
 ## Introduction
