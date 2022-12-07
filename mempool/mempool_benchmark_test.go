@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/ava-labs/spacesvm/chain"
@@ -45,7 +46,7 @@ func createTestMempool(
 	maxSize int,
 	n int,
 	sampleBlk int,
-) (mp chain.Mempool, sampleBlkIDs ids.Set) {
+) (mp chain.Mempool, sampleBlkIDs set.Set[ids.ID]) {
 	b.Helper()
 	if sampleBlk*2 >= n {
 		b.Fatalf("unexpected sampleBlk %d (expected < N/2 %d)", sampleBlk, n)
@@ -91,7 +92,7 @@ func createTestMempool(
 		txs[i] = tx
 	}
 
-	sampleBlkIDs = ids.NewSet(sampleBlk)
+	sampleBlkIDs = set.NewSet[ids.ID](sampleBlk)
 
 	mp = mempool.New(g, maxSize)
 
