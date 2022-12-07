@@ -11,6 +11,7 @@ import (
 	reflect "reflect"
 
 	ids "github.com/ava-labs/avalanchego/ids"
+	set "github.com/ava-labs/avalanchego/utils/set"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -95,7 +96,7 @@ func (mr *MockMempoolMockRecorder) PopMax() *gomock.Call {
 }
 
 // Prune mocks base method.
-func (m *MockMempool) Prune(arg0 ids.Set) {
+func (m *MockMempool) Prune(arg0 set.Set[ids.ID]) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Prune", arg0)
 }
