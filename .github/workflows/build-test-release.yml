@@ -33,7 +33,7 @@ jobs:
           E2E: true
   build_test_release:
     needs: [build_test]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04 # don't compile using latest/22.04 due to dynamic libs issue with 20.04
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
