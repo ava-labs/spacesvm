@@ -6,6 +6,7 @@ package vm
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/set"
 	log "github.com/inconshreveable/log15"
 
 	"github.com/ava-labs/spacesvm/chain"
@@ -67,8 +68,8 @@ func (vm *VM) Accepted(b *chain.StatelessBlock) {
 
 func (vm *VM) ExecutionContext(currTime int64, lastBlock *chain.StatelessBlock) (*chain.Context, error) {
 	g := vm.genesis
-	recentBlockIDs := ids.Set{}
-	recentTxIDs := ids.Set{}
+	recentBlockIDs := set.Set[ids.ID]{}
+	recentTxIDs := set.Set[ids.ID]{}
 	recentUnits := uint64(0)
 	prices := []uint64{}
 	costs := []uint64{}

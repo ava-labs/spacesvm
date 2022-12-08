@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/set"
 
 	"github.com/ava-labs/spacesvm/chain"
 )
@@ -132,7 +133,7 @@ func (th *Mempool) Remove(id ids.ID) *chain.Transaction { // O(log N)
 }
 
 // Prune removes all transactions that are not found in "validHashes".
-func (th *Mempool) Prune(validHashes ids.Set) {
+func (th *Mempool) Prune(validHashes set.Set[ids.ID]) {
 	th.mu.RLock()
 	toRemove := []ids.ID{}
 	for _, txE := range th.maxHeap.items { // O(N)

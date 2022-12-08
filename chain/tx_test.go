@@ -12,6 +12,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -23,7 +24,7 @@ func TestTransaction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	found := ids.NewSet(3)
+	found := set.NewSet[ids.ID](3)
 	g := DefaultGenesis()
 	for i := range []int{0, 1, 2} {
 		tx := &Transaction{
@@ -80,7 +81,7 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 				return createTestTx(t, ids.ID{0, 1}, priv)
 			},
 			blockTime:  1,
-			ctx:        &Context{RecentBlockIDs: ids.Set{{0, 1}: struct{}{}}},
+			ctx:        &Context{RecentBlockIDs: set.Set[ids.ID]{{0, 1}: struct{}{}}},
 			executeErr: nil,
 		},
 		{
@@ -89,7 +90,7 @@ func TestTransactionErrInvalidSignature(t *testing.T) {
 				return tx
 			},
 			blockTime:  1,
-			ctx:        &Context{RecentBlockIDs: ids.Set{{0, 1}: struct{}{}}},
+			ctx:        &Context{RecentBlockIDs: set.Set[ids.ID]{{0, 1}: struct{}{}}},
 			executeErr: ErrInvalidBalance,
 		},
 	}

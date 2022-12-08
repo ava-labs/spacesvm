@@ -6,11 +6,12 @@ package chain
 import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/set"
 )
 
 type Context struct {
-	RecentBlockIDs  ids.Set
-	RecentTxIDs     ids.Set
+	RecentBlockIDs  set.Set[ids.ID]
+	RecentTxIDs     set.Set[ids.ID]
 	RecentLoadUnits uint64
 
 	Prices []uint64

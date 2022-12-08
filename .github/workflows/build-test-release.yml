@@ -28,7 +28,7 @@ jobs:
         run: scripts/tests.integration.sh
       - name: Run e2e tests
         shell: bash
-        run: E2E=true scripts/run.sh 1.9.3
+        run: E2E=true scripts/run.sh 1.9.4
         env:
           E2E: true
   build_test_release:
@@ -45,7 +45,9 @@ jobs:
         with:
           go-version: 1.18
       - name: Set up arm64 cross compiler
-        run: sudo apt-get -y install gcc-aarch64-linux-gnu
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install gcc-aarch64-linux-gnu
       - name: Checkout osxcross
         uses: actions/checkout@v2
         with:

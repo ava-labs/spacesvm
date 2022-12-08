@@ -12,7 +12,7 @@ fi
 
 echo "MOCKGEN RUNNING!"
 
-go install -v github.com/golang/mock/mockgen@v1.6.0
+go install -v github.com/golang/mock/mockgen@v1.7.0-rc.1
 
 mockgen \
 -copyright_file=./LICENSE.header \
