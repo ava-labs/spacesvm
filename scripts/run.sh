@@ -100,9 +100,7 @@ EOF
 echo "creating VM genesis file"
 rm -f /tmp/spacesvm.genesis
 /tmp/spaces-cli genesis 1 /tmp/allocations.json \
---genesis-file /tmp/spacesvm.genesis \
---airdrop-hash 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da \
---airdrop-units 10000
+--genesis-file /tmp/spacesvm.genesis
 ############################
 
 ############################
@@ -116,7 +114,7 @@ ACK_GINKGO_RC=true ginkgo build ./tests/e2e
 # download avalanche-network-runner
 # https://github.com/ava-labs/avalanche-network-runner
 # TODO: use "go install -v github.com/ava-labs/avalanche-network-runner/cmd/avalanche-network-runner@v${NETWORK_RUNNER_VERSION}"
-NETWORK_RUNNER_VERSION=1.1.4
+NETWORK_RUNNER_VERSION=1.3.5
 DOWNLOAD_PATH=/tmp/avalanche-network-runner.tar.gz
 DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_linux_amd64.tar.gz
 if [[ ${GOOS} == "darwin" ]]; then
