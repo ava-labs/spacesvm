@@ -100,9 +100,7 @@ EOF
 echo "creating VM genesis file"
 rm -f /tmp/spacesvm.genesis
 /tmp/spaces-cli genesis 1 /tmp/allocations.json \
---genesis-file /tmp/spacesvm.genesis \
---airdrop-hash 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da \
---airdrop-units 10000
+--genesis-file /tmp/spacesvm.genesis
 ############################
 
 ############################
