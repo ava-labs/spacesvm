@@ -15,9 +15,10 @@ import (
 	"testing"
 	"time"
 
-	runner_sdk "github.com/ava-labs/avalanche-network-runner-sdk"
-	"github.com/ava-labs/avalanche-network-runner-sdk/rpcpb"
+	runner_sdk "github.com/ava-labs/avalanche-network-runner/client"
+	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/spacesvm/chain"
 	"github.com/ava-labs/spacesvm/client"
 	"github.com/ava-labs/spacesvm/parser"
@@ -140,11 +141,21 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(mode).Should(gomega.Or(gomega.Equal("test"), gomega.Equal("run")))
 
 	var err error
+
+	lvl, err := logging.ToLevel(networkRunnerLogLevel)
+	gomega.Expect(err).Should(gomega.BeNil())
+	lcfg := logging.Config{
+		DisplayLevel: lvl,
+		LogLevel:     logging.Off,
+	}
+	logFactory := logging.NewFactory(lcfg)
+	log, err := logFactory.Make("spacesvm_e2e")
+	gomega.Expect(err).Should(gomega.BeNil())
+
 	cli, err = runner_sdk.New(runner_sdk.Config{
-		LogLevel:    networkRunnerLogLevel,
 		Endpoint:    gRPCEp,
 		DialTimeout: 10 * time.Second,
-	})
+	}, log)
 	gomega.Expect(err).Should(gomega.BeNil())
 
 	ginkgo.By("calling start API via network runner", func() {
