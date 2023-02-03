@@ -64,7 +64,7 @@ type CompactRange struct {
 
 var (
 	lastAccepted  = []byte("last_accepted")
-	linkedTxCache = &cache.LRU{Size: linkedTxLRUSize}
+	linkedTxCache = &cache.LRU[string, []byte]{Size: linkedTxLRUSize}
 
 	CompactRanges = []*CompactRange{
 		// Don't compact block/tx/txValue ranges because no overwriting/deletion
@@ -644,11 +644,7 @@ func HasTransaction(db database.KeyValueReader, txID ids.ID) (bool, error) {
 
 func getLinkedValue(db database.KeyValueReader, b []byte) ([]byte, error) {
 	bh := string(b)
-	if v, ok := linkedTxCache.Get(bh); ok {
-		bytes, ok := v.([]byte)
-		if !ok {
-			return nil, fmt.Errorf("expected []byte but got %T", v)
-		}
+	if bytes, ok := linkedTxCache.Get(bh); ok {
 		return bytes, nil
 	}
 	txID, err := ids.ToID(b)

@@ -18,13 +18,13 @@ const (
 
 type PushNetwork struct {
 	vm          *VM
-	gossipedTxs *cache.LRU
+	gossipedTxs *cache.LRU[ids.ID, []byte]
 }
 
 func (vm *VM) NewPushNetwork() *PushNetwork {
 	return &PushNetwork{
 		vm:          vm,
-		gossipedTxs: &cache.LRU{Size: gossipedTxsLRUSize},
+		gossipedTxs: &cache.LRU[ids.ID, []byte]{Size: gossipedTxsLRUSize},
 	}
 }
 
