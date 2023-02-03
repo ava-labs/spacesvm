@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/ava-labs/avalanche-network-runner v1.3.5
-	github.com/ava-labs/avalanchego v1.9.7
+	github.com/ava-labs/avalanchego v1.9.8
 	github.com/ethereum/go-ethereum v1.10.26
 	github.com/fatih/color v1.13.0
 	github.com/golang/mock v1.6.0
@@ -21,7 +21,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/VictoriaMetrics/fastcache v1.10.0 // indirect
-	github.com/ava-labs/coreth v0.11.6-rc.0 // indirect
+	github.com/ava-labs/coreth v0.11.7-rc.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/btcsuite/btcd/btcutil v1.1.3 // indirect
@@ -75,12 +75,13 @@ require (
 	github.com/otiai10/copy v1.9.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
+	github.com/pires/go-proxyproto v0.6.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/rjeczalik/notify v0.9.2 // indirect
+	github.com/rjeczalik/notify v0.9.3 // indirect
 	github.com/rs/cors v1.7.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect

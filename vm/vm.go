@@ -50,7 +50,7 @@ type VM struct {
 	genesis     *chain.Genesis
 	AirdropData []byte
 
-	bootstrapped utils.AtomicBool
+	bootstrapped utils.Atomic[bool]
 
 	mempool   *mempool.Mempool
 	appSender common.AppSender
@@ -59,7 +59,7 @@ type VM struct {
 	// cache block objects to optimize "GetBlockStateless"
 	// only put when a block is accepted
 	// key: block ID, value: *chain.StatelessBlock
-	blocks *cache.LRU
+	blocks *cache.LRU[ids.ID, *chain.StatelessBlock]
 
 	// Block ID --> Block
 	// Each element is a block that passed verification but
@@ -129,7 +129,7 @@ func (vm *VM) Initialize(
 	vm.appSender = appSender
 	vm.network = vm.NewPushNetwork()
 
-	vm.blocks = &cache.LRU{Size: blocksLRUSize}
+	vm.blocks = &cache.LRU[ids.ID, *chain.StatelessBlock]{Size: blocksLRUSize}
 	vm.verifiedBlocks = make(map[ids.ID]*chain.StatelessBlock)
 
 	vm.toEngine = toEngine
@@ -221,16 +221,16 @@ func (vm *VM) SetState(ctx context.Context, state snow.State) error {
 
 // onBootstrapStarted marks this VM as bootstrapping
 func (vm *VM) onBootstrapStarted() error {
-	vm.bootstrapped.SetValue(false)
+	vm.bootstrapped.Set(false)
 	return nil
 }
 
 // onNormalOperationsStarted marks this VM as bootstrapped
 func (vm *VM) onNormalOperationsStarted() error {
-	if vm.bootstrapped.GetValue() {
+	if vm.bootstrapped.Get() {
 		return nil
 	}
-	vm.bootstrapped.SetValue(true)
+	vm.bootstrapped.Set(true)
 	return nil
 }
 
@@ -337,12 +337,8 @@ func (vm *VM) GetBlock(ctx context.Context, id ids.ID) (snowman.Block, error) {
 
 func (vm *VM) GetStatelessBlock(blkID ids.ID) (*chain.StatelessBlock, error) {
 	// has the block been cached from previous "Accepted" call
-	bi, exist := vm.blocks.Get(blkID)
+	blk, exist := vm.blocks.Get(blkID)
 	if exist {
-		blk, ok := bi.(*chain.StatelessBlock)
-		if !ok {
-			return nil, fmt.Errorf("unexpected entry %T found in LRU cache, expected *chain.StatelessBlock", bi)
-		}
 		return blk, nil
 	}
 

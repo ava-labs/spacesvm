@@ -25,7 +25,7 @@ func TestBlockCache(t *testing.T) {
 	blkID := blk.ID()
 
 	vm := VM{
-		blocks:         &cache.LRU{Size: 3},
+		blocks:         &cache.LRU[ids.ID, *chain.StatelessBlock]{Size: 3},
 		verifiedBlocks: make(map[ids.ID]*chain.StatelessBlock),
 	}
 
